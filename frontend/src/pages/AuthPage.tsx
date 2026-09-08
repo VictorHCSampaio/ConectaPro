@@ -1,16 +1,42 @@
+import { motion } from 'framer-motion'
 import { Link, useLocation } from 'react-router-dom'
 import { AccentPanel } from '@/components/auth/AccentPanel'
 import { LoginForm } from '@/components/auth/LoginForm'
 import { RegisterForm } from '@/components/auth/RegisterForm'
 import { cn } from '@/lib/cn'
 
+const SLOT_TRANSITION = { duration: 0.5, ease: [0.16, 1, 0.3, 1] as const }
+
 export function AuthPage() {
   const { pathname } = useLocation()
   const isRegister = pathname === '/register'
 
+  const formSlot = (
+    <motion.div layout="position" transition={SLOT_TRANSITION} key="form" className="h-full bg-white">
+      <div className="grid h-full">
+        <div className={cn('[grid-area:1/1]', isRegister && 'invisible')}>
+          <LoginForm />
+        </div>
+        <div className={cn('[grid-area:1/1]', !isRegister && 'invisible')}>
+          <RegisterForm />
+        </div>
+      </div>
+    </motion.div>
+  )
+
+  const accentSlot = (
+    <motion.div layout="position" transition={SLOT_TRANSITION} key="accent" className="h-full">
+      <AccentPanel isRegister={isRegister} />
+    </motion.div>
+  )
+
   return (
     <div className="flex min-h-screen flex-col items-center justify-center bg-slate-50 px-4 py-10 sm:px-6">
       <Link to="/login" className="mb-8 flex items-center gap-2.5">
+        <div className="flex size-9 items-center justify-center rounded-lg bg-brand-600 font-bold text-white shadow-glow-brand">
+          C
+        </div>
+        <span className="text-lg font-bold tracking-tight text-slate-900">ConectaPro</span>
       </Link>
 
       <div className="mb-6 inline-flex rounded-full border border-slate-200 bg-white p-1 shadow-sm md:hidden">
@@ -34,31 +60,18 @@ export function AuthPage() {
         </Link>
       </div>
 
-      <div className="w-full max-w-sm overflow-hidden rounded-3xl bg-white shadow-2xl shadow-slate-200/60 md:max-w-4xl">
-        <div
-          className="flex w-[200%] transition-transform duration-700 ease-in-out"
-          style={{ transform: isRegister ? 'translateX(-50%)' : 'translateX(0%)' }}
-        >
-          <div className="flex w-1/2 shrink-0 flex-col md:flex-row [&>*]:flex-1">
-            <LoginForm />
-            <AccentPanel
-              heading="Novo por aqui?"
-              text="Crie sua conta e comece a divulgar suas aulas ou encontrar o professor ideal."
-              ctaLabel="Criar conta"
-              ctaTo="/register"
-            />
-          </div>
-
-          <div className="flex w-1/2 shrink-0 flex-col md:flex-row [&>*]:flex-1">
-            <AccentPanel
-              heading="Já tem uma conta?"
-              text="Entre com seus dados e continue de onde parou."
-              ctaLabel="Entrar"
-              ctaTo="/login"
-            />
-            <RegisterForm />
-          </div>
-        </div>
+      <div className="animate-pop-in grid w-full max-w-sm overflow-hidden rounded-3xl bg-white shadow-glow-brand-lg md:max-w-4xl md:grid-cols-2">
+        {isRegister ? (
+          <>
+            {accentSlot}
+            {formSlot}
+          </>
+        ) : (
+          <>
+            {formSlot}
+            {accentSlot}
+          </>
+        )}
       </div>
     </div>
   )
