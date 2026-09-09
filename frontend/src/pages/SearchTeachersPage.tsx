@@ -4,6 +4,7 @@ import { TeacherResultCard } from '@/components/search/TeacherResultCard'
 import { TeacherSearchBar } from '@/components/search/TeacherSearchBar'
 import { SiteFooter } from '@/components/landing/SiteFooter'
 import { SiteHeader } from '@/components/landing/SiteHeader'
+import { Reveal } from '@/components/motion/Reveal'
 import { MAX_PRICE_PER_HOUR, MIN_PRICE_PER_HOUR, MOCK_TEACHERS } from '@/lib/mockTeachers'
 import type { ModalityOption } from '@/types/teacher'
 
@@ -68,13 +69,21 @@ export function SearchTeachersPage() {
   }, [searchQuery, selectedSubjects, modality, priceRange, onlyVerified, sortOption])
 
   return (
-    <div className="flex min-h-screen flex-col bg-slate-50">
+    <div className="flex min-h-screen flex-col bg-paper-50">
       <SiteHeader />
 
-      <main className="mx-auto w-full max-w-6xl flex-1 px-6 py-8">
+      <main className="mx-auto w-full max-w-6xl flex-1 px-6 py-10">
+        <p className="label-mono flex items-center gap-2.5 text-paper-600">
+          <span className="h-px w-8 bg-ocre-400" />
+          Diretório
+        </p>
+        <h1 className="mt-3 mb-6 text-3xl font-semibold tracking-tight text-ink-900">
+          Professores particulares
+        </h1>
+
         <TeacherSearchBar value={searchQuery} onChange={setSearchQuery} />
 
-        <div className="mt-8 grid gap-8 lg:grid-cols-[280px_1fr]">
+        <div className="mt-8 grid gap-8 lg:grid-cols-[264px_1fr]">
           <FilterPanel
             selectedSubjects={selectedSubjects}
             onToggleSubject={toggleSubject}
@@ -87,45 +96,55 @@ export function SearchTeachersPage() {
             onClear={clearFilters}
           />
 
-          <div className="flex flex-col gap-4">
-            <div className="flex flex-wrap items-center justify-between gap-3">
-              <div className="flex items-baseline gap-2">
-                <h1 className="text-lg font-bold text-slate-900">Professores encontrados</h1>
-                <span className="text-sm text-slate-500">
-                  {filteredTeachers.length} resultado{filteredTeachers.length === 1 ? '' : 's'}
-                </span>
-              </div>
+          <div className="flex flex-col gap-3">
+            <div className="flex flex-wrap items-center justify-between gap-3 border-b border-paper-200 pb-3">
+              <p className="text-sm text-ink-700">
+                <span className="tnum font-semibold text-ink-900">{filteredTeachers.length}</span>{' '}
+                {filteredTeachers.length === 1
+                  ? 'professor encontrado'
+                  : 'professores encontrados'}
+              </p>
 
-              <select
-                value={sortOption}
-                onChange={(event) => setSortOption(event.target.value as SortOption)}
-                className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-600 outline-none focus:border-brand-400"
-              >
-                <option value="relevancia">Ordenar: Relevância</option>
-                <option value="menor-preco">Ordenar: Menor preço</option>
-                <option value="maior-avaliacao">Ordenar: Maior avaliação</option>
-              </select>
+              <label className="flex items-center gap-2 text-sm text-paper-600">
+                Ordenar por
+                <select
+                  value={sortOption}
+                  onChange={(event) => setSortOption(event.target.value as SortOption)}
+                  className="rounded-md border border-paper-300 bg-white px-2.5 py-1.5 text-sm text-ink-800 shadow-[inset_0_1px_0_#fff,0_1px_0_var(--color-paper-200)] outline-none transition-colors hover:border-paper-400 focus:border-ocre-400"
+                >
+                  <option value="relevancia">Relevância</option>
+                  <option value="menor-preco">Menor preço</option>
+                  <option value="maior-avaliacao">Maior avaliação</option>
+                </select>
+              </label>
             </div>
 
             {filteredTeachers.length === 0 ? (
-              <div className="flex flex-col items-center gap-3 rounded-2xl border border-dashed border-slate-200 bg-white p-12 text-center">
-                <p className="text-sm text-slate-500">
-                  Nenhum professor encontrado com esses filtros.
+              <div className="inset-well flex flex-col items-start gap-2 rounded-lg p-10">
+                <p className="text-lg font-semibold text-ink-900">
+                  Nenhum professor corresponde a esses filtros.
+                </p>
+                <p className="text-sm text-ink-600">
+                  Tente ampliar a faixa de valor ou remover uma matéria.
                 </p>
                 <button
                   type="button"
                   onClick={clearFilters}
-                  className="text-sm font-semibold text-brand-600 hover:text-brand-700"
+                  className="mt-2 rounded-md border border-paper-300 bg-white px-4 py-2 text-sm font-semibold text-ink-800 shadow-[inset_0_1px_0_#fff,0_2px_0_var(--color-paper-200)] transition-transform duration-150 active:translate-y-0.5 active:shadow-none"
                 >
                   Limpar filtros
                 </button>
               </div>
             ) : (
-              <div className="flex flex-col gap-4">
-                {filteredTeachers.map((teacher) => (
-                  <TeacherResultCard key={teacher.id} teacher={teacher} />
+              <ul className="flex flex-col gap-4">
+                {filteredTeachers.map((teacher, index) => (
+                  <Reveal key={teacher.id} delay={Math.min(index, 5) * 0.05}>
+                    <li>
+                      <TeacherResultCard teacher={teacher} />
+                    </li>
+                  </Reveal>
                 ))}
-              </div>
+              </ul>
             )}
           </div>
         </div>

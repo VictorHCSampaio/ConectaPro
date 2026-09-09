@@ -1,6 +1,5 @@
 import { Search } from 'lucide-react'
 import type { FormEvent } from 'react'
-import { Button } from '@/components/ui/Button'
 
 type TeacherSearchBarProps = {
   value: string
@@ -13,21 +12,23 @@ export function TeacherSearchBar({ value, onChange }: TeacherSearchBarProps) {
   }
 
   return (
-    <form
-      onSubmit={handleSubmit}
-      className="flex items-center gap-2 rounded-2xl border border-slate-200 bg-white p-2 shadow-sm"
-    >
-      <Search className="ml-2 size-4 shrink-0 text-slate-400" />
+    <form onSubmit={handleSubmit} className="card flex items-stretch gap-1 rounded-lg p-1.5">
+      <span className="flex items-center pl-3 text-paper-500">
+        <Search className="size-4" />
+      </span>
       <input
         type="text"
-        placeholder="Buscar por matéria, professor ou área..."
+        placeholder="Buscar por matéria, professor ou área"
         value={value}
         onChange={(event) => onChange(event.target.value)}
-        className="w-full text-sm text-slate-900 outline-none placeholder:text-slate-400"
+        className="w-full bg-transparent px-3 py-2.5 text-sm text-ink-900 outline-none placeholder:text-paper-400"
       />
-      <Button type="submit" fullWidth={false} className="shrink-0 px-6">
+      <button
+        type="submit"
+        className="shrink-0 rounded-md bg-ink-800 px-6 text-sm font-semibold text-paper-50 shadow-[inset_0_1px_0_rgba(255,255,255,0.2),0_3px_0_var(--color-ink-950)] transition-[background-color,transform,box-shadow] duration-150 hover:bg-ink-700 active:translate-y-[3px] active:shadow-[inset_0_2px_4px_rgba(0,0,0,0.35)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ocre-500"
+      >
         Buscar
-      </Button>
+      </button>
     </form>
   )
 }
