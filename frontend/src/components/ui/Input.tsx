@@ -14,13 +14,13 @@ export function Input({ label, error, icon, trailing, className, id, ...props }:
   const inputId = id ?? generatedId
 
   return (
-    <div className="flex flex-col gap-1.5">
-      <label htmlFor={inputId} className="text-sm font-medium text-slate-700">
+    <div className="flex flex-col gap-2">
+      <label htmlFor={inputId} className="label-mono text-paper-600">
         {label}
       </label>
       <div className="relative">
         {icon && (
-          <span className="pointer-events-none absolute inset-y-0 left-3.5 flex items-center text-slate-400">
+          <span className="pointer-events-none absolute inset-y-0 left-3.5 z-10 flex items-center text-paper-500">
             {icon}
           </span>
         )}
@@ -29,23 +29,23 @@ export function Input({ label, error, icon, trailing, className, id, ...props }:
           aria-invalid={Boolean(error)}
           aria-describedby={error ? `${inputId}-error` : undefined}
           className={cn(
-            'w-full rounded-xl border bg-white py-3 text-sm text-slate-900 placeholder:text-slate-400',
-            'transition-colors duration-150 focus:outline-none focus:ring-2 focus:ring-offset-0',
+            'inset-well w-full rounded-md py-3 text-sm text-ink-900 placeholder:text-paper-400',
+            'transition-[border-color,box-shadow] duration-200 focus:outline-none',
             icon ? 'pl-11' : 'pl-4',
-            trailing ? 'pr-11' : 'pr-4',
+            trailing ? 'pr-12' : 'pr-4',
             error
-              ? 'border-red-300 focus:border-red-400 focus:ring-red-100'
-              : 'border-slate-200 focus:border-brand-500 focus:ring-brand-100',
+              ? 'border-alert-600/50 focus:border-alert-600'
+              : 'hover:border-paper-400 focus:border-ocre-400 focus:shadow-[inset_0_2px_4px_rgba(18,38,63,0.09),0_0_0_3px_rgba(192,161,74,0.18)]',
             className,
           )}
           {...props}
         />
         {trailing && (
-          <span className="absolute inset-y-0 right-2 flex items-center">{trailing}</span>
+          <span className="absolute inset-y-0 right-2 z-10 flex items-center">{trailing}</span>
         )}
       </div>
       {error && (
-        <p id={`${inputId}-error`} className="animate-fade-in text-xs font-medium text-red-500">
+        <p id={`${inputId}-error`} className="text-xs font-medium text-alert-600">
           {error}
         </p>
       )}
