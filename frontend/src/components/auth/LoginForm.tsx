@@ -32,11 +32,11 @@ export function LoginForm() {
   return (
     <div className="flex h-full flex-col justify-center gap-6 px-8 py-10 sm:px-10 md:px-12">
       <div className="flex flex-col gap-1.5">
-        <h2 className="text-2xl font-bold tracking-tight text-slate-900">Bem-vindo de volta</h2>
-        <p className="text-sm text-slate-500">Entre com seu e-mail e senha para continuar.</p>
+        <h2 className="text-2xl font-semibold tracking-tight text-ink-900">Acesse sua conta</h2>
+        <p className="text-sm text-ink-600">Entre com seu e-mail e senha para continuar.</p>
       </div>
 
-      {wasSubmitted && <FormFeedback message="Login realizado com sucesso! Redirecionando..." />}
+      {wasSubmitted && <FormFeedback message="Login realizado. Redirecionando." />}
 
       <form onSubmit={onSubmit} noValidate className="flex flex-col gap-5">
         <Input
@@ -67,7 +67,7 @@ export function LoginForm() {
             checked={values.rememberMe}
             onChange={(event) => setField('rememberMe', event.target.checked)}
           />
-          <Link to="#" className="text-sm font-medium text-brand-600 hover:text-brand-700">
+          <Link to="#" className="border-b border-paper-300 text-sm text-ink-700 transition-colors hover:border-ocre-400 hover:text-ink-900">
             Esqueci minha senha
           </Link>
         </div>
