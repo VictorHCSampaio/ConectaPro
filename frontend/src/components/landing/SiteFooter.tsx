@@ -1,21 +1,35 @@
 import { Link } from 'react-router-dom'
+import { Brand } from '@/components/Brand'
+
+const FOOTER_LINKS = [
+  { to: '#', label: 'Sobre o projeto' },
+  { to: '#', label: 'Termos de uso' },
+  { to: '#', label: 'Privacidade' },
+]
 
 export function SiteFooter() {
   return (
-    <footer className="border-t border-slate-200 bg-white">
-      <div className="mx-auto flex max-w-6xl flex-col items-center justify-between gap-4 px-6 py-8 text-sm text-slate-500 sm:flex-row">
-        <p>ConectaPro © {new Date().getFullYear()} — Universidade de Mogi das Cruzes</p>
-        <div className="flex items-center gap-6">
-          <Link to="#" className="transition-colors hover:text-slate-900">
-            Sobre
-          </Link>
-          <Link to="#" className="transition-colors hover:text-slate-900">
-            Termos
-          </Link>
-          <Link to="#" className="transition-colors hover:text-slate-900">
-            Privacidade
-          </Link>
+    <footer className="mt-auto border-t border-paper-200 bg-paper-100">
+      <div className="mx-auto flex max-w-6xl flex-col gap-6 px-6 py-10 sm:flex-row sm:items-start sm:justify-between">
+        <div className="flex flex-col gap-2">
+          <Brand />
+          <p className="max-w-xs text-sm leading-relaxed text-paper-600">
+            Trabalho de conclusão de curso da Universidade de Mogi das Cruzes,{' '}
+            {new Date().getFullYear()}.
+          </p>
         </div>
+
+        <nav className="flex flex-col gap-2 text-sm">
+          {FOOTER_LINKS.map((link) => (
+            <Link
+              key={link.label}
+              to={link.to}
+              className="text-ink-600 transition-colors hover:text-ink-900"
+            >
+              {link.label}
+            </Link>
+          ))}
+        </nav>
       </div>
     </footer>
   )

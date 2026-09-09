@@ -17,6 +17,8 @@ type FilterPanelProps = {
   onClear: () => void
 }
 
+const SECTION_TITLE = 'label-mono text-paper-500'
+
 export function FilterPanel({
   selectedSubjects,
   onToggleSubject,
@@ -29,22 +31,20 @@ export function FilterPanel({
   onClear,
 }: FilterPanelProps) {
   return (
-    <aside className="flex h-fit flex-col gap-6 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm shadow-slate-200/60 transition-shadow duration-300 hover:shadow-md hover:shadow-slate-200/70">
-      <div className="flex items-center justify-between">
-        <h2 className="text-sm font-bold text-slate-900">Filtros</h2>
+    <aside className="card h-fit rounded-lg">
+      <div className="flex items-center justify-between border-b border-paper-200 px-5 py-3.5">
+        <h2 className="text-sm font-semibold text-ink-900">Filtros</h2>
         <button
           type="button"
           onClick={onClear}
-          className="text-sm font-medium text-brand-600 hover:text-brand-700"
+          className="label-mono rounded-sm px-2 py-1 text-paper-600 transition-colors hover:bg-paper-100 hover:text-ink-900"
         >
           Limpar
         </button>
       </div>
 
-      <div className="flex flex-col gap-3">
-        <span className="text-xs font-semibold tracking-wide text-slate-400 uppercase">
-          Matéria
-        </span>
+      <div className="flex flex-col gap-3 border-b border-paper-200 px-5 py-5">
+        <span className={SECTION_TITLE}>Matéria</span>
         <div className="flex flex-col gap-2.5">
           {SUBJECT_OPTIONS.map((subject) => (
             <Checkbox
@@ -57,10 +57,8 @@ export function FilterPanel({
         </div>
       </div>
 
-      <div className="flex flex-col gap-3">
-        <span className="text-xs font-semibold tracking-wide text-slate-400 uppercase">
-          Modalidade
-        </span>
+      <div className="flex flex-col gap-3 border-b border-paper-200 px-5 py-5">
+        <span className={SECTION_TITLE}>Modalidade</span>
         <div className="flex flex-col gap-2.5">
           <Radio
             name="modalidade"
@@ -77,10 +75,8 @@ export function FilterPanel({
         </div>
       </div>
 
-      <div className="flex flex-col gap-3">
-        <span className="text-xs font-semibold tracking-wide text-slate-400 uppercase">
-          Valor da hora-aula
-        </span>
+      <div className="flex flex-col gap-3 border-b border-paper-200 px-5 py-5">
+        <span className={SECTION_TITLE}>Valor da hora-aula</span>
         <RangeSlider
           min={MIN_PRICE_PER_HOUR}
           max={MAX_PRICE_PER_HOUR}
@@ -91,7 +87,13 @@ export function FilterPanel({
         />
       </div>
 
-      <Switch label="Somente verificados" checked={onlyVerified} onChange={onOnlyVerifiedChange} />
+      <div className="px-5 py-5">
+        <Switch
+          label="Somente verificados"
+          checked={onlyVerified}
+          onChange={onOnlyVerifiedChange}
+        />
+      </div>
     </aside>
   )
 }

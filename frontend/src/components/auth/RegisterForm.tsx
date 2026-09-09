@@ -34,18 +34,18 @@ export function RegisterForm() {
   return (
     <div className="flex h-full flex-col justify-center gap-6 px-8 py-10 sm:px-10 md:px-12">
       <div className="flex flex-col gap-1.5">
-        <h2 className="text-2xl font-bold tracking-tight text-slate-900">Crie sua conta</h2>
-        <p className="text-sm text-slate-500">Leva menos de um minuto para começar.</p>
+        <h2 className="text-2xl font-semibold tracking-tight text-ink-900">Crie sua conta</h2>
+        <p className="text-sm text-ink-600">Preencha seus dados para se cadastrar.</p>
       </div>
 
       {wasSubmitted && (
-        <FormFeedback message="Conta criada com sucesso! Verifique seu e-mail para continuar." />
+        <FormFeedback message="Conta criada. Verifique seu e-mail para continuar." />
       )}
 
       <form onSubmit={onSubmit} noValidate className="flex flex-col gap-5">
         <Input
           label="Nome completo"
-          placeholder="Como podemos te chamar?"
+          placeholder="Seu nome completo"
           icon={<User className="size-4" />}
           value={values.fullName}
           onChange={(event) => setField('fullName', event.target.value)}
@@ -90,11 +90,11 @@ export function RegisterForm() {
           label={
             <>
               Concordo com os{' '}
-              <Link to="#" className="font-semibold text-brand-600 hover:text-brand-700">
+              <Link to="#" className="border-b border-paper-300 font-medium text-ink-800 transition-colors hover:border-ocre-400">
                 Termos de Uso
               </Link>{' '}
               e a{' '}
-              <Link to="#" className="font-semibold text-brand-600 hover:text-brand-700">
+              <Link to="#" className="border-b border-paper-300 font-medium text-ink-800 transition-colors hover:border-ocre-400">
                 Política de Privacidade
               </Link>
             </>

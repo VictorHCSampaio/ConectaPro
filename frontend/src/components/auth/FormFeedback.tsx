@@ -6,8 +6,8 @@ type FormFeedbackProps = {
 
 export function FormFeedback({ message }: FormFeedbackProps) {
   return (
-    <div className="animate-fade-up mb-5 flex items-center gap-2.5 rounded-xl border border-growth-200 bg-growth-50 px-4 py-3 text-sm font-medium text-growth-700">
-      <CheckCircle2 className="size-5 shrink-0" />
+    <div className="flex items-start gap-2.5 rounded-md border border-sage-600/20 bg-sage-50 px-4 py-3 text-sm text-sage-600 shadow-[inset_0_1px_0_#fff]">
+      <CheckCircle2 className="mt-0.5 size-4 shrink-0" />
       {message}
     </div>
   )

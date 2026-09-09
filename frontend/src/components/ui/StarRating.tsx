@@ -11,7 +11,7 @@ export function StarRating({ rating }: StarRatingProps) {
     <div className="relative inline-flex">
       <div className="flex gap-0.5">
         {Array.from({ length: 5 }, (_, index) => (
-          <Star key={index} className="size-3.5 shrink-0 fill-slate-200 text-slate-200" />
+          <Star key={index} className="size-3.5 shrink-0 fill-paper-200 text-paper-200" />
         ))}
       </div>
       <div
@@ -19,7 +19,10 @@ export function StarRating({ rating }: StarRatingProps) {
         style={{ width: `${fillPercent}%` }}
       >
         {Array.from({ length: 5 }, (_, index) => (
-          <Star key={index} className="size-3.5 shrink-0 fill-amber-400 text-amber-400" />
+          <Star
+            key={index}
+            className="size-3.5 shrink-0 fill-ocre-400 text-ocre-400 drop-shadow-[0_1px_0_rgba(138,110,35,0.5)]"
+          />
         ))}
       </div>
     </div>

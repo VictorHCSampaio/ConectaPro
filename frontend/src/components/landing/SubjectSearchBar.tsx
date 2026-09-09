@@ -1,9 +1,8 @@
-import { BookOpen, MapPin, Search } from 'lucide-react'
+import { Search } from 'lucide-react'
 import { useState } from 'react'
 import type { FormEvent } from 'react'
-import { Button } from '@/components/ui/Button'
 
-const POPULAR_SUBJECTS = ['Matemática', 'Inglês', 'Física', 'Violão', 'Programação']
+const POPULAR_SUBJECTS = ['Matemática', 'Inglês', 'Física', 'Química', 'Programação']
 
 export function SubjectSearchBar() {
   const [subject, setSubject] = useState('')
@@ -15,46 +14,52 @@ export function SubjectSearchBar() {
   }
 
   return (
-    <div className="flex flex-col gap-3">
+    <div className="flex flex-col gap-4">
       <form
         onSubmit={handleSubmit}
-        className="flex flex-col gap-2 rounded-2xl border border-slate-200 bg-white p-2 shadow-lg shadow-slate-200/60 sm:flex-row sm:items-center"
+        className="card flex flex-col gap-px overflow-hidden rounded-lg p-1.5 sm:flex-row sm:items-stretch"
       >
-        <label className="flex flex-1 items-center gap-2.5 rounded-xl px-3 py-2.5 sm:border-r sm:border-slate-100">
-          <BookOpen className="size-4 shrink-0 text-slate-400" />
+        <label className="flex flex-1 flex-col gap-0.5 rounded-md px-3.5 py-2.5 transition-colors focus-within:bg-paper-50">
+          <span className="label-mono text-paper-500">Matéria</span>
           <input
             type="text"
-            placeholder="Ex.: Matemática"
+            placeholder="Matemática"
             value={subject}
             onChange={(event) => setSubject(event.target.value)}
-            className="w-full text-sm text-slate-900 outline-none placeholder:text-slate-400"
+            className="w-full bg-transparent text-sm text-ink-900 outline-none placeholder:text-paper-400"
           />
         </label>
 
-        <label className="flex flex-1 items-center gap-2.5 rounded-xl px-3 py-2.5">
-          <MapPin className="size-4 shrink-0 text-slate-400" />
+        <span className="hidden w-px shrink-0 self-stretch bg-paper-200 sm:block" />
+
+        <label className="flex flex-1 flex-col gap-0.5 rounded-md px-3.5 py-2.5 transition-colors focus-within:bg-paper-50">
+          <span className="label-mono text-paper-500">Cidade ou CEP</span>
           <input
             type="text"
-            placeholder="CEP ou localização"
+            placeholder="Mogi das Cruzes"
             value={location}
             onChange={(event) => setLocation(event.target.value)}
-            className="w-full text-sm text-slate-900 outline-none placeholder:text-slate-400"
+            className="w-full bg-transparent text-sm text-ink-900 outline-none placeholder:text-paper-400"
           />
         </label>
 
-        <Button type="submit" fullWidth={false} icon={<Search className="size-4" />} className="shrink-0">
+        <button
+          type="submit"
+          className="flex shrink-0 items-center justify-center gap-2 rounded-md bg-ink-800 px-6 py-3 text-sm font-semibold text-paper-50 shadow-[inset_0_1px_0_rgba(255,255,255,0.2),0_3px_0_var(--color-ink-950)] transition-[background-color,transform,box-shadow] duration-150 hover:bg-ink-700 active:translate-y-[3px] active:shadow-[inset_0_2px_4px_rgba(0,0,0,0.35)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ocre-500"
+        >
+          <Search className="size-4" />
           Buscar
-        </Button>
+        </button>
       </form>
 
       <div className="flex flex-wrap items-center gap-2 text-sm">
-        <span className="text-slate-500">Populares:</span>
+        <span className="label-mono mr-1 text-paper-500">Populares</span>
         {POPULAR_SUBJECTS.map((popularSubject) => (
           <button
             key={popularSubject}
             type="button"
             onClick={() => setSubject(popularSubject)}
-            className="rounded-full border border-slate-200 bg-white px-3 py-1 text-xs font-medium text-slate-600 transition-colors hover:border-brand-300 hover:bg-brand-50 hover:text-brand-700"
+            className="rounded-full border border-paper-300 bg-white px-3 py-1 text-xs font-medium text-ink-700 shadow-[0_1px_0_var(--color-paper-200)] transition-[background-color,border-color,transform,box-shadow] duration-150 hover:border-ocre-400 hover:bg-ocre-100 active:translate-y-px active:shadow-none"
           >
             {popularSubject}
           </button>
