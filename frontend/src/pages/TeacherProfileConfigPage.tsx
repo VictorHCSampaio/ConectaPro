@@ -427,7 +427,12 @@ export function TeacherProfileConfigPage() {
     setIsSubmitting(true);
     try {
       const payload = buildPayload(form);
-      await new Promise<void>((resolve) => setTimeout(resolve, 1200));
+
+      // TODO: Conectar com o endpoint do Spring Boot
+      // Mantido console.info para demonstração do payload na banca do PFC
+      console.info("[Mock API] Payload pronto para o Java:", payload);
+
+      await new Promise((resolve) => setTimeout(resolve, 1200)); // Remover quando integrar a API
 
       setShowSuccess(true);
       setTimeout(() => setShowSuccess(false), 5000);
@@ -617,7 +622,9 @@ export function TeacherProfileConfigPage() {
                               setForm((prev) => ({
                                 ...prev,
                                 modality: value,
-
+                                // Clear slots when switching modes — presencial uses
+                                // shift keys (seg-matutino) and online uses hour keys
+                                // (seg-09:00); mixing them would corrupt the payload.
                                 availability: new Set(),
                               }));
                             }}

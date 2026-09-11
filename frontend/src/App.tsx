@@ -1,8 +1,8 @@
-import { Navigate, Route, Routes } from 'react-router-dom'
-import { AuthPage } from '@/pages/AuthPage'
-import { LandingPage } from '@/pages/LandingPage'
-import { SearchTeachersPage } from '@/pages/SearchTeachersPage'
-import { TeacherProfileConfigPage } from '@/pages/TeacherProfileConfigPage'
+import { Navigate, Route, Routes } from "react-router-dom";
+import { AuthPage } from "@/pages/AuthPage";
+import { LandingPage } from "@/pages/LandingPage";
+import { SearchTeachersPage } from "@/pages/SearchTeachersPage";
+import { TeacherProfileConfigPage } from "@/pages/TeacherProfileConfigPage";
 
 function App() {
   return (
@@ -14,7 +14,7 @@ function App() {
       <Route path="/profile/edit" element={<TeacherProfileConfigPage />} />
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
-  )
+  );
 }
 
-export default App
+export default App;

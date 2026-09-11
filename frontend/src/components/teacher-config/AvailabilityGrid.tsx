@@ -1,112 +1,124 @@
-import { useState } from 'react'
-import { AnimatePresence, motion } from 'framer-motion'
-import { ChevronDown } from 'lucide-react'
-import { cn } from '@/lib/cn'
-import type { TeachingModality } from '@/types/teacher-profile'
+import { useState } from "react";
+import { AnimatePresence, motion } from "framer-motion";
+import { ChevronDown } from "lucide-react";
+import { cn } from "@/lib/cn";
+import type { TeachingModality } from "@/types/teacher-profile";
 
 const DAYS = [
-  { key: 'seg', label: 'Segunda' },
-  { key: 'ter', label: 'Terça' },
-  { key: 'qua', label: 'Quarta' },
-  { key: 'qui', label: 'Quinta' },
-  { key: 'sex', label: 'Sexta' },
-  { key: 'sab', label: 'Sábado' },
-  { key: 'dom', label: 'Domingo' },
-] as const
+  { key: "seg", label: "Segunda" },
+  { key: "ter", label: "Terça" },
+  { key: "qua", label: "Quarta" },
+  { key: "qui", label: "Quinta" },
+  { key: "sex", label: "Sexta" },
+  { key: "sab", label: "Sábado" },
+  { key: "dom", label: "Domingo" },
+] as const;
 
 const SHIFTS = [
   {
-    label: 'Manhã',
+    label: "Manhã",
     slots: [
-      { key: '07:00', range: '07:00 – 08:00' },
-      { key: '08:00', range: '08:00 – 09:00' },
-      { key: '09:00', range: '09:00 – 10:00' },
-      { key: '10:00', range: '10:00 – 11:00' },
-      { key: '11:00', range: '11:00 – 12:00' },
+      { key: "07:00", range: "07:00 – 08:00" },
+      { key: "08:00", range: "08:00 – 09:00" },
+      { key: "09:00", range: "09:00 – 10:00" },
+      { key: "10:00", range: "10:00 – 11:00" },
+      { key: "11:00", range: "11:00 – 12:00" },
     ],
   },
   {
-    label: 'Tarde',
+    label: "Tarde",
     slots: [
-      { key: '14:00', range: '14:00 – 15:00' },
-      { key: '15:00', range: '15:00 – 16:00' },
-      { key: '16:00', range: '16:00 – 17:00' },
+      { key: "14:00", range: "14:00 – 15:00" },
+      { key: "15:00", range: "15:00 – 16:00" },
+      { key: "16:00", range: "16:00 – 17:00" },
     ],
   },
   {
-    label: 'Noite',
+    label: "Noite",
     slots: [
-      { key: '19:00', range: '19:00 – 20:00' },
-      { key: '20:00', range: '20:00 – 21:00' },
-      { key: '21:00', range: '21:00 – 22:00' },
+      { key: "19:00", range: "19:00 – 20:00" },
+      { key: "20:00", range: "20:00 – 21:00" },
+      { key: "21:00", range: "21:00 – 22:00" },
     ],
   },
-] as const
+] as const;
 
-const ALL_HOUR_KEYS = SHIFTS.flatMap((s) => s.slots.map((sl) => sl.key))
+const ALL_HOUR_KEYS = SHIFTS.flatMap((s) => s.slots.map((sl) => sl.key));
 
 const SHIFT_SLOTS = [
-  { key: 'matutino',   label: 'Matutino'   },
-  { key: 'vespertino', label: 'Vespertino' },
-  { key: 'noturno',    label: 'Noturno'    },
-] as const
+  { key: "matutino", label: "Matutino" },
+  { key: "vespertino", label: "Vespertino" },
+  { key: "noturno", label: "Noturno" },
+] as const;
 
 function pillCn(isOn: boolean, extra?: string) {
   return cn(
-    'rounded-lg border text-center text-xs font-medium',
-    'select-none transition-all duration-150',
-    'focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-ocre-500',
-    'active:scale-95',
+    "rounded-lg border text-center text-xs font-medium",
+    "select-none transition-all duration-150",
+    "focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-ocre-500",
+    "active:scale-95",
     isOn
-      ? 'border-ink-900 bg-ink-900 text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.12)]'
-      : 'border-paper-200 bg-white text-ink-600 hover:border-paper-400 hover:bg-paper-50 hover:text-ink-800',
+      ? "border-ink-900 bg-ink-900 text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.12)]"
+      : "border-paper-200 bg-white text-ink-600 hover:border-paper-400 hover:bg-paper-50 hover:text-ink-800",
     extra,
-  )
+  );
 }
 
 function DayBadge({ count }: { count: number }) {
-  if (count === 0) return null
+  if (count === 0) return null;
   return (
     <span
-      aria-label={`${count} ${count === 1 ? 'selecionado' : 'selecionados'}`}
+      aria-label={`${count} ${count === 1 ? "selecionado" : "selecionados"}`}
       className="rounded-full bg-ink-800 px-2 py-0.5 text-[10px] font-bold leading-none text-white"
     >
       {count}
     </span>
-  )
+  );
 }
 
 interface PresencialViewProps {
-  selected: Set<string>
-  onToggle: (key: string) => void
+  selected: Set<string>;
+  onToggle: (key: string) => void;
 }
 
 function PresencialView({ selected, onToggle }: PresencialViewProps) {
   return (
-    <div className="flex flex-col gap-2" role="group" aria-label="Disponibilidade por turno">
+    <div
+      className="flex flex-col gap-2"
+      role="group"
+      aria-label="Disponibilidade por turno"
+    >
       {DAYS.map((day) => {
         const dayCount = SHIFT_SLOTS.filter((s) =>
           selected.has(`${day.key}-${s.key}`),
-        ).length
+        ).length;
 
         return (
           <div
             key={day.key}
             className={cn(
-              'flex flex-wrap items-center gap-3 rounded-xl border bg-white px-4 py-3',
-              'shadow-sm transition-[border-color] duration-200',
-              dayCount > 0 ? 'border-ink-200' : 'border-paper-200 hover:border-paper-300',
+              "flex flex-wrap items-center gap-3 rounded-xl border bg-white px-4 py-3",
+              "shadow-sm transition-[border-color] duration-200",
+              dayCount > 0
+                ? "border-ink-200"
+                : "border-paper-200 hover:border-paper-300",
             )}
           >
             <div className="flex w-[5.5rem] shrink-0 items-center gap-2">
-              <span className="text-sm font-semibold text-ink-800">{day.label}</span>
+              <span className="text-sm font-semibold text-ink-800">
+                {day.label}
+              </span>
               <DayBadge count={dayCount} />
             </div>
 
-            <div className="flex flex-1 gap-2" role="group" aria-label={`Turnos de ${day.label}`}>
+            <div
+              className="flex flex-1 gap-2"
+              role="group"
+              aria-label={`Turnos de ${day.label}`}
+            >
               {SHIFT_SLOTS.map((shift) => {
-                const cellKey = `${day.key}-${shift.key}`
-                const isOn = selected.has(cellKey)
+                const cellKey = `${day.key}-${shift.key}`;
+                const isOn = selected.has(cellKey);
                 return (
                   <button
                     key={cellKey}
@@ -115,49 +127,49 @@ function PresencialView({ selected, onToggle }: PresencialViewProps) {
                     aria-checked={isOn}
                     aria-label={`${day.label} — ${shift.label}`}
                     onClick={() => onToggle(cellKey)}
-                    className={pillCn(isOn, 'flex-1 py-2.5')}
+                    className={pillCn(isOn, "flex-1 py-2.5")}
                   >
                     {shift.label}
                   </button>
-                )
+                );
               })}
             </div>
           </div>
-        )
+        );
       })}
     </div>
-  )
+  );
 }
 
 interface OnlineViewProps {
-  selected: Set<string>
-  onToggle: (key: string) => void
+  selected: Set<string>;
+  onToggle: (key: string) => void;
 }
 
 function OnlineView({ selected, onToggle }: OnlineViewProps) {
-  const [openDay, setOpenDay] = useState<string | null>(null)
+  const [openDay, setOpenDay] = useState<string | null>(null);
 
   function handleDayClick(dayKey: string) {
-    setOpenDay((prev) => (prev === dayKey ? null : dayKey))
+    setOpenDay((prev) => (prev === dayKey ? null : dayKey));
   }
 
   return (
     <div className="flex flex-col gap-2">
       {DAYS.map((day) => {
-        const isOpen = openDay === day.key
+        const isOpen = openDay === day.key;
         const dayCount = ALL_HOUR_KEYS.filter((k) =>
           selected.has(`${day.key}-${k}`),
-        ).length
+        ).length;
 
         return (
           <div
             key={day.key}
             className={cn(
-              'overflow-hidden rounded-xl border bg-white',
-              'shadow-sm transition-[border-color,box-shadow] duration-200',
+              "overflow-hidden rounded-xl border bg-white",
+              "shadow-sm transition-[border-color,box-shadow] duration-200",
               isOpen
-                ? 'border-ink-300 shadow-[0_2px_8px_-2px_rgba(18,38,63,0.12)]'
-                : 'border-paper-200 hover:border-paper-300',
+                ? "border-ink-300 shadow-[0_2px_8px_-2px_rgba(18,38,63,0.12)]"
+                : "border-paper-200 hover:border-paper-300",
             )}
           >
             <button
@@ -166,23 +178,25 @@ function OnlineView({ selected, onToggle }: OnlineViewProps) {
               aria-controls={`day-panel-${day.key}`}
               onClick={() => handleDayClick(day.key)}
               className={cn(
-                'flex w-full items-center justify-between px-4 py-3.5',
-                'select-none transition-colors duration-150',
-                'focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-ocre-500',
-                isOpen ? 'bg-paper-50/80' : 'hover:bg-paper-50/60',
+                "flex w-full items-center justify-between px-4 py-3.5",
+                "select-none transition-colors duration-150",
+                "focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-ocre-500",
+                isOpen ? "bg-paper-50/80" : "hover:bg-paper-50/60",
               )}
             >
               <div className="flex items-center gap-3">
-                <span className="text-sm font-semibold text-ink-800">{day.label}</span>
+                <span className="text-sm font-semibold text-ink-800">
+                  {day.label}
+                </span>
                 <DayBadge count={dayCount} />
               </div>
 
               <motion.span
                 animate={{ rotate: isOpen ? 180 : 0 }}
-                transition={{ duration: 0.2, ease: 'easeInOut' }}
+                transition={{ duration: 0.2, ease: "easeInOut" }}
                 className={cn(
-                  'transition-colors duration-150',
-                  isOpen ? 'text-ink-600' : 'text-paper-400',
+                  "transition-colors duration-150",
+                  isOpen ? "text-ink-600" : "text-paper-400",
                 )}
               >
                 <ChevronDown className="size-4" aria-hidden="true" />
@@ -196,10 +210,10 @@ function OnlineView({ selected, onToggle }: OnlineViewProps) {
                   role="group"
                   aria-label={`Horários disponíveis — ${day.label}`}
                   initial={{ height: 0, opacity: 0 }}
-                  animate={{ height: 'auto', opacity: 1 }}
+                  animate={{ height: "auto", opacity: 1 }}
                   exit={{ height: 0, opacity: 0 }}
                   transition={{ duration: 0.2, ease: [0.4, 0, 0.2, 1] }}
-                  style={{ overflow: 'hidden' }}
+                  style={{ overflow: "hidden" }}
                 >
                   <div className="mx-4 h-px bg-paper-100" aria-hidden="true" />
 
@@ -215,7 +229,7 @@ function OnlineView({ selected, onToggle }: OnlineViewProps) {
                           aria-label={`${shift.label} — ${day.label}`}
                         >
                           {shift.slots.map((slot) => {
-                            const cellKey = `${day.key}-${slot.key}`
+                            const cellKey = `${day.key}-${slot.key}`;
                             return (
                               <button
                                 key={cellKey}
@@ -224,11 +238,14 @@ function OnlineView({ selected, onToggle }: OnlineViewProps) {
                                 aria-checked={selected.has(cellKey)}
                                 aria-label={`${day.label} — ${slot.range}`}
                                 onClick={() => onToggle(cellKey)}
-                                className={pillCn(selected.has(cellKey), 'px-1.5 py-2.5 tabular-nums')}
+                                className={pillCn(
+                                  selected.has(cellKey),
+                                  "px-1.5 py-2.5 tabular-nums",
+                                )}
                               >
                                 {slot.range}
                               </button>
-                            )
+                            );
                           })}
                         </div>
                       </div>
@@ -238,30 +255,34 @@ function OnlineView({ selected, onToggle }: OnlineViewProps) {
               )}
             </AnimatePresence>
           </div>
-        )
+        );
       })}
     </div>
-  )
+  );
 }
 
 interface AvailabilityGridProps {
-  selected: Set<string>
-  onToggle: (key: string) => void
-  modality: TeachingModality
+  selected: Set<string>;
+  onToggle: (key: string) => void;
+  modality: TeachingModality;
 }
 
-export function AvailabilityGrid({ selected, onToggle, modality }: AvailabilityGridProps) {
-  const totalSelected = selected.size
-  const isPresencial = modality === 'presencial'
+export function AvailabilityGrid({
+  selected,
+  onToggle,
+  modality,
+}: AvailabilityGridProps) {
+  const totalSelected = selected.size;
+  const isPresencial = modality === "presencial";
 
   const emptyHint = isPresencial
-    ? 'Nenhum turno selecionado. Clique em Matutino, Vespertino ou Noturno para cada dia.'
-    : 'Nenhum horário selecionado. Toque em um dia para expandir e escolher os horários.'
+    ? "Nenhum turno selecionado. Clique em Matutino, Vespertino ou Noturno para cada dia."
+    : "Nenhum horário selecionado. Toque em um dia para expandir e escolher os horários.";
 
   const countLabel =
     totalSelected === 1
-      ? `1 ${isPresencial ? 'turno' : 'horário'} selecionado`
-      : `${totalSelected} ${isPresencial ? 'turnos' : 'horários'} selecionados`
+      ? `1 ${isPresencial ? "turno" : "horário"} selecionado`
+      : `${totalSelected} ${isPresencial ? "turnos" : "horários"} selecionados`;
 
   return (
     <fieldset className="flex flex-col gap-2">
@@ -276,7 +297,7 @@ export function AvailabilityGrid({ selected, onToggle, modality }: AvailabilityG
             initial={{ opacity: 0, y: 6 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -6 }}
-            transition={{ duration: 0.2, ease: 'easeInOut' }}
+            transition={{ duration: 0.2, ease: "easeInOut" }}
           >
             <PresencialView selected={selected} onToggle={onToggle} />
           </motion.div>
@@ -286,7 +307,7 @@ export function AvailabilityGrid({ selected, onToggle, modality }: AvailabilityG
             initial={{ opacity: 0, y: 6 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -6 }}
-            transition={{ duration: 0.2, ease: 'easeInOut' }}
+            transition={{ duration: 0.2, ease: "easeInOut" }}
           >
             <OnlineView selected={selected} onToggle={onToggle} />
           </motion.div>
@@ -299,5 +320,5 @@ export function AvailabilityGrid({ selected, onToggle, modality }: AvailabilityG
           : `${countLabel} · toque para alternar.`}
       </p>
     </fieldset>
-  )
+  );
 }

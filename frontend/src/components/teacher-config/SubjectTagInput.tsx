@@ -1,46 +1,51 @@
-import { useId, useRef, useState } from 'react'
-import type { KeyboardEvent } from 'react'
-import { X } from 'lucide-react'
-import { cn } from '@/lib/cn'
+import { useId, useRef, useState } from "react";
+import type { KeyboardEvent } from "react";
+import { X } from "lucide-react";
+import { cn } from "@/lib/cn";
 
-const MAX_SUBJECTS = 10
+const MAX_SUBJECTS = 10;
 
 interface SubjectTagInputProps {
-  subjects: string[]
-  onAdd: (subject: string) => void
-  onRemove: (subject: string) => void
-  error?: string
+  subjects: string[];
+  onAdd: (subject: string) => void;
+  onRemove: (subject: string) => void;
+  error?: string;
 }
 
-export function SubjectTagInput({ subjects, onAdd, onRemove, error }: SubjectTagInputProps) {
-  const inputId = useId()
-  const inputRef = useRef<HTMLInputElement>(null)
-  const [draft, setDraft] = useState('')
+export function SubjectTagInput({
+  subjects,
+  onAdd,
+  onRemove,
+  error,
+}: SubjectTagInputProps) {
+  const inputId = useId();
+  const inputRef = useRef<HTMLInputElement>(null);
+  const [draft, setDraft] = useState("");
 
   function commit() {
-    const value = draft.trim()
-    if (!value) return
+    const value = draft.trim();
+    if (!value) return;
     if (subjects.includes(value)) {
-      setDraft('')
-      return
+      setDraft("");
+      return;
     }
-    if (subjects.length >= MAX_SUBJECTS) return
-    onAdd(value)
-    setDraft('')
+    if (subjects.length >= MAX_SUBJECTS) return;
+    onAdd(value);
+    setDraft("");
   }
 
   function handleKeyDown(event: KeyboardEvent<HTMLInputElement>) {
-    if (event.key === 'Enter' || event.key === ',') {
-      event.preventDefault()
-      commit()
-      return
+    if (event.key === "Enter" || event.key === ",") {
+      event.preventDefault();
+      commit();
+      return;
     }
-    if (event.key === 'Backspace' && !draft && subjects.length > 0) {
-      onRemove(subjects.at(-1)!)
+    if (event.key === "Backspace" && !draft && subjects.length > 0) {
+      onRemove(subjects.at(-1)!);
     }
   }
 
-  const isAtLimit = subjects.length >= MAX_SUBJECTS
+  const isAtLimit = subjects.length >= MAX_SUBJECTS;
 
   return (
     <div className="flex flex-col gap-2">
@@ -50,11 +55,11 @@ export function SubjectTagInput({ subjects, onAdd, onRemove, error }: SubjectTag
 
       <div
         className={cn(
-          'inset-well flex min-h-[48px] flex-wrap gap-2 rounded-md px-3 py-2.5',
-          'cursor-text transition-[border-color,box-shadow] duration-200',
+          "inset-well flex min-h-[48px] flex-wrap gap-2 rounded-md px-3 py-2.5",
+          "cursor-text transition-[border-color,box-shadow] duration-200",
           error
-            ? 'border-alert-600/50 focus-within:border-alert-600'
-            : 'hover:border-paper-400 focus-within:border-ocre-400 focus-within:shadow-[inset_0_2px_4px_rgba(18,38,63,0.09),0_0_0_3px_rgba(192,161,74,0.18)]',
+            ? "border-alert-600/50 focus-within:border-alert-600"
+            : "hover:border-paper-400 focus-within:border-ocre-400 focus-within:shadow-[inset_0_2px_4px_rgba(18,38,63,0.09),0_0_0_3px_rgba(192,161,74,0.18)]",
         )}
         onClick={() => inputRef.current?.focus()}
       >
@@ -84,7 +89,11 @@ export function SubjectTagInput({ subjects, onAdd, onRemove, error }: SubjectTag
             onChange={(e) => setDraft(e.target.value)}
             onKeyDown={handleKeyDown}
             onBlur={commit}
-            placeholder={subjects.length === 0 ? 'Ex: Matemática, Inglês… Enter para adicionar' : ''}
+            placeholder={
+              subjects.length === 0
+                ? "Ex: Matemática, Inglês… Enter para adicionar"
+                : ""
+            }
             aria-label="Adicionar matéria"
             aria-invalid={Boolean(error)}
             className="min-w-36 flex-1 bg-transparent text-sm text-ink-900 placeholder:text-paper-400 focus:outline-none"
@@ -98,10 +107,13 @@ export function SubjectTagInput({ subjects, onAdd, onRemove, error }: SubjectTag
         </p>
       ) : (
         <p className="text-xs text-paper-400">
-          Pressione <kbd className="rounded bg-paper-200 px-1 py-0.5 font-mono text-[10px]">Enter</kbd> ou vírgula para
-          adicionar · {subjects.length}/{MAX_SUBJECTS} matérias
+          Pressione{" "}
+          <kbd className="rounded bg-paper-200 px-1 py-0.5 font-mono text-[10px]">
+            Enter
+          </kbd>{" "}
+          ou vírgula para adicionar · {subjects.length}/{MAX_SUBJECTS} matérias
         </p>
       )}
     </div>
-  )
+  );
 }
