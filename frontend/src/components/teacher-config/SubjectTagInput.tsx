@@ -44,12 +44,10 @@ export function SubjectTagInput({ subjects, onAdd, onRemove, error }: SubjectTag
 
   return (
     <div className="flex flex-col gap-2">
-      {/* Label */}
       <label htmlFor={inputId} className="label-mono text-paper-600">
         Matérias / Disciplinas
       </label>
 
-      {/* Tag container — acts as the visible "input" */}
       <div
         className={cn(
           'inset-well flex min-h-[48px] flex-wrap gap-2 rounded-md px-3 py-2.5',
@@ -60,7 +58,6 @@ export function SubjectTagInput({ subjects, onAdd, onRemove, error }: SubjectTag
         )}
         onClick={() => inputRef.current?.focus()}
       >
-        {/* Existing tags */}
         {subjects.map((subject) => (
           <span
             key={subject}
@@ -78,7 +75,6 @@ export function SubjectTagInput({ subjects, onAdd, onRemove, error }: SubjectTag
           </span>
         ))}
 
-        {/* Draft input — hidden when at limit */}
         {!isAtLimit && (
           <input
             ref={inputRef}
@@ -96,7 +92,6 @@ export function SubjectTagInput({ subjects, onAdd, onRemove, error }: SubjectTag
         )}
       </div>
 
-      {/* Error or hint */}
       {error ? (
         <p role="alert" className="text-xs font-medium text-alert-600">
           {error}

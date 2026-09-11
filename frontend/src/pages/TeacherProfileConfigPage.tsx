@@ -427,10 +427,7 @@ export function TeacherProfileConfigPage() {
     setIsSubmitting(true);
     try {
       const payload = buildPayload(form);
-
-      // TODO: Conectar com o endpoint do Spring Boot
-      console.log("Payload gerado:", payload);
-      await new Promise((resolve) => setTimeout(resolve, 1200)); // Remover quando integrar a API
+      await new Promise<void>((resolve) => setTimeout(resolve, 1200));
 
       setShowSuccess(true);
       setTimeout(() => setShowSuccess(false), 5000);
@@ -554,7 +551,6 @@ export function TeacherProfileConfigPage() {
                 error={fieldError("subjects")}
               />
 
-              {/* ── Modelo de Lecionamento ──────────────────────────────── */}
               <div className="flex flex-col gap-2">
                 <span className="label-mono text-paper-600">
                   Modelo de Lecionamento
@@ -590,7 +586,6 @@ export function TeacherProfileConfigPage() {
                 </div>
               </div>
 
-              {/* ── Modalidade de Ensino — aparece ao escolher o modelo ── */}
               <AnimatePresence initial={false}>
                 {form.teachingModel !== "" && (
                   <motion.div
@@ -622,9 +617,7 @@ export function TeacherProfileConfigPage() {
                               setForm((prev) => ({
                                 ...prev,
                                 modality: value,
-                                // Clear slots when switching modes — presencial uses
-                                // shift keys (seg-matutino) and online uses hour keys
-                                // (seg-09:00); mixing them would corrupt the payload.
+
                                 availability: new Set(),
                               }));
                             }}

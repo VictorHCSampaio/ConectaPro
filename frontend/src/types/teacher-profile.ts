@@ -1,7 +1,3 @@
-// ─────────────────────────────────────────────────────────────────────────────
-// Domain types for the Teacher Profile Configuration form
-// ─────────────────────────────────────────────────────────────────────────────
-
 export type TeachingModality = 'online' | 'presencial'
 
 /** Whether the teacher gives private lessons or teaches at institutions */
@@ -10,7 +6,7 @@ export type ApiTeachingModel = 'PARTICULARES' | 'INSTITUICOES'
 
 export type WeekDay = 'seg' | 'ter' | 'qua' | 'qui' | 'sex' | 'sab' | 'dom'
 
-/** Granular hourly slot from 07:00 to 22:00 (1-hour increments) */
+/** Hourly slots from 07:00 to 22:00 (1-hour increments) */
 export type HourSlot =
   | '07:00' | '08:00' | '09:00' | '10:00' | '11:00' | '12:00'
   | '13:00' | '14:00' | '15:00' | '16:00' | '17:00' | '18:00'
@@ -19,7 +15,7 @@ export type HourSlot =
 /** Shift-based slot for in-person (presencial) modality */
 export type ShiftSlot = 'matutino' | 'vespertino' | 'noturno'
 
-/** Availability key format: "{weekDay}-{hourSlot|shiftSlot}" e.g. "seg-09:00" or "seg-matutino" */
+/** "{weekDay}-{hourSlot|shiftSlot}" — e.g. "seg-09:00" or "seg-matutino" */
 export type AvailabilityKey = `${WeekDay}-${HourSlot}` | `${WeekDay}-${ShiftSlot}`
 
 export interface TeacherAddress {
@@ -30,7 +26,7 @@ export interface TeacherAddress {
   estado: string
 }
 
-/** Internal form state – values are stored as formatted strings for UI masks */
+/** Form state — monetary and masked values are stored as formatted strings */
 export interface TeacherProfileFormData {
   avatarFile: File | null
   avatarPreviewUrl: string | null
@@ -38,17 +34,15 @@ export interface TeacherProfileFormData {
   phone: string
   bio: string
   subjects: string[]
-  /** 'particulares' | 'instituicoes' | '' (empty = not yet chosen) */
   teachingModel: TeachingModel
   modality: TeachingModality
   /** Formatted: "R$ 150,00" */
   pricePerHour: string
   address: TeacherAddress
-  /** Set of AvailabilityKey strings e.g. new Set(["seg-09:00", "ter-14:00"]) */
+  /** e.g. new Set(["seg-09:00", "ter-matutino"]) */
   availability: Set<string>
 }
 
-/** Flat validation errors map (top-level keys + "address.cep" style for nested) */
 export type TeacherProfileErrors = Partial<{
   fullName: string
   phone: string
@@ -58,38 +52,29 @@ export type TeacherProfileErrors = Partial<{
   cep: string
 }>
 
-// ─────────────────────────────────────────────────────────────────────────────
-// REST API Payload — ready to be consumed by a Spring Boot controller
-// ─────────────────────────────────────────────────────────────────────────────
-
 export type ApiModality = 'ONLINE' | 'PRESENCIAL'
 
 export interface TeacherProfilePayload {
   fullName: string
-  /** E.g. "(11) 98765-4321" */
   phone: string
   bio: string
   subjects: string[]
-  /** Null when the teacher hasn't selected a teaching model yet */
+  /** null when the teacher hasn't selected a teaching model */
   teachingModel: ApiTeachingModel | null
   modality: ApiModality
-  /** Decimal value in BRL e.g. 150.0 */
+  /** Decimal BRL value — e.g. 150.0 */
   pricePerHour: number
   address: {
     cep: string
     street: string
     neighborhood: string
     city: string
-    /** Two-letter UF code e.g. "SP" */
+    /** Two-letter UF — e.g. "SP" */
     state: string
   }
-  /** Array of { day, time } — time is an HourSlot for online or a ShiftSlot for presencial */
+  /** time is HourSlot for online, ShiftSlot for presencial */
   availability: Array<{ day: WeekDay; time: HourSlot | ShiftSlot }>
 }
-
-// ─────────────────────────────────────────────────────────────────────────────
-// ViaCEP API response shape
-// ─────────────────────────────────────────────────────────────────────────────
 
 export interface ViaCepResponse {
   cep: string

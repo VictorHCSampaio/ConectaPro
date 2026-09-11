@@ -38,8 +38,7 @@ export function AvatarUpload({ previewUrl, onFileSelect, onRemove }: AvatarUploa
   const handleInputChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0]
     if (file) processFile(file)
-    // Reset input value so the same file can be re-selected
-    event.target.value = ''
+    event.target.value = '' // allows re-selecting the same file
   }
 
   const handleDrop = useCallback(
@@ -63,7 +62,6 @@ export function AvatarUpload({ previewUrl, onFileSelect, onRemove }: AvatarUploa
 
   return (
     <div className="flex flex-col items-center gap-5 sm:flex-row sm:gap-7">
-      {/* Avatar circle — drag-and-drop target */}
       <div
         role="button"
         tabIndex={0}
@@ -85,12 +83,7 @@ export function AvatarUpload({ previewUrl, onFileSelect, onRemove }: AvatarUploa
       >
         {previewUrl ? (
           <>
-            <img
-              src={previewUrl}
-              alt="Prévia do avatar"
-              className="size-full object-cover"
-            />
-            {/* Hover overlay */}
+            <img src={previewUrl} alt="Prévia do avatar" className="size-full object-cover" />
             <div className="absolute inset-0 flex flex-col items-center justify-center gap-1 bg-ink-900/50 opacity-0 transition-opacity duration-200 group-hover:opacity-100">
               <Camera className="size-5 text-white" />
               <span className="text-[10px] font-semibold text-white">Alterar</span>
@@ -104,7 +97,6 @@ export function AvatarUpload({ previewUrl, onFileSelect, onRemove }: AvatarUploa
         )}
       </div>
 
-      {/* Hidden file input */}
       <input
         ref={inputRef}
         type="file"
@@ -114,7 +106,6 @@ export function AvatarUpload({ previewUrl, onFileSelect, onRemove }: AvatarUploa
         onChange={handleInputChange}
       />
 
-      {/* Text info & actions */}
       <div className="flex flex-col gap-2 text-center sm:text-left">
         <p className="text-sm font-semibold text-ink-800">Foto de Perfil</p>
         <p className="text-xs leading-relaxed text-paper-500">

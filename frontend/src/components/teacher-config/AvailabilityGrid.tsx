@@ -4,10 +4,6 @@ import { ChevronDown } from 'lucide-react'
 import { cn } from '@/lib/cn'
 import type { TeachingModality } from '@/types/teacher-profile'
 
-// ─────────────────────────────────────────────────────────────────────────────
-// Constants
-// ─────────────────────────────────────────────────────────────────────────────
-
 const DAYS = [
   { key: 'seg', label: 'Segunda' },
   { key: 'ter', label: 'Terça' },
@@ -18,11 +14,6 @@ const DAYS = [
   { key: 'dom', label: 'Domingo' },
 ] as const
 
-/**
- * ONLINE / AMBOS — grouped hourly slots.
- * `key`   → start time stored in the availability Set  (e.g. "07:00")
- * `range` → interval text rendered inside the pill     (e.g. "07:00 – 08:00")
- */
 const SHIFTS = [
   {
     label: 'Manhã',
@@ -52,19 +43,13 @@ const SHIFTS = [
   },
 ] as const
 
-/** Flat start-time keys — used only to count per-day selections in the online view */
 const ALL_HOUR_KEYS = SHIFTS.flatMap((s) => s.slots.map((sl) => sl.key))
 
-/** PRESENCIAL — shift-based slots stored as "seg-matutino", "seg-vespertino", etc. */
 const SHIFT_SLOTS = [
   { key: 'matutino',   label: 'Matutino'   },
   { key: 'vespertino', label: 'Vespertino' },
   { key: 'noturno',    label: 'Noturno'    },
 ] as const
-
-// ─────────────────────────────────────────────────────────────────────────────
-// Shared pill class helper
-// ─────────────────────────────────────────────────────────────────────────────
 
 function pillCn(isOn: boolean, extra?: string) {
   return cn(
@@ -79,11 +64,6 @@ function pillCn(isOn: boolean, extra?: string) {
   )
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-// Sub-components
-// ─────────────────────────────────────────────────────────────────────────────
-
-/** Selectable badge showing how many slots are active for a day */
 function DayBadge({ count }: { count: number }) {
   if (count === 0) return null
   return (
@@ -95,8 +75,6 @@ function DayBadge({ count }: { count: number }) {
     </span>
   )
 }
-
-// ── PRESENCIAL view ──────────────────────────────────────────────────────────
 
 interface PresencialViewProps {
   selected: Set<string>
@@ -120,18 +98,12 @@ function PresencialView({ selected, onToggle }: PresencialViewProps) {
               dayCount > 0 ? 'border-ink-200' : 'border-paper-200 hover:border-paper-300',
             )}
           >
-            {/* Day label + badge */}
             <div className="flex w-[5.5rem] shrink-0 items-center gap-2">
               <span className="text-sm font-semibold text-ink-800">{day.label}</span>
               <DayBadge count={dayCount} />
             </div>
 
-            {/* Shift pills */}
-            <div
-              className="flex flex-1 gap-2"
-              role="group"
-              aria-label={`Turnos de ${day.label}`}
-            >
+            <div className="flex flex-1 gap-2" role="group" aria-label={`Turnos de ${day.label}`}>
               {SHIFT_SLOTS.map((shift) => {
                 const cellKey = `${day.key}-${shift.key}`
                 const isOn = selected.has(cellKey)
@@ -156,8 +128,6 @@ function PresencialView({ selected, onToggle }: PresencialViewProps) {
     </div>
   )
 }
-
-// ── ONLINE / AMBOS view (accordion) ─────────────────────────────────────────
 
 interface OnlineViewProps {
   selected: Set<string>
@@ -190,7 +160,6 @@ function OnlineView({ selected, onToggle }: OnlineViewProps) {
                 : 'border-paper-200 hover:border-paper-300',
             )}
           >
-            {/* Day header / accordion trigger */}
             <button
               type="button"
               aria-expanded={isOpen}
@@ -204,9 +173,7 @@ function OnlineView({ selected, onToggle }: OnlineViewProps) {
               )}
             >
               <div className="flex items-center gap-3">
-                <span className="text-sm font-semibold text-ink-800">
-                  {day.label}
-                </span>
+                <span className="text-sm font-semibold text-ink-800">{day.label}</span>
                 <DayBadge count={dayCount} />
               </div>
 
@@ -222,7 +189,6 @@ function OnlineView({ selected, onToggle }: OnlineViewProps) {
               </motion.span>
             </button>
 
-            {/* Animated accordion panel */}
             <AnimatePresence initial={false}>
               {isOpen && (
                 <motion.div
@@ -258,10 +224,7 @@ function OnlineView({ selected, onToggle }: OnlineViewProps) {
                                 aria-checked={selected.has(cellKey)}
                                 aria-label={`${day.label} — ${slot.range}`}
                                 onClick={() => onToggle(cellKey)}
-                                className={pillCn(
-                                  selected.has(cellKey),
-                                  'px-1.5 py-2.5 tabular-nums',
-                                )}
+                                className={pillCn(selected.has(cellKey), 'px-1.5 py-2.5 tabular-nums')}
                               >
                                 {slot.range}
                               </button>
@@ -281,21 +244,13 @@ function OnlineView({ selected, onToggle }: OnlineViewProps) {
   )
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-// Main component
-// ─────────────────────────────────────────────────────────────────────────────
-
 interface AvailabilityGridProps {
   selected: Set<string>
   onToggle: (key: string) => void
   modality: TeachingModality
 }
 
-export function AvailabilityGrid({
-  selected,
-  onToggle,
-  modality,
-}: AvailabilityGridProps) {
+export function AvailabilityGrid({ selected, onToggle, modality }: AvailabilityGridProps) {
   const totalSelected = selected.size
   const isPresencial = modality === 'presencial'
 
@@ -314,7 +269,6 @@ export function AvailabilityGrid({
         Grade de Disponibilidade
       </legend>
 
-      {/* ── Cross-fade between presencial and online/ambos views ── */}
       <AnimatePresence mode="wait" initial={false}>
         {isPresencial ? (
           <motion.div
@@ -339,7 +293,6 @@ export function AvailabilityGrid({
         )}
       </AnimatePresence>
 
-      {/* Counter hint */}
       <p className="mt-1 text-xs text-paper-400">
         {totalSelected === 0
           ? emptyHint
