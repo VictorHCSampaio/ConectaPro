@@ -14,3 +14,9 @@ export type RegisterFormValues = {
   confirmPassword: string
   acceptTerms: boolean
 }
+
+export type AuthUser = {
+  name: string
+  email: string
+  role: UserRole | null
+}
