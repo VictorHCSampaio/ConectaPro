@@ -50,7 +50,7 @@ export function TeacherResultCard({ teacher }: TeacherResultCardProps) {
             <span className="label-mono block text-paper-500">por hora</span>
           </p>
           <Link
-            to="/login"
+            to={`/professores/${teacher.id}`}
             className="rounded-md border border-paper-300 bg-white px-4 py-2 text-sm font-semibold text-ink-800 shadow-[inset_0_1px_0_#fff,0_2px_0_var(--color-paper-200)] transition-[border-color,transform,box-shadow] duration-150 hover:border-paper-400 active:translate-y-0.5 active:shadow-[inset_0_2px_3px_rgba(18,38,63,0.16)]"
           >
             Ver perfil
