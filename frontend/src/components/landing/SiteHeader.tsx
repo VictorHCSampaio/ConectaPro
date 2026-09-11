@@ -1,7 +1,8 @@
-import { Menu, X } from 'lucide-react'
+import { CircleUserRound, LogOut, Menu, X } from 'lucide-react'
 import { useState } from 'react'
-import { Link, NavLink } from 'react-router-dom'
+import { Link, NavLink, useNavigate } from 'react-router-dom'
 import { Brand } from '@/components/Brand'
+import { useAuth } from '@/hooks/useAuth'
 import { cn } from '@/lib/cn'
 
 const NAV_LINKS = [
@@ -11,9 +12,17 @@ const NAV_LINKS = [
 
 export function SiteHeader() {
   const [isMenuOpen, setIsMenuOpen] = useState(false)
+  const { user, isAuthenticated, signOut } = useAuth()
+  const navigate = useNavigate()
 
   function closeMenu() {
     setIsMenuOpen(false)
+  }
+
+  function handleSignOut() {
+    closeMenu()
+    signOut()
+    navigate('/')
   }
 
   return (
@@ -50,15 +59,45 @@ export function SiteHeader() {
         </nav>
 
         <div className="hidden items-center gap-4 md:flex">
-          <Link to="/login" className="text-sm text-ink-600 transition-colors hover:text-ink-900">
-            Entrar
-          </Link>
-          <Link
-            to="/register"
-            className="rounded-md bg-ink-800 px-4 py-2 text-sm font-semibold text-paper-50 shadow-[inset_0_1px_0_rgba(255,255,255,0.2),0_3px_0_var(--color-ink-950),0_10px_18px_-10px_rgba(18,38,63,0.7)] transition-[background-color,transform,box-shadow] duration-150 hover:bg-ink-700 active:translate-y-[3px] active:shadow-[inset_0_2px_4px_rgba(0,0,0,0.35)]"
-          >
-            Cadastrar
-          </Link>
+          {isAuthenticated ? (
+            <>
+              <NavLink
+                to="/profile/edit"
+                title={user?.name}
+                className={({ isActive }) =>
+                  cn(
+                    'flex items-center gap-2 rounded-md px-3 py-2 text-sm transition-colors duration-200',
+                    isActive
+                      ? 'bg-paper-100 text-ink-900'
+                      : 'text-ink-600 hover:bg-paper-100 hover:text-ink-900',
+                  )
+                }
+              >
+                <CircleUserRound className="size-5" />
+                Meu perfil
+              </NavLink>
+              <button
+                type="button"
+                onClick={handleSignOut}
+                className="flex items-center gap-1.5 text-sm text-ink-600 transition-colors hover:text-ink-900"
+              >
+                <LogOut className="size-4" />
+                Sair
+              </button>
+            </>
+          ) : (
+            <>
+              <Link to="/login" className="text-sm text-ink-600 transition-colors hover:text-ink-900">
+                Entrar
+              </Link>
+              <Link
+                to="/register"
+                className="rounded-md bg-ink-800 px-4 py-2 text-sm font-semibold text-paper-50 shadow-[inset_0_1px_0_rgba(255,255,255,0.2),0_3px_0_var(--color-ink-950),0_10px_18px_-10px_rgba(18,38,63,0.7)] transition-[background-color,transform,box-shadow] duration-150 hover:bg-ink-700 active:translate-y-[3px] active:shadow-[inset_0_2px_4px_rgba(0,0,0,0.35)]"
+              >
+                Cadastrar
+              </Link>
+            </>
+          )}
         </div>
 
         <button
@@ -97,22 +136,50 @@ export function SiteHeader() {
           >
             Seja professor
           </Link>
+          {isAuthenticated && (
+            <NavLink
+              to="/profile/edit"
+              onClick={closeMenu}
+              className={({ isActive }) =>
+                cn(
+                  'flex items-center gap-2 rounded-md px-3 py-2.5 transition-colors',
+                  isActive ? 'bg-paper-100 text-ink-900' : 'text-ink-600 hover:bg-paper-100',
+                )
+              }
+            >
+              <CircleUserRound className="size-5" />
+              Meu perfil
+            </NavLink>
+          )}
 
           <div className="mt-2 flex flex-col gap-2 border-t border-paper-200 pt-3">
-            <Link
-              to="/login"
-              onClick={closeMenu}
-              className="rounded-md border border-paper-300 bg-white px-3 py-2.5 text-center text-ink-800"
-            >
-              Entrar
-            </Link>
-            <Link
-              to="/register"
-              onClick={closeMenu}
-              className="rounded-md bg-ink-800 px-3 py-2.5 text-center font-semibold text-paper-50 shadow-[inset_0_1px_0_rgba(255,255,255,0.2),0_3px_0_var(--color-ink-950)] active:translate-y-[3px] active:shadow-none"
-            >
-              Cadastrar
-            </Link>
+            {isAuthenticated ? (
+              <button
+                type="button"
+                onClick={handleSignOut}
+                className="flex items-center justify-center gap-1.5 rounded-md border border-paper-300 bg-white px-3 py-2.5 text-ink-800"
+              >
+                <LogOut className="size-4" />
+                Sair
+              </button>
+            ) : (
+              <>
+                <Link
+                  to="/login"
+                  onClick={closeMenu}
+                  className="rounded-md border border-paper-300 bg-white px-3 py-2.5 text-center text-ink-800"
+                >
+                  Entrar
+                </Link>
+                <Link
+                  to="/register"
+                  onClick={closeMenu}
+                  className="rounded-md bg-ink-800 px-3 py-2.5 text-center font-semibold text-paper-50 shadow-[inset_0_1px_0_rgba(255,255,255,0.2),0_3px_0_var(--color-ink-950)] active:translate-y-[3px] active:shadow-none"
+                >
+                  Cadastrar
+                </Link>
+              </>
+            )}
           </div>
         </nav>
       )}
