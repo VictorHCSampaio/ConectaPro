@@ -10,4 +10,7 @@ export type Teacher = {
   modalities: ModalityOption[]
   pricePerHour: number
   verified: boolean
+  bio?: string
+  availability?: string[]
+  weekDays?: string[]
 }
