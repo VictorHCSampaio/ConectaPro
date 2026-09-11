@@ -1,11 +1,12 @@
 import { Mail } from 'lucide-react'
 import { useState } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 import { FormFeedback } from '@/components/auth/FormFeedback'
 import { Button } from '@/components/ui/Button'
 import { Checkbox } from '@/components/ui/Checkbox'
 import { Input } from '@/components/ui/Input'
 import { PasswordInput } from '@/components/ui/PasswordInput'
+import { useAuth } from '@/hooks/useAuth'
 import { useForm } from '@/hooks/useForm'
 import { validateLoginForm } from '@/lib/validation'
 import type { LoginFormValues } from '@/types/auth'
@@ -18,6 +19,8 @@ const INITIAL_VALUES: LoginFormValues = {
 
 export function LoginForm() {
   const [wasSubmitted, setWasSubmitted] = useState(false)
+  const { signIn } = useAuth()
+  const navigate = useNavigate()
   const { values, setField, touchField, fieldError, handleSubmit, isSubmitting } = useForm(
     INITIAL_VALUES,
     validateLoginForm,
@@ -25,8 +28,13 @@ export function LoginForm() {
 
   const onSubmit = handleSubmit(async (formValues) => {
     await new Promise((resolve) => setTimeout(resolve, 1100))
-    console.log('login payload', formValues)
+    signIn({
+      name: formValues.email.split('@')[0],
+      email: formValues.email,
+      role: null,
+    })
     setWasSubmitted(true)
+    navigate('/')
   })
 
   return (

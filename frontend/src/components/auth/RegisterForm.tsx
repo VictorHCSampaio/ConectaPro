@@ -1,12 +1,13 @@
 import { Mail, User } from 'lucide-react'
 import { useState } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 import { FormFeedback } from '@/components/auth/FormFeedback'
 import { RoleSelector } from '@/components/auth/RoleSelector'
 import { Button } from '@/components/ui/Button'
 import { Checkbox } from '@/components/ui/Checkbox'
 import { Input } from '@/components/ui/Input'
 import { PasswordInput } from '@/components/ui/PasswordInput'
+import { useAuth } from '@/hooks/useAuth'
 import { useForm } from '@/hooks/useForm'
 import { validateRegisterForm } from '@/lib/validation'
 import type { RegisterFormValues } from '@/types/auth'
@@ -22,6 +23,8 @@ const INITIAL_VALUES: RegisterFormValues = {
 
 export function RegisterForm() {
   const [wasSubmitted, setWasSubmitted] = useState(false)
+  const { signIn } = useAuth()
+  const navigate = useNavigate()
   const { values, setField, touchField, fieldError, handleSubmit, isSubmitting } = useForm(
     INITIAL_VALUES,
     validateRegisterForm,
@@ -29,8 +32,13 @@ export function RegisterForm() {
 
   const onSubmit = handleSubmit(async (formValues) => {
     await new Promise((resolve) => setTimeout(resolve, 1100))
-    console.log('register payload', formValues)
+    signIn({
+      name: formValues.fullName,
+      email: formValues.email,
+      role: formValues.role,
+    })
     setWasSubmitted(true)
+    navigate('/')
   })
 
   return (
@@ -41,7 +49,7 @@ export function RegisterForm() {
       </div>
 
       {wasSubmitted && (
-        <FormFeedback message="Conta criada. Verifique seu e-mail para continuar." />
+        <FormFeedback message="Conta criada com sucesso. Redirecionando." />
       )}
 
       <form onSubmit={onSubmit} noValidate className="flex flex-col gap-5">
