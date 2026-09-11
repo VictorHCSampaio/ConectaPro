@@ -2,6 +2,7 @@ import { Mail, User } from 'lucide-react'
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import { FormFeedback } from '@/components/auth/FormFeedback'
+import { RoleSelector } from '@/components/auth/RoleSelector'
 import { Button } from '@/components/ui/Button'
 import { Checkbox } from '@/components/ui/Checkbox'
 import { Input } from '@/components/ui/Input'
@@ -11,6 +12,7 @@ import { validateRegisterForm } from '@/lib/validation'
 import type { RegisterFormValues } from '@/types/auth'
 
 const INITIAL_VALUES: RegisterFormValues = {
+  role: null,
   fullName: '',
   email: '',
   password: '',
@@ -43,6 +45,13 @@ export function RegisterForm() {
       )}
 
       <form onSubmit={onSubmit} noValidate className="flex flex-col gap-5">
+        <RoleSelector
+          value={values.role}
+          onChange={(role) => setField('role', role)}
+          onBlur={() => touchField('role')}
+          error={fieldError('role')}
+        />
+
         <Input
           label="Nome completo"
           placeholder="Seu nome completo"

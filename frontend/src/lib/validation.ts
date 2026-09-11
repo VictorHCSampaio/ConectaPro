@@ -25,6 +25,10 @@ export function validateLoginForm(values: LoginFormValues) {
 export function validateRegisterForm(values: RegisterFormValues) {
   const errors: Partial<Record<keyof RegisterFormValues, string>> = {}
 
+  if (!values.role) {
+    errors.role = 'Escolha se você é aluno ou professor'
+  }
+
   if (!values.fullName.trim()) {
     errors.fullName = 'Informe seu nome completo'
   } else if (values.fullName.trim().length < 3) {
