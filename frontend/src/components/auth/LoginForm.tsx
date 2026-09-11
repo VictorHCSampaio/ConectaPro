@@ -1,12 +1,14 @@
 import { Mail } from 'lucide-react'
 import { useState } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 import { FormFeedback } from '@/components/auth/FormFeedback'
 import { Button } from '@/components/ui/Button'
 import { Checkbox } from '@/components/ui/Checkbox'
 import { Input } from '@/components/ui/Input'
 import { PasswordInput } from '@/components/ui/PasswordInput'
 import { useForm } from '@/hooks/useForm'
+import { extractErrorMessage } from '@/lib/api'
+import { loginUsuario } from '@/lib/authService'
 import { validateLoginForm } from '@/lib/validation'
 import type { LoginFormValues } from '@/types/auth'
 
@@ -17,16 +19,23 @@ const INITIAL_VALUES: LoginFormValues = {
 }
 
 export function LoginForm() {
+  const navigate = useNavigate()
   const [wasSubmitted, setWasSubmitted] = useState(false)
+  const [submitError, setSubmitError] = useState<string | null>(null)
   const { values, setField, touchField, fieldError, handleSubmit, isSubmitting } = useForm(
     INITIAL_VALUES,
     validateLoginForm,
   )
 
   const onSubmit = handleSubmit(async (formValues) => {
-    await new Promise((resolve) => setTimeout(resolve, 1100))
-    console.log('login payload', formValues)
-    setWasSubmitted(true)
+    setSubmitError(null)
+    try {
+      await loginUsuario({ email: formValues.email, senha: formValues.password })
+      setWasSubmitted(true)
+      setTimeout(() => navigate('/'), 900)
+    } catch (error) {
+      setSubmitError(extractErrorMessage(error, 'Não foi possível entrar. Tente novamente.'))
+    }
   })
 
   return (
@@ -37,6 +46,8 @@ export function LoginForm() {
       </div>
 
       {wasSubmitted && <FormFeedback message="Login realizado. Redirecionando." />}
+
+      {submitError && <FormFeedback variant="error" message={submitError} />}
 
       <form onSubmit={onSubmit} noValidate className="flex flex-col gap-5">
         <Input
