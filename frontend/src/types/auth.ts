@@ -14,3 +14,29 @@ export type RegisterFormValues = {
   confirmPassword: string
   acceptTerms: boolean
 }
+
+export type RegisterRequestPayload = {
+  nome: string
+  email: string
+  password: string
+}
+
+export type TotpSetupResponse = {
+  secret: string
+  qrUri: string
+}
+
+export type LoginRequestPayload = {
+  email: string
+  senha: string
+}
+
+export type MensagemAutenticacaoResponse = {
+  message: string
+}
+
+export type AuthUser = {
+  name: string
+  email: string
+  role: UserRole | null
+}

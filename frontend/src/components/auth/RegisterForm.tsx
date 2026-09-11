@@ -9,6 +9,8 @@ import { Input } from '@/components/ui/Input'
 import { PasswordInput } from '@/components/ui/PasswordInput'
 import { useAuth } from '@/hooks/useAuth'
 import { useForm } from '@/hooks/useForm'
+import { extractErrorMessage } from '@/lib/api'
+import { registerUsuario } from '@/lib/authService'
 import { validateRegisterForm } from '@/lib/validation'
 import type { RegisterFormValues } from '@/types/auth'
 
@@ -23,14 +25,19 @@ const INITIAL_VALUES: RegisterFormValues = {
 
 export function RegisterForm() {
   const [wasSubmitted, setWasSubmitted] = useState(false)
+<<<<<<< HEAD
   const { signIn } = useAuth()
   const navigate = useNavigate()
+=======
+  const [submitError, setSubmitError] = useState<string | null>(null)
+>>>>>>> origin/main
   const { values, setField, touchField, fieldError, handleSubmit, isSubmitting } = useForm(
     INITIAL_VALUES,
     validateRegisterForm,
   )
 
   const onSubmit = handleSubmit(async (formValues) => {
+<<<<<<< HEAD
     await new Promise((resolve) => setTimeout(resolve, 1100))
     signIn({
       name: formValues.fullName,
@@ -39,6 +46,19 @@ export function RegisterForm() {
     })
     setWasSubmitted(true)
     navigate('/')
+=======
+    setSubmitError(null)
+    try {
+      await registerUsuario({
+        nome: formValues.fullName,
+        email: formValues.email,
+        password: formValues.password,
+      })
+      setWasSubmitted(true)
+    } catch (error) {
+      setSubmitError(extractErrorMessage(error, 'Não foi possível criar sua conta. Tente novamente.'))
+    }
+>>>>>>> origin/main
   })
 
   return (
@@ -51,6 +71,8 @@ export function RegisterForm() {
       {wasSubmitted && (
         <FormFeedback message="Conta criada com sucesso. Redirecionando." />
       )}
+
+      {submitError && <FormFeedback variant="error" message={submitError} />}
 
       <form onSubmit={onSubmit} noValidate className="flex flex-col gap-5">
         <RoleSelector
