@@ -1,7 +1,9 @@
+import { ContactSection } from '@/components/landing/ContactSection'
 import { HeroSection } from '@/components/landing/HeroSection'
 import { HowItWorks } from '@/components/landing/HowItWorks'
 import { SiteFooter } from '@/components/landing/SiteFooter'
 import { SiteHeader } from '@/components/landing/SiteHeader'
+import { TeamSection } from '@/components/landing/TeamSection'
 
 export function LandingPage() {
   return (
@@ -10,6 +12,8 @@ export function LandingPage() {
       <main>
         <HeroSection />
         <HowItWorks />
+        <TeamSection />
+        <ContactSection />
       </main>
       <SiteFooter />
     </div>
