@@ -41,6 +41,13 @@ export interface TeacherAddress {
   estado: string;
 }
 
+export interface SubjectExperience {
+  id: string;
+  name: string;
+  observation: string;
+  level: "Iniciante" | "Intermediário" | "Avançado";
+}
+
 /** Internal form state – values are stored as formatted strings for UI masks */
 export interface TeacherProfileFormData {
   avatarFile: File | null;
@@ -48,7 +55,7 @@ export interface TeacherProfileFormData {
   fullName: string;
   phone: string;
   bio: string;
-  subjects: string[];
+  subjects: SubjectExperience[];
   /** 'particulares' | 'instituicoes' | '' (empty = not yet chosen) */
   teachingModel: TeachingModel;
   modality: TeachingModality;
@@ -76,7 +83,7 @@ export interface TeacherProfilePayload {
   /** E.g. "(11) 98765-4321" */
   phone: string;
   bio: string;
-  subjects: string[];
+  subjects: SubjectExperience[];
   /** Null when the teacher hasn't selected a teaching model yet */
   teachingModel: ApiTeachingModel | null;
   modality: ApiModality;

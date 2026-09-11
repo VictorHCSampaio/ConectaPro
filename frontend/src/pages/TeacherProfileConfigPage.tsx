@@ -16,7 +16,7 @@ import axios from "axios";
 import { AvatarUpload } from "@/components/teacher-config/AvatarUpload";
 import { AvailabilityGrid } from "@/components/teacher-config/AvailabilityGrid";
 import { FormSection } from "@/components/teacher-config/FormSection";
-import { SubjectTagInput } from "@/components/teacher-config/SubjectTagInput";
+import { SubjectExperienceInput } from "@/components/teacher-config/SubjectExperienceInput";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { Radio } from "@/components/ui/Radio";
@@ -389,17 +389,8 @@ export function TeacherProfileConfigPage() {
     revalidate(next);
   }
 
-  function addSubject(subject: string) {
-    const next = { ...form, subjects: [...form.subjects, subject] };
-    setForm(next);
-    revalidate(next);
-  }
-
-  function removeSubject(subject: string) {
-    const next = {
-      ...form,
-      subjects: form.subjects.filter((s) => s !== subject),
-    };
+  function handleSubjectsChange(subjects: TeacherProfileFormData["subjects"]) {
+    const next = { ...form, subjects };
     setForm(next);
     revalidate(next);
   }
@@ -549,10 +540,9 @@ export function TeacherProfileConfigPage() {
             description="O que, como e por quanto você ensina."
           >
             <div className="flex flex-col gap-6">
-              <SubjectTagInput
+              <SubjectExperienceInput
                 subjects={form.subjects}
-                onAdd={addSubject}
-                onRemove={removeSubject}
+                onChange={handleSubjectsChange}
                 error={fieldError("subjects")}
               />
 

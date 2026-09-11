@@ -1,3 +1,5 @@
+export type UserRole = 'ALUNO' | 'PROFESSOR'
+
 export type LoginFormValues = {
   email: string
   password: string
@@ -5,6 +7,7 @@ export type LoginFormValues = {
 }
 
 export type RegisterFormValues = {
+  role: UserRole | null
   fullName: string
   email: string
   password: string
