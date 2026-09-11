@@ -34,3 +34,9 @@ export type LoginRequestPayload = {
 export type MensagemAutenticacaoResponse = {
   message: string
 }
+
+export type AuthUser = {
+  name: string
+  email: string
+  role: UserRole | null
+}
