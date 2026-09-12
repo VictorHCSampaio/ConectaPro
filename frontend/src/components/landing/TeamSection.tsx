@@ -33,14 +33,14 @@ const TEAM_MEMBERS: TeamMember[] = [
 
 export function TeamSection() {
   return (
-    <section className="border-t border-paper-200">
+    <section className="border-t border-paper-200 transition-colors duration-300 dark:border-white/10">
       <div className="mx-auto max-w-6xl px-6 py-20">
         <Reveal>
           <div className="mb-12 text-center">
-            <span className="text-xs font-semibold uppercase tracking-widest text-ink-400">
+            <span className="text-xs font-semibold uppercase tracking-widest text-ink-400 dark:text-zinc-600">
               Nossa Equipe
             </span>
-            <h2 className="mt-2 text-3xl font-semibold tracking-tight text-ink-900">
+            <h2 className="mt-2 text-3xl font-semibold tracking-tight text-ink-900 dark:text-white">
               Quem está por trás do ConectaPro
             </h2>
           </div>
@@ -49,17 +49,17 @@ export function TeamSection() {
         <div className="grid gap-8 md:grid-cols-3">
           {TEAM_MEMBERS.map((member, index) => (
             <Reveal key={member.name} delay={index * 0.1}>
-              <div className="flex flex-col items-center rounded-2xl bg-white p-8 text-center shadow-sm ring-1 ring-paper-200">
+              <div className="flex flex-col items-center rounded-2xl bg-white p-8 text-center shadow-sm ring-1 ring-paper-200 transition-all duration-300 dark:bg-white/[0.03] dark:ring-white/10 dark:shadow-[0_0_0_1px_rgba(255,255,255,0.04),0_16px_40px_-12px_rgba(0,0,0,0.6)]">
                 <img
                   src={member.avatar}
                   alt={`Foto de ${member.name}`}
-                  className="mx-auto mb-4 h-24 w-24 rounded-full object-cover"
+                  className="mx-auto mb-4 h-24 w-24 rounded-full object-cover ring-2 ring-white/10"
                 />
-                <h3 className="text-lg font-semibold text-ink-900">{member.name}</h3>
+                <h3 className="text-lg font-semibold text-ink-900 dark:text-white">{member.name}</h3>
                 <span className="mt-1 text-xs font-medium uppercase tracking-wide text-ocre-500">
                   {member.role}
                 </span>
-                <p className="mt-3 text-sm leading-relaxed text-ink-600">{member.description}</p>
+                <p className="mt-3 text-sm leading-relaxed text-ink-600 dark:text-zinc-400">{member.description}</p>
               </div>
             </Reveal>
           ))}

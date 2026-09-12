@@ -1,5 +1,7 @@
 @import "tailwindcss";
 
+@custom-variant dark (&:where(.dark, .dark *));
+
 @theme {
   --font-sans: "Space Grotesk", "Segoe UI", system-ui, sans-serif;
   --font-mono: "IBM Plex Mono", ui-monospace, "Cascadia Mono", monospace;
@@ -63,6 +65,12 @@
     0 1px 1px rgba(18, 38, 63, 0.04),
     0 6px 14px -8px rgba(18, 38, 63, 0.16),
     0 20px 42px -24px rgba(18, 38, 63, 0.24);
+
+  .dark & {
+    background-color: transparent;
+    border-color: rgba(255, 255, 255, 0.1);
+    box-shadow: none;
+  }
 }
 
 @utility card-lifted {
@@ -73,6 +81,12 @@
     0 2px 3px rgba(18, 38, 63, 0.06),
     0 16px 30px -14px rgba(18, 38, 63, 0.22),
     0 42px 80px -40px rgba(18, 38, 63, 0.34);
+
+  .dark & {
+    background-color: transparent;
+    border-color: rgba(255, 255, 255, 0.1);
+    box-shadow: none;
+  }
 }
 
 @utility inset-well {
@@ -81,6 +95,12 @@
   box-shadow:
     inset 0 2px 4px rgba(18, 38, 63, 0.09),
     inset 0 -1px 0 #ffffff;
+
+  .dark & {
+    background-color: rgba(0, 0, 0, 0.4);
+    border-color: rgba(255, 255, 255, 0.1);
+    box-shadow: none;
+  }
 }
 
 @utility label-mono {
@@ -109,6 +129,25 @@ body {
   background-color: var(--color-paper-50);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  transition: color 300ms, background-color 300ms;
+}
+
+.dark body {
+  color: #fafafa;
+  background-color: #0a0a0a;
+}
+
+.dark ::-webkit-scrollbar-track {
+  background: #111111;
+}
+
+.dark ::-webkit-scrollbar-thumb {
+  background: #2a2a2a;
+  border-color: #111111;
+}
+
+.dark ::-webkit-scrollbar-thumb:hover {
+  background: #3a3a3a;
 }
 
 ::selection {

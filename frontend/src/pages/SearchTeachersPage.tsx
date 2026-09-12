@@ -139,15 +139,15 @@ export function SearchTeachersPage() {
   ]);
 
   return (
-    <div className="flex min-h-screen flex-col bg-paper-50">
+    <div className="flex min-h-screen flex-col bg-paper-50 transition-colors duration-300 dark:bg-[#0a0a0a]">
       <SiteHeader />
 
       <main className="mx-auto w-full max-w-6xl flex-1 px-6 py-10">
-        <p className="label-mono flex items-center gap-2.5 text-paper-600">
+        <p className="label-mono flex items-center gap-2.5 text-paper-600 dark:text-zinc-500">
           <span className="h-px w-8 bg-ocre-400" />
           Diretório
         </p>
-        <h1 className="mt-3 mb-6 text-3xl font-semibold tracking-tight text-ink-900">
+        <h1 className="mt-3 mb-6 text-3xl font-semibold tracking-tight text-ink-900 dark:text-white">
           Professores particulares
         </h1>
 
@@ -180,7 +180,7 @@ export function SearchTeachersPage() {
                   : "professores encontrados"}
               </p>
 
-              <label className="flex items-center gap-2 text-sm text-paper-600">
+              <label className="flex items-center gap-2 text-sm text-paper-600 dark:text-zinc-400">
                 Ordenar por
                 <select
                   value={sortOption}
@@ -219,7 +219,7 @@ export function SearchTeachersPage() {
                 <button
                   type="button"
                   onClick={clearFilters}
-                  className="mt-2 rounded-md border border-paper-300 bg-white px-4 py-2 text-sm font-semibold text-ink-800 shadow-[inset_0_1px_0_#fff,0_2px_0_var(--color-paper-200)] transition-transform duration-150 active:translate-y-0.5 active:shadow-none"
+                  className="mt-2 rounded-md border border-paper-300 bg-white px-4 py-2 text-sm font-semibold text-ink-800 shadow-[inset_0_1px_0_#fff,0_2px_0_var(--color-paper-200)] transition-all duration-150 active:translate-y-0.5 active:shadow-none dark:border-white/10 dark:bg-white/[0.04] dark:text-white dark:shadow-none dark:hover:bg-white/[0.08]"
                 >
                   Limpar filtros
                 </button>

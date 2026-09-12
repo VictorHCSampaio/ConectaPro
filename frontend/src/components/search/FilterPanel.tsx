@@ -36,19 +36,19 @@ export function FilterPanel({
   onClear,
 }: FilterPanelProps) {
   return (
-    <aside className="card h-fit rounded-lg">
-      <div className="flex items-center justify-between border-b border-paper-200 px-5 py-3.5">
-        <h2 className="text-sm font-semibold text-ink-900">Filtros</h2>
+    <aside className="card h-fit rounded-lg transition-all duration-300 dark:border-white/10 dark:bg-white/[0.03] dark:backdrop-blur-lg dark:shadow-[0_0_0_1px_rgba(255,255,255,0.04)]">
+      <div className="flex items-center justify-between border-b border-paper-200 px-5 py-3.5 dark:border-white/10">
+        <h2 className="text-sm font-semibold text-ink-900 dark:text-white">Filtros</h2>
         <button
           type="button"
           onClick={onClear}
-          className="label-mono rounded-sm px-2 py-1 text-paper-600 transition-colors hover:bg-paper-100 hover:text-ink-900"
+          className="label-mono rounded-sm px-2 py-1 text-paper-600 transition-colors hover:bg-paper-100 hover:text-ink-900 dark:text-zinc-500 dark:hover:bg-white/5 dark:hover:text-white"
         >
           Limpar
         </button>
       </div>
 
-      <div className="flex flex-col gap-3 border-b border-paper-200 px-5 py-5">
+      <div className="flex flex-col gap-3 border-b border-paper-200 px-5 py-5 dark:border-white/10">
         <span className={SECTION_TITLE}>Matéria</span>
         <div className="flex flex-col gap-2.5">
           {subjectOptions.length === 0 && (
@@ -67,7 +67,7 @@ export function FilterPanel({
         </div>
       </div>
 
-      <div className="flex flex-col gap-3 border-b border-paper-200 px-5 py-5">
+      <div className="flex flex-col gap-3 border-b border-paper-200 px-5 py-5 dark:border-white/10">
         <span className={SECTION_TITLE}>Modalidade</span>
         <div className="flex flex-col gap-2.5">
           <Radio
@@ -85,7 +85,7 @@ export function FilterPanel({
         </div>
       </div>
 
-      <div className="flex flex-col gap-3 border-b border-paper-200 px-5 py-5">
+      <div className="flex flex-col gap-3 border-b border-paper-200 px-5 py-5 dark:border-white/10">
         <span className={SECTION_TITLE}>Valor da hora-aula</span>
         <RangeSlider
           min={minPrice}
