@@ -1,25 +1,63 @@
-import { useMemo, useState } from 'react'
+import { Loader2 } from 'lucide-react'
+import { useEffect, useMemo, useState } from 'react'
 import { FilterPanel } from '@/components/search/FilterPanel'
 import { TeacherResultCard } from '@/components/search/TeacherResultCard'
 import { TeacherSearchBar } from '@/components/search/TeacherSearchBar'
 import { SiteFooter } from '@/components/landing/SiteFooter'
 import { SiteHeader } from '@/components/landing/SiteHeader'
 import { Reveal } from '@/components/motion/Reveal'
-import { MAX_PRICE_PER_HOUR, MIN_PRICE_PER_HOUR, MOCK_TEACHERS } from '@/lib/mockTeachers'
-import type { ModalityOption } from '@/types/teacher'
+import { listarProfessores } from '@/lib/teacherService'
+import type { ModalityOption, Teacher } from '@/types/teacher'
 
 type SortOption = 'relevancia' | 'menor-preco' | 'maior-avaliacao'
 
-const DEFAULT_SUBJECTS = ['Matemática', 'Inglês']
-const DEFAULT_PRICE_RANGE: [number, number] = [MIN_PRICE_PER_HOUR, MAX_PRICE_PER_HOUR]
+/** Usado enquanto a lista ainda nao carregou. */
+const FALLBACK_PRICE_RANGE: [number, number] = [0, 200]
 
 export function SearchTeachersPage() {
+  const [teachers, setTeachers] = useState<Teacher[]>([])
+  const [isLoading, setIsLoading] = useState(true)
+  const [loadError, setLoadError] = useState<string | null>(null)
+
   const [searchQuery, setSearchQuery] = useState('')
-  const [selectedSubjects, setSelectedSubjects] = useState<string[]>(DEFAULT_SUBJECTS)
+  const [selectedSubjects, setSelectedSubjects] = useState<string[]>([])
   const [modality, setModality] = useState<ModalityOption>('online')
-  const [priceRange, setPriceRange] = useState<[number, number]>(DEFAULT_PRICE_RANGE)
+  const [priceRange, setPriceRange] = useState<[number, number] | null>(null)
   const [onlyVerified, setOnlyVerified] = useState(false)
   const [sortOption, setSortOption] = useState<SortOption>('relevancia')
+
+  useEffect(() => {
+    let ativo = true
+
+    listarProfessores()
+      .then((lista) => {
+        if (ativo) setTeachers(lista)
+      })
+      .catch(() => {
+        if (ativo) setLoadError('Não foi possível carregar os professores.')
+      })
+      .finally(() => {
+        if (ativo) setIsLoading(false)
+      })
+
+    return () => {
+      ativo = false
+    }
+  }, [])
+
+  // As opcoes de filtro saem dos proprios professores cadastrados.
+  const subjectOptions = useMemo(
+    () => [...new Set(teachers.flatMap((teacher) => teacher.subjects))].sort(),
+    [teachers],
+  )
+
+  const priceBounds = useMemo<[number, number]>(() => {
+    if (teachers.length === 0) return FALLBACK_PRICE_RANGE
+    const precos = teachers.map((teacher) => teacher.pricePerHour)
+    return [Math.floor(Math.min(...precos)), Math.ceil(Math.max(...precos))]
+  }, [teachers])
+
+  const activePriceRange = priceRange ?? priceBounds
 
   function toggleSubject(subject: string) {
     setSelectedSubjects((previous) =>
@@ -32,14 +70,14 @@ export function SearchTeachersPage() {
   function clearFilters() {
     setSelectedSubjects([])
     setModality('online')
-    setPriceRange(DEFAULT_PRICE_RANGE)
+    setPriceRange(null)
     setOnlyVerified(false)
   }
 
   const filteredTeachers = useMemo(() => {
     const query = searchQuery.trim().toLowerCase()
 
-    const matches = MOCK_TEACHERS.filter((teacher) => {
+    const matches = teachers.filter((teacher) => {
       const matchesQuery =
         query.length === 0 ||
         teacher.name.toLowerCase().includes(query) ||
@@ -52,7 +90,7 @@ export function SearchTeachersPage() {
       const matchesModality = teacher.modalities.includes(modality)
 
       const matchesPrice =
-        teacher.pricePerHour >= priceRange[0] && teacher.pricePerHour <= priceRange[1]
+        teacher.pricePerHour >= activePriceRange[0] && teacher.pricePerHour <= activePriceRange[1]
 
       const matchesVerified = !onlyVerified || teacher.verified
 
@@ -66,7 +104,7 @@ export function SearchTeachersPage() {
       return [...matches].sort((a, b) => b.rating - a.rating)
     }
     return matches
-  }, [searchQuery, selectedSubjects, modality, priceRange, onlyVerified, sortOption])
+  }, [teachers, searchQuery, selectedSubjects, modality, activePriceRange, onlyVerified, sortOption])
 
   return (
     <div className="flex min-h-screen flex-col bg-paper-50">
@@ -85,11 +123,14 @@ export function SearchTeachersPage() {
 
         <div className="mt-8 grid gap-8 lg:grid-cols-[264px_1fr]">
           <FilterPanel
+            subjectOptions={subjectOptions}
+            minPrice={priceBounds[0]}
+            maxPrice={priceBounds[1]}
             selectedSubjects={selectedSubjects}
             onToggleSubject={toggleSubject}
             modality={modality}
             onModalityChange={setModality}
-            priceRange={priceRange}
+            priceRange={activePriceRange}
             onPriceRangeChange={setPriceRange}
             onlyVerified={onlyVerified}
             onOnlyVerifiedChange={setOnlyVerified}
@@ -119,7 +160,28 @@ export function SearchTeachersPage() {
               </label>
             </div>
 
-            {filteredTeachers.length === 0 ? (
+            {isLoading ? (
+              <div className="inset-well flex items-center gap-2 rounded-lg p-10 text-sm text-paper-600">
+                <Loader2 className="size-4 animate-spin" />
+                Carregando professores…
+              </div>
+            ) : loadError ? (
+              <div className="inset-well flex flex-col items-start gap-2 rounded-lg p-10">
+                <p className="text-lg font-semibold text-ink-900">{loadError}</p>
+                <p className="text-sm text-ink-600">
+                  Verifique sua conexão e tente novamente em instantes.
+                </p>
+              </div>
+            ) : teachers.length === 0 ? (
+              <div className="inset-well flex flex-col items-start gap-2 rounded-lg p-10">
+                <p className="text-lg font-semibold text-ink-900">
+                  Nenhum professor cadastrado ainda.
+                </p>
+                <p className="text-sm text-ink-600">
+                  Assim que um professor configurar o perfil, ele aparece aqui.
+                </p>
+              </div>
+            ) : filteredTeachers.length === 0 ? (
               <div className="inset-well flex flex-col items-start gap-2 rounded-lg p-10">
                 <p className="text-lg font-semibold text-ink-900">
                   Nenhum professor corresponde a esses filtros.
