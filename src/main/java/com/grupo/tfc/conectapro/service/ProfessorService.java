@@ -5,6 +5,7 @@ import com.grupo.tfc.conectapro.dto.professor.EnderecoProfessorRequest;
 import com.grupo.tfc.conectapro.dto.professor.MateriaProfessorRequest;
 import com.grupo.tfc.conectapro.dto.professor.PerfilProfessorRequest;
 import com.grupo.tfc.conectapro.dto.professor.PerfilProfessorResponse;
+import com.grupo.tfc.conectapro.dto.professor.ProfessorResumoResponse;
 import com.grupo.tfc.conectapro.model.Endereco;
 import com.grupo.tfc.conectapro.model.Materia;
 import com.grupo.tfc.conectapro.model.Professor;
@@ -26,7 +27,11 @@ import org.springframework.web.server.ResponseStatusException;
 import java.math.BigDecimal;
 import java.time.OffsetDateTime;
 import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Locale;
+import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -41,6 +46,18 @@ public class ProfessorService {
     private static final String MODALIDADE_PRESENCIAL = "PRESENCIAL";
     private static final String MODELO_PARTICULARES = "PARTICULARES";
     private static final String MODELO_INSTITUICOES = "INSTITUICOES";
+
+    private static final Map<String, String> DIAS_SEMANA = new LinkedHashMap<>();
+
+    static {
+        DIAS_SEMANA.put("seg", "Seg");
+        DIAS_SEMANA.put("ter", "Ter");
+        DIAS_SEMANA.put("qua", "Qua");
+        DIAS_SEMANA.put("qui", "Qui");
+        DIAS_SEMANA.put("sex", "Sex");
+        DIAS_SEMANA.put("sab", "Sáb");
+        DIAS_SEMANA.put("dom", "Dom");
+    }
 
     private final UsuarioRepository usuarioRepository;
     private final ProfessorRepository professorRepository;
@@ -146,9 +163,63 @@ public class ProfessorService {
         );
     }
 
+    @Transactional(readOnly = true)
+    public List<ProfessorResumoResponse> listarProfessores() {
+        return professorRepository.findAll().stream()
+                .map(this::paraResumo)
+                .sorted(Comparator.comparing(ProfessorResumoResponse::name, String.CASE_INSENSITIVE_ORDER))
+                .toList();
+    }
+
+    @Transactional(readOnly = true)
+    public ProfessorResumoResponse buscarProfessor(UUID professorId) {
+        return professorRepository.findById(professorId)
+                .map(this::paraResumo)
+                .orElseThrow(() -> new ResponseStatusException(NOT_FOUND, "Professor não encontrado"));
+    }
+
     private Usuario buscarUsuario(UUID usuarioId) {
         return usuarioRepository.findById(usuarioId)
                 .orElseThrow(() -> new ResponseStatusException(NOT_FOUND, "Usuário não encontrado"));
+    }
+
+    private ProfessorResumoResponse paraResumo(Professor professor) {
+        String nome = professor.getUsuario().getNomeCompleto();
+
+        List<String> materias = professorMateriaRepository.findByProfessorId(professor.getId())
+                .stream()
+                .map(vinculo -> vinculo.getMateria().getNome())
+                .toList();
+
+        List<ProfessorDisponibilidade> slots = disponibilidadeRepository.findByProfessorId(professor.getId());
+
+        List<String> modalidades = new ArrayList<>();
+        if (Boolean.TRUE.equals(professor.getAtendeOnline())) {
+            modalidades.add(MODALIDADE_ONLINE.toLowerCase(Locale.ROOT));
+        }
+        if (Boolean.TRUE.equals(professor.getAtendePresencial())) {
+            modalidades.add(MODALIDADE_PRESENCIAL.toLowerCase(Locale.ROOT));
+        }
+
+        BigDecimal preco = precoHora(professor);
+
+        return new ProfessorResumoResponse(
+                professor.getId().toString(),
+                nome,
+                gerarIniciais(nome),
+                materias,
+                0,
+                0,
+                modalidades,
+                preco == null ? 0d : preco.doubleValue(),
+                Boolean.TRUE.equals(professor.getVerificado()),
+                professor.getBiografia(),
+                slots.stream().map(ProfessorDisponibilidade::getHorario).distinct().sorted().toList(),
+                DIAS_SEMANA.entrySet().stream()
+                        .filter(dia -> slots.stream().anyMatch(slot -> dia.getKey().equals(slot.getDiaSemana())))
+                        .map(Map.Entry::getValue)
+                        .toList()
+        );
     }
 
     private boolean atendeInstituicoes(Professor professor) {
@@ -159,6 +230,14 @@ public class ProfessorService {
         return atendeInstituicoes(professor)
                 ? professor.getPrecoHoraEscola()
                 : professor.getPrecoHoraParticular();
+    }
+
+    private String gerarIniciais(String nome) {
+        String[] partes = nome.trim().split("\\s+");
+        if (partes.length == 1) {
+            return partes[0].substring(0, Math.min(2, partes[0].length())).toUpperCase(Locale.ROOT);
+        }
+        return (partes[0].charAt(0) + "" + partes[partes.length - 1].charAt(0)).toUpperCase(Locale.ROOT);
     }
 
     private void salvarEndereco(Usuario usuario, EnderecoProfessorRequest request) {
