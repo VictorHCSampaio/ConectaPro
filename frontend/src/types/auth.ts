@@ -19,6 +19,7 @@ export type RegisterRequestPayload = {
   nome: string
   email: string
   password: string
+  role: UserRole
 }
 
 export type TotpSetupResponse = {
@@ -31,11 +32,20 @@ export type LoginRequestPayload = {
   senha: string
 }
 
+export type UsuarioAutenticadoResponse = {
+  id: string
+  nomeCompleto: string
+  email: string
+  tipo: UserRole
+}
+
 export type MensagemAutenticacaoResponse = {
   message: string
+  usuario: UsuarioAutenticadoResponse
 }
 
 export type AuthUser = {
+  id: string
   name: string
   email: string
   role: UserRole | null
