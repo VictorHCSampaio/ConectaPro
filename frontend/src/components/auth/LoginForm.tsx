@@ -6,7 +6,9 @@ import { Button } from '@/components/ui/Button'
 import { Checkbox } from '@/components/ui/Checkbox'
 import { Input } from '@/components/ui/Input'
 import { PasswordInput } from '@/components/ui/PasswordInput'
+import { useAuth } from '@/hooks/useAuth'
 import { useForm } from '@/hooks/useForm'
+import { findAccount } from '@/lib/accountStore'
 import { extractErrorMessage } from '@/lib/api'
 import { loginUsuario } from '@/lib/authService'
 import { validateLoginForm } from '@/lib/validation'
@@ -20,6 +22,7 @@ const INITIAL_VALUES: LoginFormValues = {
 
 export function LoginForm() {
   const navigate = useNavigate()
+  const { signIn } = useAuth()
   const [wasSubmitted, setWasSubmitted] = useState(false)
   const [submitError, setSubmitError] = useState<string | null>(null)
   const { values, setField, touchField, fieldError, handleSubmit, isSubmitting } = useForm(
@@ -31,8 +34,18 @@ export function LoginForm() {
     setSubmitError(null)
     try {
       await loginUsuario({ email: formValues.email, senha: formValues.password })
+
+      const account = findAccount(formValues.email)
+      const role = account?.role ?? 'ALUNO'
+      signIn({
+        name: account?.name ?? formValues.email.split('@')[0],
+        email: formValues.email.trim(),
+        role,
+      })
+
       setWasSubmitted(true)
-      setTimeout(() => navigate('/'), 900)
+      // Professor vai direto para o perfil para preencher os dados dele.
+      setTimeout(() => navigate(role === 'PROFESSOR' ? '/profile/edit' : '/'), 900)
     } catch (error) {
       setSubmitError(extractErrorMessage(error, 'Não foi possível entrar. Tente novamente.'))
     }
