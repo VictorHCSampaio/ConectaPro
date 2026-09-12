@@ -9,6 +9,7 @@ import jakarta.servlet.http.HttpSession;
 import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -37,6 +38,11 @@ public class ProfessorController {
     public ResponseEntity<PerfilProfessorResponse> meuPerfil(HttpSession session) {
         UUID usuarioId = SessaoUsuario.exigirUsuarioId(session);
         return ResponseEntity.ok(professorService.buscarPerfil(usuarioId));
+    }
+
+    @GetMapping("/{id}")
+    public ResponseEntity<ProfessorResumoResponse> detalhe(@PathVariable UUID id) {
+        return ResponseEntity.ok(professorService.buscarProfessor(id));
     }
 
     @PutMapping("/me")

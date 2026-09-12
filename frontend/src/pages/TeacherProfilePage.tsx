@@ -5,7 +5,7 @@ import { SiteFooter } from '@/components/landing/SiteFooter'
 import { SiteHeader } from '@/components/landing/SiteHeader'
 import { Button } from '@/components/ui/Button'
 import { StarRating } from '@/components/ui/StarRating'
-import { MOCK_TEACHERS } from '@/lib/mockTeachers'
+import { buscarProfessor } from '@/lib/teacherService'
 import { formatModalities, formatRating } from '@/lib/formatTeacher'
 import type { Teacher } from '@/types/teacher'
 
@@ -16,21 +16,27 @@ export function TeacherProfilePage() {
   const [isError, setIsError] = useState(false)
 
   useEffect(() => {
+    if (!id) return
+
+    let ativo = true
     setIsLoading(true)
     setIsError(false)
     setTeacher(null)
 
-    const timer = setTimeout(() => {
-      const found = MOCK_TEACHERS.find((t) => t.id === id) ?? null
-      if (found) {
-        setTeacher(found)
-      } else {
-        setIsError(true)
-      }
-      setIsLoading(false)
-    }, 800)
+    buscarProfessor(id)
+      .then((encontrado) => {
+        if (ativo) setTeacher(encontrado)
+      })
+      .catch(() => {
+        if (ativo) setIsError(true)
+      })
+      .finally(() => {
+        if (ativo) setIsLoading(false)
+      })
 
-    return () => clearTimeout(timer)
+    return () => {
+      ativo = false
+    }
   }, [id])
 
   if (isLoading) {

@@ -134,6 +134,13 @@ public class ProfessorService {
                 .toList();
     }
 
+    @Transactional(readOnly = true)
+    public ProfessorResumoResponse buscarProfessor(UUID professorId) {
+        return professorRepository.findById(professorId)
+                .map(this::paraResumo)
+                .orElseThrow(() -> new ResponseStatusException(NOT_FOUND, "Professor não encontrado"));
+    }
+
     private ProfessorResumoResponse paraResumo(Professor professor) {
         String nome = professor.getUsuario().getNomeCompleto();
 
