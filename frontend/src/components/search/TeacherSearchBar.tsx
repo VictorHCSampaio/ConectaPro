@@ -12,8 +12,8 @@ export function TeacherSearchBar({ value, onChange }: TeacherSearchBarProps) {
   }
 
   return (
-    <form onSubmit={handleSubmit} className="card flex items-stretch gap-1 rounded-lg p-1.5">
-      <span className="flex items-center pl-3 text-paper-500">
+    <form onSubmit={handleSubmit} className="card flex items-stretch gap-1 rounded-lg p-1.5 transition-all duration-300 dark:border-white/10 dark:bg-black/40 dark:shadow-none">
+      <span className="flex items-center pl-3 text-paper-500 dark:text-zinc-500">
         <Search className="size-4" />
       </span>
       <input
@@ -21,7 +21,7 @@ export function TeacherSearchBar({ value, onChange }: TeacherSearchBarProps) {
         placeholder="Buscar por matéria, professor ou área"
         value={value}
         onChange={(event) => onChange(event.target.value)}
-        className="w-full bg-transparent px-3 py-2.5 text-sm text-ink-900 outline-none placeholder:text-paper-400"
+        className="w-full bg-transparent px-3 py-2.5 text-sm text-ink-900 outline-none placeholder:text-paper-400 dark:text-white dark:placeholder:text-zinc-600"
       />
       <button
         type="submit"

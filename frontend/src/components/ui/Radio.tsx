@@ -19,13 +19,14 @@ export function Radio({ label, id, className, ...props }: RadioProps) {
           'size-4 shrink-0 cursor-pointer border-paper-400 bg-paper-100 text-ink-800',
           'shadow-[inset_0_1px_2px_rgba(18,38,63,0.16)] transition-colors',
           'focus:ring-2 focus:ring-ocre-400/40 focus:ring-offset-0',
+          'dark:border-slate-600 dark:bg-slate-900',
           className,
         )}
         {...props}
       />
       <label
         htmlFor={inputId}
-        className="cursor-pointer text-sm text-ink-700 transition-colors group-hover:text-ink-900"
+        className="cursor-pointer text-sm text-ink-700 transition-colors group-hover:text-ink-900 dark:text-slate-300 dark:group-hover:text-slate-50"
       >
         {label}
       </label>
