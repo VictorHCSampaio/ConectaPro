@@ -22,6 +22,7 @@ import { Input } from "@/components/ui/Input";
 import { Radio } from "@/components/ui/Radio";
 import { SiteFooter } from "@/components/landing/SiteFooter";
 import { SiteHeader } from "@/components/landing/SiteHeader";
+import { useAuth } from "@/hooks/useAuth";
 import { cn } from "@/lib/cn";
 import type {
   ApiModality,
@@ -278,8 +279,13 @@ function SuccessToast({ onDismiss }: { onDismiss: () => void }) {
 export function TeacherProfileConfigPage() {
   const bioId = useId();
   const prevAvatarUrlRef = useRef<string | null>(null);
+  const { user } = useAuth();
 
-  const [form, setForm] = useState<TeacherProfileFormData>(INITIAL_FORM);
+  const [form, setForm] = useState<TeacherProfileFormData>(() => ({
+    ...INITIAL_FORM,
+    fullName: user?.name ?? "",
+    availability: new Set(INITIAL_FORM.availability),
+  }));
   const [errors, setErrors] = useState<TeacherProfileErrors>({});
   const [touched, setTouched] = useState<
     Partial<Record<keyof TeacherProfileErrors, boolean>>
