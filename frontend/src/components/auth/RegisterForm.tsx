@@ -8,6 +8,7 @@ import { Checkbox } from '@/components/ui/Checkbox'
 import { Input } from '@/components/ui/Input'
 import { PasswordInput } from '@/components/ui/PasswordInput'
 import { useForm } from '@/hooks/useForm'
+import { rememberAccount } from '@/lib/accountStore'
 import { extractErrorMessage } from '@/lib/api'
 import { registerUsuario } from '@/lib/authService'
 import { validateRegisterForm } from '@/lib/validation'
@@ -38,6 +39,14 @@ export function RegisterForm() {
         email: formValues.email,
         password: formValues.password,
       })
+
+      if (formValues.role) {
+        rememberAccount(formValues.email, {
+          name: formValues.fullName.trim(),
+          role: formValues.role,
+        })
+      }
+
       setWasSubmitted(true)
     } catch (error) {
       setSubmitError(extractErrorMessage(error, 'Não foi possível criar sua conta. Tente novamente.'))
