@@ -4,7 +4,6 @@ import com.grupo.tfc.conectapro.dto.auth.LoginRequest;
 import com.grupo.tfc.conectapro.dto.auth.MensagemAutenticacaoResponse;
 import com.grupo.tfc.conectapro.dto.auth.RegisterRequest;
 import com.grupo.tfc.conectapro.dto.auth.TotpSetupResponse;
-import com.grupo.tfc.conectapro.dto.auth.UsuarioAutenticadoResponse;
 import com.grupo.tfc.conectapro.model.Usuario;
 import com.grupo.tfc.conectapro.service.AuthenticationService;
 import jakarta.servlet.http.HttpSession;
@@ -37,12 +36,9 @@ public class UsuarioController {
         Usuario usuario = authService.login(request.email(), request.senha(), session);
         return ResponseEntity.ok(new MensagemAutenticacaoResponse(
                 "Senha validada",
-                new UsuarioAutenticadoResponse(
-                        usuario.getId(),
-                        usuario.getNomeCompleto(),
-                        usuario.getEmail(),
-                        usuario.getTipo() == null ? "ALUNO" : usuario.getTipo().name()
-                )
+                usuario.getNomeCompleto(),
+                usuario.getTipo(),
+                usuario.isAdmin()
         ));
     }
 }

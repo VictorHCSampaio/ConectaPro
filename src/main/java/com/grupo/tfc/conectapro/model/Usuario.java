@@ -35,4 +35,7 @@ public class Usuario {
 
     @Column(name = "criado_em")
     private OffsetDateTime criadoEm;
+
+    @Column(name = "is_admin")
+    private boolean admin;
 }

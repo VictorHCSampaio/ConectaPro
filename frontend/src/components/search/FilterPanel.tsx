@@ -1,25 +1,30 @@
-import { Checkbox } from '@/components/ui/Checkbox'
-import { Radio } from '@/components/ui/Radio'
-import { RangeSlider } from '@/components/ui/RangeSlider'
-import { Switch } from '@/components/ui/Switch'
-import { MAX_PRICE_PER_HOUR, MIN_PRICE_PER_HOUR, SUBJECT_OPTIONS } from '@/lib/mockTeachers'
-import type { ModalityOption } from '@/types/teacher'
+import { Checkbox } from "@/components/ui/Checkbox";
+import { Radio } from "@/components/ui/Radio";
+import { RangeSlider } from "@/components/ui/RangeSlider";
+import { Switch } from "@/components/ui/Switch";
+import type { ModalityOption } from "@/types/teacher";
 
 type FilterPanelProps = {
-  selectedSubjects: string[]
-  onToggleSubject: (subject: string) => void
-  modality: ModalityOption
-  onModalityChange: (modality: ModalityOption) => void
-  priceRange: [number, number]
-  onPriceRangeChange: (range: [number, number]) => void
-  onlyVerified: boolean
-  onOnlyVerifiedChange: (value: boolean) => void
-  onClear: () => void
-}
+  subjectOptions: string[];
+  minPrice: number;
+  maxPrice: number;
+  selectedSubjects: string[];
+  onToggleSubject: (subject: string) => void;
+  modality: ModalityOption;
+  onModalityChange: (modality: ModalityOption) => void;
+  priceRange: [number, number];
+  onPriceRangeChange: (range: [number, number]) => void;
+  onlyVerified: boolean;
+  onOnlyVerifiedChange: (value: boolean) => void;
+  onClear: () => void;
+};
 
-const SECTION_TITLE = 'label-mono text-paper-500 dark:text-zinc-500'
+const SECTION_TITLE = "label-mono text-paper-500";
 
 export function FilterPanel({
+  subjectOptions,
+  minPrice,
+  maxPrice,
   selectedSubjects,
   onToggleSubject,
   modality,
@@ -46,7 +51,12 @@ export function FilterPanel({
       <div className="flex flex-col gap-3 border-b border-paper-200 px-5 py-5 dark:border-white/10">
         <span className={SECTION_TITLE}>Matéria</span>
         <div className="flex flex-col gap-2.5">
-          {SUBJECT_OPTIONS.map((subject) => (
+          {subjectOptions.length === 0 && (
+            <p className="text-sm text-paper-500">
+              Nenhuma matéria cadastrada ainda.
+            </p>
+          )}
+          {subjectOptions.map((subject) => (
             <Checkbox
               key={subject}
               label={subject}
@@ -63,14 +73,14 @@ export function FilterPanel({
           <Radio
             name="modalidade"
             label="Online"
-            checked={modality === 'online'}
-            onChange={() => onModalityChange('online')}
+            checked={modality === "online"}
+            onChange={() => onModalityChange("online")}
           />
           <Radio
             name="modalidade"
             label="Presencial"
-            checked={modality === 'presencial'}
-            onChange={() => onModalityChange('presencial')}
+            checked={modality === "presencial"}
+            onChange={() => onModalityChange("presencial")}
           />
         </div>
       </div>
@@ -78,8 +88,8 @@ export function FilterPanel({
       <div className="flex flex-col gap-3 border-b border-paper-200 px-5 py-5 dark:border-white/10">
         <span className={SECTION_TITLE}>Valor da hora-aula</span>
         <RangeSlider
-          min={MIN_PRICE_PER_HOUR}
-          max={MAX_PRICE_PER_HOUR}
+          min={minPrice}
+          max={maxPrice}
           step={5}
           value={priceRange}
           onChange={onPriceRangeChange}
@@ -95,5 +105,5 @@ export function FilterPanel({
         />
       </div>
     </aside>
-  )
+  );
 }

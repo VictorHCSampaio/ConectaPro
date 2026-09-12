@@ -32,17 +32,14 @@ export function LoginForm() {
   const onSubmit = handleSubmit(async (formValues) => {
     setSubmitError(null)
     try {
-      const { usuario } = await loginUsuario({
-        email: formValues.email,
-        senha: formValues.password,
-      })
+      const usuario = await loginUsuario({ email: formValues.email, senha: formValues.password })
 
       const role = usuario.tipo
       signIn({
-        id: usuario.id,
         name: usuario.nomeCompleto,
-        email: usuario.email,
+        email: formValues.email.trim(),
         role,
+        isAdmin: usuario.isAdmin,
       })
 
       setWasSubmitted(true)

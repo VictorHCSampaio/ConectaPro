@@ -34,6 +34,12 @@ public class Professor {
     @Column(columnDefinition = "text")
     private String biografia;
 
+    @Column
+    private String telefone;
+
+    @Column(name = "avatar_url", columnDefinition = "text")
+    private String avatarUrl;
+
     @Column(name = "preco_hora_particular")
     private BigDecimal precoHoraParticular;
 

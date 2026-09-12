@@ -1,72 +1,142 @@
-import { useMemo, useState } from 'react'
-import { FilterPanel } from '@/components/search/FilterPanel'
-import { TeacherResultCard } from '@/components/search/TeacherResultCard'
-import { TeacherSearchBar } from '@/components/search/TeacherSearchBar'
-import { SiteFooter } from '@/components/landing/SiteFooter'
-import { SiteHeader } from '@/components/landing/SiteHeader'
-import { Reveal } from '@/components/motion/Reveal'
-import { MAX_PRICE_PER_HOUR, MIN_PRICE_PER_HOUR, MOCK_TEACHERS } from '@/lib/mockTeachers'
-import type { ModalityOption } from '@/types/teacher'
+import { Loader2 } from "lucide-react";
+import { useEffect, useMemo, useState } from "react";
+import type { ReactNode } from "react";
+import { FilterPanel } from "@/components/search/FilterPanel";
+import { TeacherResultCard } from "@/components/search/TeacherResultCard";
+import { TeacherSearchBar } from "@/components/search/TeacherSearchBar";
+import { SiteFooter } from "@/components/landing/SiteFooter";
+import { SiteHeader } from "@/components/landing/SiteHeader";
+import { Reveal } from "@/components/motion/Reveal";
+import { listarProfessores } from "@/lib/professorService.ts";
+import type { ModalityOption, Teacher } from "@/types/teacher";
 
-type SortOption = 'relevancia' | 'menor-preco' | 'maior-avaliacao'
+type SortOption = "relevancia" | "menor-preco" | "maior-avaliacao";
 
-const DEFAULT_SUBJECTS = ['Matemática', 'Inglês']
-const DEFAULT_PRICE_RANGE: [number, number] = [MIN_PRICE_PER_HOUR, MAX_PRICE_PER_HOUR]
+type ResultsMessageProps = {
+  title: string;
+  description: string;
+  children?: ReactNode;
+};
+
+function ResultsMessage({ title, description, children }: ResultsMessageProps) {
+  return (
+    <div className="inset-well flex flex-col items-start gap-2 rounded-lg p-10">
+      <p className="text-lg font-semibold text-ink-900">{title}</p>
+      <p className="text-sm text-ink-600">{description}</p>
+      {children}
+    </div>
+  );
+}
+
+const FALLBACK_PRICE_RANGE: [number, number] = [0, 200];
 
 export function SearchTeachersPage() {
-  const [searchQuery, setSearchQuery] = useState('')
-  const [selectedSubjects, setSelectedSubjects] = useState<string[]>(DEFAULT_SUBJECTS)
-  const [modality, setModality] = useState<ModalityOption>('online')
-  const [priceRange, setPriceRange] = useState<[number, number]>(DEFAULT_PRICE_RANGE)
-  const [onlyVerified, setOnlyVerified] = useState(false)
-  const [sortOption, setSortOption] = useState<SortOption>('relevancia')
+  const [teachers, setTeachers] = useState<Teacher[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
+
+  const [searchQuery, setSearchQuery] = useState("");
+  const [selectedSubjects, setSelectedSubjects] = useState<string[]>([]);
+  const [modality, setModality] = useState<ModalityOption>("online");
+  const [priceRange, setPriceRange] = useState<[number, number] | null>(null);
+  const [onlyVerified, setOnlyVerified] = useState(false);
+  const [sortOption, setSortOption] = useState<SortOption>("relevancia");
+
+  useEffect(() => {
+    let isActive = true;
+
+    listarProfessores()
+      .then((list) => {
+        if (isActive) setTeachers(list);
+      })
+      .catch(() => {
+        if (isActive) setLoadError("Não foi possível carregar os professores.");
+      })
+      .finally(() => {
+        if (isActive) setIsLoading(false);
+      });
+
+    return () => {
+      isActive = false;
+    };
+  }, []);
+
+  const subjectOptions = useMemo(
+    () => [...new Set(teachers.flatMap((teacher) => teacher.subjects))].sort(),
+    [teachers],
+  );
+
+  const priceBounds = useMemo<[number, number]>(() => {
+    if (teachers.length === 0) return FALLBACK_PRICE_RANGE;
+    const prices = teachers.map((teacher) => teacher.pricePerHour);
+    return [Math.floor(Math.min(...prices)), Math.ceil(Math.max(...prices))];
+  }, [teachers]);
+
+  const activePriceRange = priceRange ?? priceBounds;
 
   function toggleSubject(subject: string) {
     setSelectedSubjects((previous) =>
       previous.includes(subject)
         ? previous.filter((item) => item !== subject)
         : [...previous, subject],
-    )
+    );
   }
 
   function clearFilters() {
-    setSelectedSubjects([])
-    setModality('online')
-    setPriceRange(DEFAULT_PRICE_RANGE)
-    setOnlyVerified(false)
+    setSelectedSubjects([]);
+    setModality("online");
+    setPriceRange(null);
+    setOnlyVerified(false);
   }
 
   const filteredTeachers = useMemo(() => {
-    const query = searchQuery.trim().toLowerCase()
+    const query = searchQuery.trim().toLowerCase();
 
-    const matches = MOCK_TEACHERS.filter((teacher) => {
+    const matches = teachers.filter((teacher) => {
       const matchesQuery =
         query.length === 0 ||
         teacher.name.toLowerCase().includes(query) ||
-        teacher.subjects.some((subject) => subject.toLowerCase().includes(query))
+        teacher.subjects.some((subject) =>
+          subject.toLowerCase().includes(query),
+        );
 
       const matchesSubjects =
         selectedSubjects.length === 0 ||
-        teacher.subjects.some((subject) => selectedSubjects.includes(subject))
+        teacher.subjects.some((subject) => selectedSubjects.includes(subject));
 
-      const matchesModality = teacher.modalities.includes(modality)
+      const matchesModality = teacher.modalities.includes(modality);
 
       const matchesPrice =
-        teacher.pricePerHour >= priceRange[0] && teacher.pricePerHour <= priceRange[1]
+        teacher.pricePerHour >= activePriceRange[0] &&
+        teacher.pricePerHour <= activePriceRange[1];
 
-      const matchesVerified = !onlyVerified || teacher.verified
+      const matchesVerified = !onlyVerified || teacher.verified;
 
-      return matchesQuery && matchesSubjects && matchesModality && matchesPrice && matchesVerified
-    })
+      return (
+        matchesQuery &&
+        matchesSubjects &&
+        matchesModality &&
+        matchesPrice &&
+        matchesVerified
+      );
+    });
 
-    if (sortOption === 'menor-preco') {
-      return [...matches].sort((a, b) => a.pricePerHour - b.pricePerHour)
+    if (sortOption === "menor-preco") {
+      return [...matches].sort((a, b) => a.pricePerHour - b.pricePerHour);
     }
-    if (sortOption === 'maior-avaliacao') {
-      return [...matches].sort((a, b) => b.rating - a.rating)
+    if (sortOption === "maior-avaliacao") {
+      return [...matches].sort((a, b) => b.rating - a.rating);
     }
-    return matches
-  }, [searchQuery, selectedSubjects, modality, priceRange, onlyVerified, sortOption])
+    return matches;
+  }, [
+    teachers,
+    searchQuery,
+    selectedSubjects,
+    modality,
+    activePriceRange,
+    onlyVerified,
+    sortOption,
+  ]);
 
   return (
     <div className="flex min-h-screen flex-col bg-paper-50 transition-colors duration-300 dark:bg-[#0a0a0a]">
@@ -85,11 +155,14 @@ export function SearchTeachersPage() {
 
         <div className="mt-8 grid gap-8 lg:grid-cols-[264px_1fr]">
           <FilterPanel
+            subjectOptions={subjectOptions}
+            minPrice={priceBounds[0]}
+            maxPrice={priceBounds[1]}
             selectedSubjects={selectedSubjects}
             onToggleSubject={toggleSubject}
             modality={modality}
             onModalityChange={setModality}
-            priceRange={priceRange}
+            priceRange={activePriceRange}
             onPriceRangeChange={setPriceRange}
             onlyVerified={onlyVerified}
             onOnlyVerifiedChange={setOnlyVerified}
@@ -97,20 +170,24 @@ export function SearchTeachersPage() {
           />
 
           <div className="flex flex-col gap-3">
-            <div className="flex flex-wrap items-center justify-between gap-3 border-b border-paper-200 pb-3 dark:border-white/10">
-              <p className="text-sm text-ink-700 dark:text-zinc-400">
-                <span className="tnum font-semibold text-ink-900 dark:text-white">{filteredTeachers.length}</span>{' '}
+            <div className="flex flex-wrap items-center justify-between gap-3 border-b border-paper-200 pb-3">
+              <p className="text-sm text-ink-700">
+                <span className="tnum font-semibold text-ink-900">
+                  {filteredTeachers.length}
+                </span>{" "}
                 {filteredTeachers.length === 1
-                  ? 'professor encontrado'
-                  : 'professores encontrados'}
+                  ? "professor encontrado"
+                  : "professores encontrados"}
               </p>
 
               <label className="flex items-center gap-2 text-sm text-paper-600 dark:text-zinc-400">
                 Ordenar por
                 <select
                   value={sortOption}
-                  onChange={(event) => setSortOption(event.target.value as SortOption)}
-                  className="rounded-md border border-paper-300 bg-white px-2.5 py-1.5 text-sm text-ink-800 shadow-[inset_0_1px_0_#fff,0_1px_0_var(--color-paper-200)] outline-none transition-all hover:border-paper-400 focus:border-ocre-400 dark:border-white/10 dark:bg-black/40 dark:text-white dark:shadow-none dark:hover:border-white/20 dark:focus:border-white/30"
+                  onChange={(event) =>
+                    setSortOption(event.target.value as SortOption)
+                  }
+                  className="rounded-md border border-paper-300 bg-white px-2.5 py-1.5 text-sm text-ink-800 shadow-[inset_0_1px_0_#fff,0_1px_0_var(--color-paper-200)] outline-none transition-colors hover:border-paper-400 focus:border-ocre-400"
                 >
                   <option value="relevancia">Relevância</option>
                   <option value="menor-preco">Menor preço</option>
@@ -119,14 +196,26 @@ export function SearchTeachersPage() {
               </label>
             </div>
 
-            {filteredTeachers.length === 0 ? (
-              <div className="inset-well flex flex-col items-start gap-2 rounded-lg p-10 dark:border-white/10 dark:bg-white/[0.03]">
-                <p className="text-lg font-semibold text-ink-900 dark:text-white">
-                  Nenhum professor corresponde a esses filtros.
-                </p>
-                <p className="text-sm text-ink-600 dark:text-zinc-400">
-                  Tente ampliar a faixa de valor ou remover uma matéria.
-                </p>
+            {isLoading ? (
+              <div className="inset-well flex items-center gap-2 rounded-lg p-10 text-sm text-paper-600">
+                <Loader2 className="size-4 animate-spin" />
+                Carregando professores…
+              </div>
+            ) : loadError ? (
+              <ResultsMessage
+                title={loadError}
+                description="Verifique sua conexão e tente novamente em instantes."
+              />
+            ) : teachers.length === 0 ? (
+              <ResultsMessage
+                title="Nenhum professor cadastrado ainda."
+                description="Assim que um professor configurar o perfil, ele aparece aqui."
+              />
+            ) : filteredTeachers.length === 0 ? (
+              <ResultsMessage
+                title="Nenhum professor corresponde a esses filtros."
+                description="Tente ampliar a faixa de valor ou remover uma matéria."
+              >
                 <button
                   type="button"
                   onClick={clearFilters}
@@ -134,7 +223,7 @@ export function SearchTeachersPage() {
                 >
                   Limpar filtros
                 </button>
-              </div>
+              </ResultsMessage>
             ) : (
               <ul className="flex flex-col gap-4">
                 {filteredTeachers.map((teacher, index) => (
@@ -152,5 +241,5 @@ export function SearchTeachersPage() {
 
       <SiteFooter />
     </div>
-  )
+  );
 }

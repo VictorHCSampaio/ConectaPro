@@ -1,4 +1,4 @@
-import { useCallback, useId, useRef, useState } from "react";
+import { useCallback, useEffect, useId, useRef, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import {
   ArrowLeft,
@@ -23,7 +23,12 @@ import { Radio } from "@/components/ui/Radio";
 import { SiteFooter } from "@/components/landing/SiteFooter";
 import { SiteHeader } from "@/components/landing/SiteHeader";
 import { useAuth } from "@/hooks/useAuth";
+import { extractErrorMessage } from "@/lib/api";
 import { cn } from "@/lib/cn";
+import {
+  buscarPerfilProfessor,
+  salvarPerfilProfessor,
+} from "@/lib/teacherProfileService";
 import type {
   ApiModality,
   ApiTeachingModel,
@@ -31,6 +36,7 @@ import type {
   TeacherProfileErrors,
   TeacherProfileFormData,
   TeacherProfilePayload,
+  TeachingModel,
   ViaCepResponse,
   WeekDay,
   HourSlot,
@@ -59,6 +65,10 @@ function formatCurrency(rawInput: string): string {
     currency: "BRL",
     minimumFractionDigits: 2,
   });
+}
+
+function formatCurrencyFromFloat(value: number): string {
+  return formatCurrency(String(Math.round(value * 100)));
 }
 
 function parseCurrencyToFloat(formatted: string): number {
@@ -169,6 +179,41 @@ const INITIAL_FORM: TeacherProfileFormData = {
   address: INITIAL_ADDRESS,
   availability: new Set(),
 };
+
+const TEACHING_MODEL_FROM_API: Record<ApiTeachingModel, TeachingModel> = {
+  PARTICULARES: "particulares",
+  INSTITUICOES: "instituicoes",
+};
+
+function buildFormFromPayload(
+  payload: TeacherProfilePayload,
+): TeacherProfileFormData {
+  return {
+    avatarFile: null,
+    avatarPreviewUrl: null,
+    fullName: payload.fullName ?? "",
+    phone: maskPhone(payload.phone ?? ""),
+    bio: payload.bio ?? "",
+    subjects: payload.subjects ?? [],
+    teachingModel: payload.teachingModel
+      ? TEACHING_MODEL_FROM_API[payload.teachingModel]
+      : "",
+    modality: payload.modality === "PRESENCIAL" ? "presencial" : "online",
+    pricePerHour: payload.pricePerHour
+      ? formatCurrencyFromFloat(payload.pricePerHour)
+      : "",
+    address: {
+      cep: maskCep(payload.address?.cep ?? ""),
+      logradouro: payload.address?.street ?? "",
+      bairro: payload.address?.neighborhood ?? "",
+      cidade: payload.address?.city ?? "",
+      estado: payload.address?.state ?? "",
+    },
+    availability: new Set(
+      (payload.availability ?? []).map((slot) => `${slot.day}-${slot.time}`),
+    ),
+  };
+}
 
 interface TextareaFieldProps {
   label: string;
@@ -293,9 +338,29 @@ export function TeacherProfileConfigPage() {
   const [submitted, setSubmitted] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showSuccess, setShowSuccess] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
+  const [submitError, setSubmitError] = useState<string | null>(null);
 
   const [cepLoading, setCepLoading] = useState(false);
   const [cepFetchError, setCepFetchError] = useState<string | null>(null);
+
+  useEffect(() => {
+    let isActive = true;
+
+    buscarPerfilProfessor()
+      .then((profile) => {
+        if (isActive && profile) {
+          setForm(buildFormFromPayload(profile));
+        }
+      })
+      .finally(() => {
+        if (isActive) setIsLoading(false);
+      });
+
+    return () => {
+      isActive = false;
+    };
+  }, []);
 
   function setAddressField(key: keyof TeacherAddress, value: string) {
     setForm((prev) => ({
@@ -422,19 +487,20 @@ export function TeacherProfileConfigPage() {
     }
 
     setIsSubmitting(true);
+    setSubmitError(null);
     try {
-      const payload = buildPayload(form);
-
-      // TODO: Conectar com o endpoint do Spring Boot
-      // Mantido console.info para demonstração do payload na banca do PFC
-      console.info("[Mock API] Payload pronto para o Java:", payload);
-
-      await new Promise((resolve) => setTimeout(resolve, 1200)); // Remover quando integrar a API
+      const saved = await salvarPerfilProfessor(buildPayload(form));
+      setForm(buildFormFromPayload(saved));
 
       setShowSuccess(true);
       setTimeout(() => setShowSuccess(false), 5000);
     } catch (error) {
-      console.error("Erro ao salvar formulário:", error);
+      setSubmitError(
+        extractErrorMessage(
+          error,
+          "Não foi possível salvar seu perfil. Tente novamente.",
+        ),
+      );
     } finally {
       setIsSubmitting(false);
     }
@@ -471,6 +537,13 @@ export function TeacherProfileConfigPage() {
             Mantenha seus dados atualizados para aparecer nos resultados de
             busca.
           </p>
+
+          {isLoading && (
+            <p className="mt-3 inline-flex items-center gap-2 text-sm text-paper-500">
+              <Loader2 className="size-4 animate-spin" />
+              Carregando seus dados…
+            </p>
+          )}
         </div>
 
         <form
@@ -758,6 +831,12 @@ export function TeacherProfileConfigPage() {
             {submitted && Object.keys(errors).length > 0 && (
               <p role="alert" className="text-xs font-medium text-alert-600">
                 Corrija os campos indicados antes de salvar.
+              </p>
+            )}
+
+            {submitError && (
+              <p role="alert" className="text-xs font-medium text-alert-600">
+                {submitError}
               </p>
             )}
 

@@ -10,6 +10,7 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
+import java.time.OffsetDateTime;
 import java.util.UUID;
 
 @Entity
@@ -20,15 +21,21 @@ import java.util.UUID;
 public class Materia {
 
     @Id
-    @GeneratedValue(strategy = GenerationType.UUID)
-    private UUID id;
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Integer id;
 
-    @Column(nullable = false)
+    @Column(nullable = false, unique = true)
     private String nome;
 
     @Column
     private String descricao;
 
     @Column
-    private String nivel;
+    private String area;
+
+    @Column
+    private Boolean ativa;
+
+    @Column(name = "criado_em")
+    private OffsetDateTime criadoEm;
 }

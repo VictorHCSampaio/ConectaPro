@@ -1,11 +1,16 @@
 import { useEffect, useId, useRef, useState } from "react";
-import { Search, Trash2 } from "lucide-react";
+import { Loader2, Search, Trash2 } from "lucide-react";
 import { cn } from "@/lib/cn";
-import { AVAILABLE_SUBJECTS } from "@/lib/mock-subjects";
+import { listarMaterias } from "@/lib/materiaService";
 import type { SubjectExperience } from "@/types/teacher-profile";
 
 const MAX_SUBJECTS = 10;
 const LEVELS = ["Iniciante", "Intermediário", "Avançado"] as const;
+
+interface AvailableSubject {
+  id: string;
+  name: string;
+}
 
 interface SubjectExperienceInputProps {
   subjects: SubjectExperience[];
@@ -23,9 +28,37 @@ export function SubjectExperienceInput({
   const [query, setQuery] = useState("");
   const [open, setOpen] = useState(false);
 
+  const [availableSubjects, setAvailableSubjects] = useState<AvailableSubject[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
+
+  useEffect(() => {
+    let isActive = true;
+
+    listarMaterias()
+      .then((materias) => {
+        if (!isActive) return;
+        setAvailableSubjects(
+          materias
+            .filter((materia) => materia.ativa)
+            .map((materia) => ({ id: String(materia.id), name: materia.nome })),
+        );
+      })
+      .catch(() => {
+        if (isActive) setLoadError("Não foi possível carregar as matérias.");
+      })
+      .finally(() => {
+        if (isActive) setIsLoading(false);
+      });
+
+    return () => {
+      isActive = false;
+    };
+  }, []);
+
   const selectedIds = new Set(subjects.map((s) => s.id));
 
-  const suggestions = AVAILABLE_SUBJECTS.filter(
+  const suggestions = availableSubjects.filter(
     (s) =>
       !selectedIds.has(s.id) &&
       s.name.toLowerCase().includes(query.trim().toLowerCase()),
@@ -74,7 +107,10 @@ export function SubjectExperienceInput({
             type="text"
             autoComplete="off"
             value={query}
-            placeholder="Buscar matéria… (ex: Matemática)"
+            disabled={isLoading}
+            placeholder={
+              isLoading ? "Carregando matérias…" : "Buscar matéria… (ex: Matemática)"
+            }
             aria-label="Buscar matéria"
             aria-invalid={Boolean(error)}
             onChange={(e) => {
@@ -90,6 +126,12 @@ export function SubjectExperienceInput({
                 : "hover:border-paper-400 focus:border-ocre-400 focus:shadow-[inset_0_2px_4px_rgba(18,38,63,0.09),0_0_0_3px_rgba(192,161,74,0.18)]",
             )}
           />
+
+          {isLoading && (
+            <span className="pointer-events-none absolute inset-y-0 right-3.5 z-10 flex items-center text-paper-400">
+              <Loader2 className="size-4 animate-spin" />
+            </span>
+          )}
 
           {open && suggestions.length > 0 && (
             <ul
@@ -119,6 +161,12 @@ export function SubjectExperienceInput({
       {error && (
         <p role="alert" className="text-xs font-medium text-alert-600">
           {error}
+        </p>
+      )}
+
+      {loadError && (
+        <p role="alert" className="text-xs font-medium text-alert-600">
+          {loadError}
         </p>
       )}
 
