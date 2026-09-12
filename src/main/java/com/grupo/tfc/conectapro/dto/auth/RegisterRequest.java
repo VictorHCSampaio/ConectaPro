@@ -14,6 +14,9 @@ public record RegisterRequest (
         @NotBlank
         @JsonAlias({"senha"})
         @Size(min = 8, message = "Senha deve ter no minimo 8 caracteres")
-        String password
+        String password,
+
+        @JsonAlias({"tipo"})
+        String role
 ){
 }

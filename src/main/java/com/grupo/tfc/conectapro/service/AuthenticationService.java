@@ -1,7 +1,9 @@
 package com.grupo.tfc.conectapro.service;
 
+import com.grupo.tfc.conectapro.config.SessaoUsuario;
 import com.grupo.tfc.conectapro.dto.auth.RegisterRequest;
 import com.grupo.tfc.conectapro.dto.auth.TotpSetupResponse;
+import com.grupo.tfc.conectapro.model.TipoUsuario;
 import com.grupo.tfc.conectapro.model.Usuario;
 import com.grupo.tfc.conectapro.repository.UsuarioRepository;
 import jakarta.servlet.http.HttpSession;
@@ -40,6 +42,7 @@ public class AuthenticationService {
                 .nomeCompleto(request.nome())
                 .email(request.email())
                 .senhaHash(senhaService.senhaHash(request.password()))
+                .tipo(resolverTipo(request.role()))
                 .build();
         Usuario savedUsuario = Objects.requireNonNull(usuarioRepository.save(usuario));
         logger.info("Usuário registrado com sucesso. usuarioId={}", savedUsuario.getId());
@@ -50,7 +53,18 @@ public class AuthenticationService {
         );
     }
 
-    public void login(String email, String senha, HttpSession session){
+    private TipoUsuario resolverTipo(String role) {
+        if (role == null || role.isBlank()) {
+            return TipoUsuario.ALUNO;
+        }
+        try {
+            return TipoUsuario.valueOf(role.trim().toUpperCase());
+        } catch (IllegalArgumentException exception) {
+            throw new ResponseStatusException(BAD_REQUEST, "Tipo de usuário inválido");
+        }
+    }
+
+    public Usuario login(String email, String senha, HttpSession session){
         logger.info("Tentativa de login. email={}", email);
 
         Usuario usuario = usuarioRepository.findByEmail(email)
@@ -64,7 +78,8 @@ public class AuthenticationService {
             throw new ResponseStatusException(UNAUTHORIZED, "Credênciais inválidas");
         }
 
-        session.setAttribute("usuario", usuario.getId());
+        session.setAttribute(SessaoUsuario.ATRIBUTO, usuario.getId());
         logger.info("Login realizado com sucesso");
+        return usuario;
     }
 }

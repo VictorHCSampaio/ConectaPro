@@ -4,6 +4,8 @@ import com.grupo.tfc.conectapro.dto.auth.LoginRequest;
 import com.grupo.tfc.conectapro.dto.auth.MensagemAutenticacaoResponse;
 import com.grupo.tfc.conectapro.dto.auth.RegisterRequest;
 import com.grupo.tfc.conectapro.dto.auth.TotpSetupResponse;
+import com.grupo.tfc.conectapro.dto.auth.UsuarioAutenticadoResponse;
+import com.grupo.tfc.conectapro.model.Usuario;
 import com.grupo.tfc.conectapro.service.AuthenticationService;
 import jakarta.servlet.http.HttpSession;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -32,7 +34,15 @@ public class UsuarioController {
 
     @PostMapping("/login")
     public ResponseEntity<MensagemAutenticacaoResponse> login(@Valid @RequestBody LoginRequest request, HttpSession session){
-        authService.login(request.email(), request.senha(), session);
-        return ResponseEntity.ok(new MensagemAutenticacaoResponse("Senha validada"));
+        Usuario usuario = authService.login(request.email(), request.senha(), session);
+        return ResponseEntity.ok(new MensagemAutenticacaoResponse(
+                "Senha validada",
+                new UsuarioAutenticadoResponse(
+                        usuario.getId(),
+                        usuario.getNomeCompleto(),
+                        usuario.getEmail(),
+                        usuario.getTipo().name()
+                )
+        ));
     }
 }

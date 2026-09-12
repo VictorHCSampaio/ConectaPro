@@ -28,6 +28,11 @@ public class Usuario {
     @Column(name = "senha_hash")
     private String senhaHash;
 
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false)
+    @Builder.Default
+    private TipoUsuario tipo = TipoUsuario.ALUNO;
+
     @Column(name = "criado_em")
     private OffsetDateTime criadoEm;
 }
