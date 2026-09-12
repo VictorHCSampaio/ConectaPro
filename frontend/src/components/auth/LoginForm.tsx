@@ -8,7 +8,6 @@ import { Input } from '@/components/ui/Input'
 import { PasswordInput } from '@/components/ui/PasswordInput'
 import { useAuth } from '@/hooks/useAuth'
 import { useForm } from '@/hooks/useForm'
-import { findAccount } from '@/lib/accountStore'
 import { extractErrorMessage } from '@/lib/api'
 import { loginUsuario } from '@/lib/authService'
 import { validateLoginForm } from '@/lib/validation'
@@ -33,13 +32,16 @@ export function LoginForm() {
   const onSubmit = handleSubmit(async (formValues) => {
     setSubmitError(null)
     try {
-      await loginUsuario({ email: formValues.email, senha: formValues.password })
+      const { usuario } = await loginUsuario({
+        email: formValues.email,
+        senha: formValues.password,
+      })
 
-      const account = findAccount(formValues.email)
-      const role = account?.role ?? 'ALUNO'
+      const role = usuario.tipo
       signIn({
-        name: account?.name ?? formValues.email.split('@')[0],
-        email: formValues.email.trim(),
+        id: usuario.id,
+        name: usuario.nomeCompleto,
+        email: usuario.email,
         role,
       })
 
