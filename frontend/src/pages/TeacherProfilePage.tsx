@@ -5,7 +5,7 @@ import { SiteFooter } from "@/components/landing/SiteFooter";
 import { SiteHeader } from "@/components/landing/SiteHeader";
 import { Button } from "@/components/ui/Button";
 import { StarRating } from "@/components/ui/StarRating";
-import { buscarProfessor } from "@/lib/teacherService";
+import { buscarProfessor } from "@/lib/professorService.ts";
 import { formatModalities, formatRating } from "@/lib/formatTeacher";
 import type { Teacher } from "@/types/teacher";
 

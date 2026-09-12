@@ -33,10 +33,12 @@ export type LoginRequestPayload = {
 
 export type MensagemAutenticacaoResponse = {
   message: string
+  isAdmin: boolean
 }
 
 export type AuthUser = {
   name: string
   email: string
   role: UserRole | null
+  isAdmin: boolean
 }

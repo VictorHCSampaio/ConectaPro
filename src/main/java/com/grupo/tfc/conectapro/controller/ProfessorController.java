@@ -1,107 +1,53 @@
-import { Checkbox } from '@/components/ui/Checkbox'
-import { Radio } from '@/components/ui/Radio'
-import { RangeSlider } from '@/components/ui/RangeSlider'
-import { Switch } from '@/components/ui/Switch'
-import type { ModalityOption } from '@/types/teacher'
+package com.grupo.tfc.conectapro.controller;
 
-type FilterPanelProps = {
-  subjectOptions: string[]
-  minPrice: number
-  maxPrice: number
-  selectedSubjects: string[]
-  onToggleSubject: (subject: string) => void
-  modality: ModalityOption
-  onModalityChange: (modality: ModalityOption) => void
-  priceRange: [number, number]
-  onPriceRangeChange: (range: [number, number]) => void
-  onlyVerified: boolean
-  onOnlyVerifiedChange: (value: boolean) => void
-  onClear: () => void
-}
+import com.grupo.tfc.conectapro.config.SessaoUsuario;
+import com.grupo.tfc.conectapro.dto.professor.PerfilProfessorRequest;
+import com.grupo.tfc.conectapro.dto.professor.PerfilProfessorResponse;
+import com.grupo.tfc.conectapro.dto.professor.ProfessorResumoResponse;
+import com.grupo.tfc.conectapro.service.ProfessorService;
+import jakarta.servlet.http.HttpSession;
+import jakarta.validation.Valid;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
 
-const SECTION_TITLE = 'label-mono text-paper-500'
+import java.util.List;
+import java.util.UUID;
 
-export function FilterPanel({
-  subjectOptions,
-  minPrice,
-  maxPrice,
-  selectedSubjects,
-  onToggleSubject,
-  modality,
-  onModalityChange,
-  priceRange,
-  onPriceRangeChange,
-  onlyVerified,
-  onOnlyVerifiedChange,
-  onClear,
-}: FilterPanelProps) {
-  return (
-    <aside className="card h-fit rounded-lg">
-      <div className="flex items-center justify-between border-b border-paper-200 px-5 py-3.5">
-        <h2 className="text-sm font-semibold text-ink-900">Filtros</h2>
-        <button
-          type="button"
-          onClick={onClear}
-          className="label-mono rounded-sm px-2 py-1 text-paper-600 transition-colors hover:bg-paper-100 hover:text-ink-900"
-        >
-          Limpar
-        </button>
-      </div>
+@RestController
+@RequestMapping("/professores")
+public class ProfessorController {
 
-      <div className="flex flex-col gap-3 border-b border-paper-200 px-5 py-5">
-        <span className={SECTION_TITLE}>Matéria</span>
-        <div className="flex flex-col gap-2.5">
-          {subjectOptions.length === 0 && (
-            <p className="text-sm text-paper-500">Nenhuma matéria cadastrada ainda.</p>
-          )}
-          {subjectOptions.map((subject) => (
-            <Checkbox
-              key={subject}
-              label={subject}
-              checked={selectedSubjects.includes(subject)}
-              onChange={() => onToggleSubject(subject)}
-            />
-          ))}
-        </div>
-      </div>
+  private final ProfessorService professorService;
 
-      <div className="flex flex-col gap-3 border-b border-paper-200 px-5 py-5">
-        <span className={SECTION_TITLE}>Modalidade</span>
-        <div className="flex flex-col gap-2.5">
-          <Radio
-            name="modalidade"
-            label="Online"
-            checked={modality === 'online'}
-            onChange={() => onModalityChange('online')}
-          />
-          <Radio
-            name="modalidade"
-            label="Presencial"
-            checked={modality === 'presencial'}
-            onChange={() => onModalityChange('presencial')}
-          />
-        </div>
-      </div>
+  public ProfessorController(ProfessorService professorService) {
+    this.professorService = professorService;
+  }
 
-      <div className="flex flex-col gap-3 border-b border-paper-200 px-5 py-5">
-        <span className={SECTION_TITLE}>Valor da hora-aula</span>
-        <RangeSlider
-          min={minPrice}
-          max={maxPrice}
-          step={5}
-          value={priceRange}
-          onChange={onPriceRangeChange}
-          formatValue={(value) => `R$ ${value}`}
-        />
-      </div>
+  @GetMapping
+  public ResponseEntity<List<ProfessorResumoResponse>> listar() {
+    return ResponseEntity.ok(professorService.listarProfessores());
+  }
 
-      <div className="px-5 py-5">
-        <Switch
-          label="Somente verificados"
-          checked={onlyVerified}
-          onChange={onOnlyVerifiedChange}
-        />
-      </div>
-    </aside>
-  )
+  @GetMapping("/me")
+  public ResponseEntity<PerfilProfessorResponse> meuPerfil(HttpSession session) {
+    UUID usuarioId = SessaoUsuario.exigirUsuarioId(session);
+    return ResponseEntity.ok(professorService.buscarPerfil(usuarioId));
+  }
+
+  @GetMapping("/{id}")
+  public ResponseEntity<ProfessorResumoResponse> detalhe(@PathVariable UUID id) {
+    return ResponseEntity.ok(professorService.buscarProfessor(id));
+  }
+
+  @PutMapping("/me")
+  public ResponseEntity<PerfilProfessorResponse> salvarMeuPerfil(@Valid @RequestBody PerfilProfessorRequest request,
+                                                                 HttpSession session) {
+    UUID usuarioId = SessaoUsuario.exigirUsuarioId(session);
+    return ResponseEntity.ok(professorService.salvarPerfil(usuarioId, request));
+  }
 }

@@ -33,7 +33,7 @@ export function LoginForm() {
   const onSubmit = handleSubmit(async (formValues) => {
     setSubmitError(null)
     try {
-      await loginUsuario({ email: formValues.email, senha: formValues.password })
+      const { isAdmin } = await loginUsuario({ email: formValues.email, senha: formValues.password })
 
       const account = findAccount(formValues.email)
       const role = account?.role ?? 'ALUNO'
@@ -41,6 +41,7 @@ export function LoginForm() {
         name: account?.name ?? formValues.email.split('@')[0],
         email: formValues.email.trim(),
         role,
+        isAdmin,
       })
 
       setWasSubmitted(true)

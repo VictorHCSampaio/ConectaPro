@@ -8,4 +8,5 @@ import java.util.UUID;
 
 public interface MateriaRepository extends JpaRepository<Materia, UUID> {
     Optional<Materia> findFirstByNomeIgnoreCase(String nome);
+    Optional<Materia> findById(Integer id);
 }

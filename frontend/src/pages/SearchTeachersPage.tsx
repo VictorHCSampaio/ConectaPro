@@ -7,7 +7,7 @@ import { TeacherSearchBar } from "@/components/search/TeacherSearchBar";
 import { SiteFooter } from "@/components/landing/SiteFooter";
 import { SiteHeader } from "@/components/landing/SiteHeader";
 import { Reveal } from "@/components/motion/Reveal";
-import { listarProfessores } from "@/lib/teacherService";
+import { listarProfessores } from "@/lib/professorService.ts";
 import type { ModalityOption, Teacher } from "@/types/teacher";
 
 type SortOption = "relevancia" | "menor-preco" | "maior-avaliacao";

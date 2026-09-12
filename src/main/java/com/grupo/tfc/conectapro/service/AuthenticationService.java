@@ -50,7 +50,7 @@ public class AuthenticationService {
         );
     }
 
-    public void login(String email, String senha, HttpSession session){
+    public Usuario login(String email, String senha, HttpSession session){
         logger.info("Tentativa de login. email={}", email);
 
         Usuario usuario = usuarioRepository.findByEmail(email)
@@ -66,5 +66,6 @@ public class AuthenticationService {
 
         session.setAttribute("usuario", usuario.getId());
         logger.info("Login realizado com sucesso");
+        return usuario;
     }
 }

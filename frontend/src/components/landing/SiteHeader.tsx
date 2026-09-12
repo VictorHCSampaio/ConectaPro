@@ -1,4 +1,4 @@
-import { LogOut, Menu, UserRound, X } from 'lucide-react'
+import { BookOpen, LogOut, Menu, UserRound, X } from 'lucide-react'
 import { useState } from 'react'
 import { Link, NavLink, useNavigate } from 'react-router-dom'
 import { Brand } from '@/components/Brand'
@@ -68,6 +68,15 @@ export function SiteHeader() {
         <div className="hidden items-center gap-4 md:flex">
           {isAuthenticated ? (
             <>
+              {user?.isAdmin && (
+                <Link
+                  to="/admin/materias"
+                  className="inline-flex items-center gap-1.5 text-sm text-ink-600 transition-colors hover:text-ink-900"
+                >
+                  <BookOpen className="size-4" />
+                  Matérias
+                </Link>
+              )}
               {isTeacher && (
                 <Link to="/profile/edit" className={cn(PRIMARY_BUTTON_CLASS, 'inline-flex items-center gap-2')}>
                   <UserRound className="size-4" />
@@ -137,6 +146,16 @@ export function SiteHeader() {
           <div className="mt-2 flex flex-col gap-2 border-t border-paper-200 pt-3">
             {isAuthenticated ? (
               <>
+                {user?.isAdmin && (
+                  <Link
+                    to="/admin/materias"
+                    onClick={closeMenu}
+                    className="flex items-center justify-center gap-2 rounded-md border border-paper-300 bg-white px-3 py-2.5 text-center text-ink-800"
+                  >
+                    <BookOpen className="size-4" />
+                    Matérias
+                  </Link>
+                )}
                 {isTeacher && (
                   <Link
                     to="/profile/edit"
