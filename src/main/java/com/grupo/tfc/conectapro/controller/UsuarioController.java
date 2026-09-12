@@ -34,6 +34,11 @@ public class UsuarioController {
     @PostMapping("/login")
     public ResponseEntity<MensagemAutenticacaoResponse> login(@Valid @RequestBody LoginRequest request, HttpSession session){
         Usuario usuario = authService.login(request.email(), request.senha(), session);
-        return ResponseEntity.ok(new MensagemAutenticacaoResponse("Senha validada", usuario.isAdmin()));
+        return ResponseEntity.ok(new MensagemAutenticacaoResponse(
+                "Senha validada",
+                usuario.getNomeCompleto(),
+                usuario.getTipo(),
+                usuario.isAdmin()
+        ));
     }
 }

@@ -32,20 +32,14 @@ export type LoginRequestPayload = {
   senha: string
 }
 
-export type UsuarioAutenticadoResponse = {
-  id: string
-  nomeCompleto: string
-  email: string
-  tipo: UserRole
-}
-
 export type MensagemAutenticacaoResponse = {
   message: string
+  nomeCompleto: string
+  tipo: UserRole
   isAdmin: boolean
 }
 
 export type AuthUser = {
-  id: string
   name: string
   email: string
   role: UserRole | null
