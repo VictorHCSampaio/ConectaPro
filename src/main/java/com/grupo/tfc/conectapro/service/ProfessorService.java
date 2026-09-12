@@ -25,7 +25,9 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 
 import java.math.BigDecimal;
+import java.text.Normalizer;
 import java.time.OffsetDateTime;
+import java.util.Locale;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
@@ -179,6 +181,9 @@ public class ProfessorService {
                     .orElseGet(() -> {
                         Materia nova = new Materia();
                         nova.setNome(nome);
+                        nova.setSlug(gerarSlug(nome));
+                        nova.setAtiva(true);
+                        nova.setCriadoEm(OffsetDateTime.now());
                         return materiaRepository.save(nova);
                     });
 
@@ -209,6 +214,16 @@ public class ProfessorService {
         }).toList();
 
         disponibilidadeRepository.saveAll(novos);
+    }
+
+    /** "Matematica Basica" -> "matematica-basica" (a coluna slug e unica e obrigatoria). */
+    private String gerarSlug(String nome) {
+        String semAcento = Normalizer.normalize(nome, Normalizer.Form.NFD)
+                .replaceAll("\\p{M}", "");
+        String slug = semAcento.toLowerCase(Locale.ROOT)
+                .replaceAll("[^a-z0-9]+", "-")
+                .replaceAll("(^-|-$)", "");
+        return slug.isBlank() ? UUID.randomUUID().toString() : slug;
     }
 
     private String formatarEndereco(EnderecoProfessorRequest address) {
