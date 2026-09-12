@@ -54,8 +54,8 @@ export function LoginForm() {
   return (
     <div className="flex h-full flex-col justify-center gap-6 px-8 py-10 sm:px-10 md:px-12">
       <div className="flex flex-col gap-1.5">
-        <h2 className="text-2xl font-semibold tracking-tight text-ink-900">Acesse sua conta</h2>
-        <p className="text-sm text-ink-600">Entre com seu e-mail e senha para continuar.</p>
+        <h2 className="text-2xl font-semibold tracking-tight text-ink-900 dark:text-white">Acesse sua conta</h2>
+        <p className="text-sm text-ink-600 dark:text-zinc-400">Entre com seu e-mail e senha para continuar.</p>
       </div>
 
       {wasSubmitted && <FormFeedback message="Login realizado. Redirecionando." />}
@@ -91,7 +91,7 @@ export function LoginForm() {
             checked={values.rememberMe}
             onChange={(event) => setField('rememberMe', event.target.checked)}
           />
-          <Link to="#" className="border-b border-paper-300 text-sm text-ink-700 transition-colors hover:border-ocre-400 hover:text-ink-900">
+          <Link to="#" className="border-b border-paper-300 text-sm text-ink-700 transition-colors hover:border-ocre-400 hover:text-ink-900 dark:border-white/20 dark:text-zinc-400 dark:hover:border-ocre-400 dark:hover:text-white">
             Esqueci minha senha
           </Link>
         </div>

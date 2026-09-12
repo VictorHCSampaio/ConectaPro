@@ -56,8 +56,8 @@ export function RegisterForm() {
   return (
     <div className="flex h-full flex-col justify-center gap-6 px-8 py-10 sm:px-10 md:px-12">
       <div className="flex flex-col gap-1.5">
-        <h2 className="text-2xl font-semibold tracking-tight text-ink-900">Crie sua conta</h2>
-        <p className="text-sm text-ink-600">Preencha seus dados para se cadastrar.</p>
+        <h2 className="text-2xl font-semibold tracking-tight text-ink-900 dark:text-white">Crie sua conta</h2>
+        <p className="text-sm text-ink-600 dark:text-zinc-400">Preencha seus dados para se cadastrar.</p>
       </div>
 
       {wasSubmitted && (
@@ -121,11 +121,11 @@ export function RegisterForm() {
           label={
             <>
               Concordo com os{' '}
-              <Link to="#" className="border-b border-paper-300 font-medium text-ink-800 transition-colors hover:border-ocre-400">
+              <Link to="#" className="border-b border-paper-300 font-medium text-ink-800 transition-colors hover:border-ocre-400 dark:border-white/20 dark:text-zinc-300 dark:hover:border-ocre-400">
                 Termos de Uso
               </Link>{' '}
               e a{' '}
-              <Link to="#" className="border-b border-paper-300 font-medium text-ink-800 transition-colors hover:border-ocre-400">
+              <Link to="#" className="border-b border-paper-300 font-medium text-ink-800 transition-colors hover:border-ocre-400 dark:border-white/20 dark:text-zinc-300 dark:hover:border-ocre-400">
                 Política de Privacidade
               </Link>
             </>
