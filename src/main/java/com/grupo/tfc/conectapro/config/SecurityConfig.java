@@ -35,6 +35,8 @@ public class SecurityConfig {
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers("/auth/**").permitAll()
+                        // O acesso e validado pela sessao dentro do controller (SessaoUsuario)
+                        .requestMatchers("/professores/**").permitAll()
                         .anyRequest().authenticated()
                 );
 

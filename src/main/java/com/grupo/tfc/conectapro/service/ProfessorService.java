@@ -1,0 +1,222 @@
+package com.grupo.tfc.conectapro.service;
+
+import com.grupo.tfc.conectapro.dto.professor.DisponibilidadeRequest;
+import com.grupo.tfc.conectapro.dto.professor.EnderecoProfessorRequest;
+import com.grupo.tfc.conectapro.dto.professor.MateriaProfessorRequest;
+import com.grupo.tfc.conectapro.dto.professor.PerfilProfessorRequest;
+import com.grupo.tfc.conectapro.dto.professor.PerfilProfessorResponse;
+import com.grupo.tfc.conectapro.model.Endereco;
+import com.grupo.tfc.conectapro.model.Materia;
+import com.grupo.tfc.conectapro.model.Professor;
+import com.grupo.tfc.conectapro.model.ProfessorDisponibilidade;
+import com.grupo.tfc.conectapro.model.ProfessorMateria;
+import com.grupo.tfc.conectapro.model.TipoUsuario;
+import com.grupo.tfc.conectapro.model.Usuario;
+import com.grupo.tfc.conectapro.repository.EnderecoRepository;
+import com.grupo.tfc.conectapro.repository.MateriaRepository;
+import com.grupo.tfc.conectapro.repository.ProfessorDisponibilidadeRepository;
+import com.grupo.tfc.conectapro.repository.ProfessorMateriaRepository;
+import com.grupo.tfc.conectapro.repository.ProfessorRepository;
+import com.grupo.tfc.conectapro.repository.UsuarioRepository;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.server.ResponseStatusException;
+
+import java.math.BigDecimal;
+import java.time.OffsetDateTime;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Optional;
+import java.util.UUID;
+
+import static org.springframework.http.HttpStatus.NOT_FOUND;
+
+@Service
+public class ProfessorService {
+
+    private static final Logger logger = LoggerFactory.getLogger(ProfessorService.class);
+
+    private static final String MODALIDADE_ONLINE = "ONLINE";
+    private static final String MODELO_INSTITUICOES = "INSTITUICOES";
+
+    private final UsuarioRepository usuarioRepository;
+    private final ProfessorRepository professorRepository;
+    private final MateriaRepository materiaRepository;
+    private final ProfessorMateriaRepository professorMateriaRepository;
+    private final ProfessorDisponibilidadeRepository disponibilidadeRepository;
+    private final EnderecoRepository enderecoRepository;
+
+    public ProfessorService(UsuarioRepository usuarioRepository,
+                            ProfessorRepository professorRepository,
+                            MateriaRepository materiaRepository,
+                            ProfessorMateriaRepository professorMateriaRepository,
+                            ProfessorDisponibilidadeRepository disponibilidadeRepository,
+                            EnderecoRepository enderecoRepository) {
+        this.usuarioRepository = usuarioRepository;
+        this.professorRepository = professorRepository;
+        this.materiaRepository = materiaRepository;
+        this.professorMateriaRepository = professorMateriaRepository;
+        this.disponibilidadeRepository = disponibilidadeRepository;
+        this.enderecoRepository = enderecoRepository;
+    }
+
+    @Transactional
+    public PerfilProfessorResponse salvarPerfil(UUID usuarioId, PerfilProfessorRequest request) {
+        Usuario usuario = usuarioRepository.findById(usuarioId)
+                .orElseThrow(() -> new ResponseStatusException(NOT_FOUND, "Usuário não encontrado"));
+
+        usuario.setNomeCompleto(request.fullName().trim());
+        usuario.setTipo(TipoUsuario.PROFESSOR);
+        usuarioRepository.save(usuario);
+
+        Professor professor = professorRepository.findByUsuarioId(usuarioId)
+                .orElseGet(() -> {
+                    Professor novo = new Professor();
+                    novo.setUsuario(usuario);
+                    novo.setCriadoEm(OffsetDateTime.now());
+                    novo.setVerificado(false);
+                    return novo;
+                });
+
+        boolean online = MODALIDADE_ONLINE.equalsIgnoreCase(request.modality());
+        BigDecimal preco = BigDecimal.valueOf(request.pricePerHour());
+        boolean paraInstituicoes = MODELO_INSTITUICOES.equalsIgnoreCase(request.teachingModel());
+
+        professor.setBiografia(request.bio().trim());
+        professor.setTelefone(request.phone());
+        professor.setAtendeOnline(online);
+        professor.setAtendePresencial(!online);
+        professor.setPrecoHoraParticular(paraInstituicoes ? null : preco);
+        professor.setPrecoHoraEscola(paraInstituicoes ? preco : null);
+        professor.setCep(request.address().cep());
+        professor.setEndereco(formatarEndereco(request.address()));
+        professor.setAtualizadoEm(OffsetDateTime.now());
+
+        Professor salvo = professorRepository.save(professor);
+
+        salvarEndereco(usuario, request.address());
+        salvarMaterias(salvo, request.subjects());
+        salvarDisponibilidade(salvo, request.availability());
+
+        logger.info("Perfil de professor salvo. usuarioId={} professorId={}", usuarioId, salvo.getId());
+
+        return buscarPerfil(usuarioId);
+    }
+
+    @Transactional(readOnly = true)
+    public PerfilProfessorResponse buscarPerfil(UUID usuarioId) {
+        Usuario usuario = usuarioRepository.findById(usuarioId)
+                .orElseThrow(() -> new ResponseStatusException(NOT_FOUND, "Usuário não encontrado"));
+
+        Professor professor = professorRepository.findByUsuarioId(usuarioId)
+                .orElseThrow(() -> new ResponseStatusException(NOT_FOUND, "Perfil ainda não configurado"));
+
+        List<MateriaProfessorRequest> materias = professorMateriaRepository.findByProfessorId(professor.getId())
+                .stream()
+                .map(vinculo -> new MateriaProfessorRequest(
+                        vinculo.getMateria().getNome(),
+                        vinculo.getObservacao(),
+                        vinculo.getNivel()))
+                .toList();
+
+        List<DisponibilidadeRequest> disponibilidade = disponibilidadeRepository.findByProfessorId(professor.getId())
+                .stream()
+                .map(slot -> new DisponibilidadeRequest(slot.getDiaSemana(), slot.getHorario()))
+                .toList();
+
+        boolean paraInstituicoes = professor.getPrecoHoraEscola() != null;
+        BigDecimal preco = paraInstituicoes ? professor.getPrecoHoraEscola() : professor.getPrecoHoraParticular();
+
+        EnderecoProfessorRequest endereco = enderecoRepository.findFirstByUsuarioId(usuarioId)
+                .map(salvo -> new EnderecoProfessorRequest(
+                        salvo.getCep(),
+                        salvo.getLogradouro(),
+                        salvo.getBairro(),
+                        salvo.getCidade(),
+                        salvo.getEstado()))
+                .orElseGet(() -> new EnderecoProfessorRequest(professor.getCep(), null, null, null, null));
+
+        return new PerfilProfessorResponse(
+                usuario.getNomeCompleto(),
+                professor.getTelefone(),
+                professor.getBiografia(),
+                materias,
+                paraInstituicoes ? MODELO_INSTITUICOES : "PARTICULARES",
+                Boolean.TRUE.equals(professor.getAtendeOnline()) ? MODALIDADE_ONLINE : "PRESENCIAL",
+                preco == null ? null : preco.doubleValue(),
+                endereco,
+                disponibilidade
+        );
+    }
+
+    private void salvarEndereco(Usuario usuario, EnderecoProfessorRequest request) {
+        Endereco endereco = enderecoRepository.findFirstByUsuarioId(usuario.getId())
+                .orElseGet(() -> {
+                    Endereco novo = new Endereco();
+                    novo.setUsuario(usuario);
+                    return novo;
+                });
+
+        endereco.setCep(request.cep());
+        endereco.setLogradouro(request.street());
+        endereco.setBairro(request.neighborhood());
+        endereco.setCidade(request.city());
+        endereco.setEstado(request.state());
+        enderecoRepository.save(endereco);
+    }
+
+    private void salvarMaterias(Professor professor, List<MateriaProfessorRequest> materias) {
+        // Regrava a lista inteira: o formulario sempre envia o estado final.
+        professorMateriaRepository.deleteByProfessorId(professor.getId());
+        professorMateriaRepository.flush();
+
+        List<ProfessorMateria> vinculos = new ArrayList<>();
+        for (MateriaProfessorRequest item : materias) {
+            String nome = item.name().trim();
+            Materia materia = materiaRepository.findFirstByNomeIgnoreCase(nome)
+                    .orElseGet(() -> {
+                        Materia nova = new Materia();
+                        nova.setNome(nome);
+                        return materiaRepository.save(nova);
+                    });
+
+            ProfessorMateria vinculo = new ProfessorMateria();
+            vinculo.setProfessor(professor);
+            vinculo.setMateria(materia);
+            vinculo.setNivel(item.level());
+            vinculo.setObservacao(item.observation());
+            vinculos.add(vinculo);
+        }
+        professorMateriaRepository.saveAll(vinculos);
+    }
+
+    private void salvarDisponibilidade(Professor professor, List<DisponibilidadeRequest> slots) {
+        disponibilidadeRepository.deleteByProfessorId(professor.getId());
+        disponibilidadeRepository.flush();
+
+        if (slots == null || slots.isEmpty()) {
+            return;
+        }
+
+        List<ProfessorDisponibilidade> novos = slots.stream().map(item -> {
+            ProfessorDisponibilidade slot = new ProfessorDisponibilidade();
+            slot.setProfessor(professor);
+            slot.setDiaSemana(item.day());
+            slot.setHorario(item.time());
+            return slot;
+        }).toList();
+
+        disponibilidadeRepository.saveAll(novos);
+    }
+
+    private String formatarEndereco(EnderecoProfessorRequest address) {
+        List<String> partes = new ArrayList<>();
+        Optional.ofNullable(address.street()).filter(v -> !v.isBlank()).ifPresent(partes::add);
+        Optional.ofNullable(address.neighborhood()).filter(v -> !v.isBlank()).ifPresent(partes::add);
+        Optional.ofNullable(address.city()).filter(v -> !v.isBlank()).ifPresent(partes::add);
+        Optional.ofNullable(address.state()).filter(v -> !v.isBlank()).ifPresent(partes::add);
+        return String.join(", ", partes);
+    }
+}
