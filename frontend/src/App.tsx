@@ -1,4 +1,5 @@
 import { Navigate, Route, Routes } from "react-router-dom";
+import { RequireRole } from "@/components/auth/RequireRole";
 import { AuthPage } from "@/pages/AuthPage";
 import { LandingPage } from "@/pages/LandingPage";
 import { SearchTeachersPage } from "@/pages/SearchTeachersPage";
@@ -13,7 +14,14 @@ function App() {
       <Route path="/professores/:id" element={<TeacherProfilePage />} />
       <Route path="/login" element={<AuthPage />} />
       <Route path="/register" element={<AuthPage />} />
-      <Route path="/profile/edit" element={<TeacherProfileConfigPage />} />
+      <Route
+        path="/profile/edit"
+        element={
+          <RequireRole role="PROFESSOR">
+            <TeacherProfileConfigPage />
+          </RequireRole>
+        }
+      />
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
   );
