@@ -41,7 +41,7 @@ public class UsuarioController {
                         usuario.getId(),
                         usuario.getNomeCompleto(),
                         usuario.getEmail(),
-                        usuario.getTipo().name()
+                        usuario.getTipo() == null ? "ALUNO" : usuario.getTipo().name()
                 )
         ));
     }

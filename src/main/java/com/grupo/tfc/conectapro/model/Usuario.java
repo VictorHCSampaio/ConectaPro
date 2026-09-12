@@ -29,7 +29,7 @@ public class Usuario {
     private String senhaHash;
 
     @Enumerated(EnumType.STRING)
-    @Column(nullable = false)
+    @Column(name = "role")
     @Builder.Default
     private TipoUsuario tipo = TipoUsuario.ALUNO;
 
