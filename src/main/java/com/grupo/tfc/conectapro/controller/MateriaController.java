@@ -15,7 +15,7 @@ import java.util.List;
 import java.util.UUID;
 
 @RestController
-@RequestMapping("/materia")
+@RequestMapping("/materias")
 public class MateriaController {
 
     private final MateriaService materiaService;
