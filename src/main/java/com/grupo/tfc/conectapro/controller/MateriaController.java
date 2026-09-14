@@ -26,18 +26,18 @@ public class MateriaController {
         this.usuarioRepository = usuarioRepository;
     }
 
-    @GetMapping("/listall")
+    @GetMapping
     public ResponseEntity<List<Materia>> getAllMaterias(){
         List<Materia> materia = materiaService.getAllMateriaService();
         return ResponseEntity.ok(materia);
     }
 
-    @GetMapping("/list/{id}")
+    @GetMapping("/{id}")
     public ResponseEntity<Materia> getMateriaId(@PathVariable Integer id){
         return ResponseEntity.ok(materiaService.getMateriaId(id));
     }
 
-    @PostMapping("/add")
+    @PostMapping
     public ResponseEntity<String> addMateria(@RequestBody Materia materia, HttpSession session){
         UUID usuarioId = SessaoUsuario.exigirUsuarioId(session);
         boolean isAdmin = usuarioRepository.findById(usuarioId)
