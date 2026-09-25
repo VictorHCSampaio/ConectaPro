@@ -7,7 +7,7 @@ import { TeamSection } from '@/components/landing/TeamSection'
 
 export function LandingPage() {
   return (
-    <div className="flex min-h-screen flex-col bg-paper-50 transition-colors duration-300 dark:bg-[#0a0a0a]">
+    <div className="flex min-h-screen flex-col bg-paper-50 transition-colors duration-300 dark:bg-night-900">
       <SiteHeader />
       <main>
         <HeroSection />
