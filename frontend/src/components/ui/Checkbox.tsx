@@ -18,17 +18,17 @@ export function Checkbox({ label, error, id, className, ...props }: CheckboxProp
           id={inputId}
           type="checkbox"
           className={cn(
-            'mt-0.5 size-4 shrink-0 cursor-pointer rounded-sm border-paper-400 bg-paper-100 text-ink-800',
-            'shadow-[inset_0_1px_2px_rgba(18,38,63,0.16)] transition-colors',
+            'mt-0.5 size-4 shrink-0 cursor-pointer rounded-sm border-paper-400 bg-paper-100 text-ink-800 dark:text-ocre-500',
+            'pressed transition-colors',
             'focus:ring-2 focus:ring-ocre-400/40 focus:ring-offset-0',
-            'dark:border-slate-600 dark:bg-slate-900',
+            'dark:border-zinc-600 dark:bg-zinc-900',
             className,
           )}
           {...props}
         />
         <label
           htmlFor={inputId}
-          className="cursor-pointer text-sm leading-snug text-ink-700 transition-colors group-hover:text-ink-900 dark:text-slate-300 dark:group-hover:text-slate-50"
+          className="cursor-pointer text-sm leading-snug text-ink-700 transition-colors group-hover:text-ink-900 dark:text-zinc-300 dark:group-hover:text-zinc-50"
         >
           {label}
         </label>
