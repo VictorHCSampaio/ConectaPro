@@ -33,7 +33,7 @@ export function SiteHeader() {
   }
 
   return (
-    <header className="sticky top-0 z-40 border-b border-paper-200 bg-paper-50/85 backdrop-blur-sm transition-colors duration-300 dark:border-white/10 dark:bg-[#0a0a0a]/80 dark:backdrop-blur-md">
+    <header className="sticky top-0 z-40 border-b border-paper-200 bg-paper-50/85 backdrop-blur-sm transition-colors duration-300 dark:border-white/10 dark:bg-night-900/80 dark:backdrop-blur-md">
       <div className="mx-auto flex h-16 max-w-6xl items-center justify-between px-4 sm:px-6">
         <Link to="/" onClick={closeMenu}>
           <Brand />
@@ -57,14 +57,6 @@ export function SiteHeader() {
               {link.label}
             </NavLink>
           ))}
-          {!isTeacher && (
-            <Link
-              to="#"
-              className="rounded-sm px-3 py-2 text-ink-600 transition-colors duration-200 hover:bg-paper-100 hover:text-ink-900"
-            >
-              Seja professor
-            </Link>
-          )}
         </nav>
 
         <div className="hidden items-center gap-4 md:flex">
@@ -72,7 +64,7 @@ export function SiteHeader() {
             type="button"
             onClick={toggleTheme}
             aria-label={theme === 'light' ? 'Ativar modo escuro' : 'Ativar modo claro'}
-            className="flex size-9 items-center justify-center rounded-md text-ink-600 transition-colors hover:bg-paper-100 hover:text-ink-900 dark:text-zinc-400 dark:hover:bg-white/5 dark:hover:text-white"
+            className="flex size-9 items-center justify-center rounded-md text-ink-600 transition-colors dark:text-zinc-400 dark:hover:bg-white/5 dark:hover:text-white hover:bg-paper-100 hover:text-ink-900 dark:text-zinc-400 dark:hover:bg-white/5 dark:hover:text-white"
           >
             {theme === 'light' ? <Moon size={18} /> : <Sun size={18} />}
           </button>
@@ -81,14 +73,17 @@ export function SiteHeader() {
               {user?.isAdmin && (
                 <Link
                   to="/admin/materias"
-                  className="inline-flex items-center gap-1.5 text-sm text-ink-600 transition-colors hover:text-ink-900"
+                  className="inline-flex items-center gap-1.5 text-sm text-ink-600 transition-colors hover:text-ink-900 dark:text-zinc-400 dark:hover:text-white"
                 >
                   <BookOpen className="size-4" />
                   Matérias
                 </Link>
               )}
               {isTeacher && (
-                <Link to="/profile/edit" className={cn(PRIMARY_BUTTON_CLASS, 'inline-flex items-center gap-2')}>
+                <Link
+                  to="/profile/edit"
+                  className={cn(PRIMARY_BUTTON_CLASS, 'inline-flex items-center gap-2')}
+                >
                   <UserRound className="size-4" />
                   Meu perfil
                 </Link>
@@ -96,7 +91,7 @@ export function SiteHeader() {
               <button
                 type="button"
                 onClick={handleSignOut}
-                className="inline-flex items-center gap-1.5 text-sm text-ink-600 transition-colors hover:text-ink-900"
+                className="inline-flex items-center gap-1.5 text-sm text-ink-600 transition-colors hover:text-ink-900 dark:text-zinc-400 dark:hover:text-white"
               >
                 <LogOut className="size-4" />
                 Sair
@@ -104,7 +99,10 @@ export function SiteHeader() {
             </>
           ) : (
             <>
-              <Link to="/login" className="text-sm text-ink-600 transition-colors hover:text-ink-900 dark:text-zinc-400 dark:hover:text-white">
+              <Link
+                to="/login"
+                className="text-sm text-ink-600 transition-colors hover:text-ink-900 dark:text-zinc-400 dark:hover:text-white"
+              >
                 Entrar
               </Link>
               <Link to="/register" className={PRIMARY_BUTTON_CLASS}>
@@ -136,7 +134,7 @@ export function SiteHeader() {
       </div>
 
       {isMenuOpen && (
-        <nav className="flex flex-col gap-1 border-t border-paper-200 bg-paper-50 px-4 py-3 text-sm transition-colors duration-300 dark:border-white/10 dark:bg-[#0a0a0a] md:hidden">
+        <nav className="flex flex-col gap-1 border-t border-paper-200 bg-paper-50 px-4 py-3 text-sm transition-colors duration-300 dark:border-white/10 dark:bg-night-900 md:hidden">
           {NAV_LINKS.map((link) => (
             <NavLink
               key={link.to}
@@ -155,16 +153,6 @@ export function SiteHeader() {
               {link.label}
             </NavLink>
           ))}
-          {!isTeacher && (
-            <Link
-              to="#"
-              onClick={closeMenu}
-              className="rounded-md px-3 py-2.5 text-ink-600 transition-colors hover:bg-paper-100"
-            >
-              Seja professor
-            </Link>
-          )}
-
           <div className="mt-2 flex flex-col gap-2 border-t border-paper-200 pt-3 dark:border-white/10">
             {isAuthenticated ? (
               <>
@@ -172,7 +160,7 @@ export function SiteHeader() {
                   <Link
                     to="/admin/materias"
                     onClick={closeMenu}
-                    className="flex items-center justify-center gap-2 rounded-md border border-paper-300 bg-white px-3 py-2.5 text-center text-ink-800"
+                    className="flex items-center justify-center gap-2 rounded-md border border-paper-300 bg-white dark:border-white/10 dark:bg-night-700 px-3 py-2.5 text-center text-ink-800 dark:text-zinc-100"
                   >
                     <BookOpen className="size-4" />
                     Matérias
@@ -191,7 +179,7 @@ export function SiteHeader() {
                 <button
                   type="button"
                   onClick={handleSignOut}
-                  className="flex items-center justify-center gap-1.5 rounded-md border border-paper-300 bg-white px-3 py-2.5 text-center text-ink-800"
+                  className="flex items-center justify-center gap-1.5 rounded-md border border-paper-300 bg-white dark:border-white/10 dark:bg-night-700 px-3 py-2.5 text-center text-ink-800 dark:text-zinc-100"
                 >
                   <LogOut className="size-4" />
                   Sair
@@ -202,7 +190,7 @@ export function SiteHeader() {
                 <Link
                   to="/login"
                   onClick={closeMenu}
-                  className="rounded-md border border-paper-300 bg-white px-3 py-2.5 text-center text-ink-800 transition-colors duration-300 dark:border-white/10 dark:bg-white/5 dark:text-white"
+                  className="rounded-md border border-paper-300 bg-white dark:border-white/10 dark:bg-night-700 px-3 py-2.5 text-center text-ink-800 dark:text-zinc-100 transition-colors duration-300 dark:border-white/10 dark:bg-white/5 dark:text-white"
                 >
                   Entrar
                 </Link>

@@ -44,13 +44,13 @@ export function AccentPanel({ isRegister }: AccentPanelProps) {
                   isActive ? 'opacity-100' : 'pointer-events-none opacity-0',
                 )}
               >
-                <span className="block h-px w-10 bg-ocre-400" />
-
                 <h3 className="text-2xl leading-snug font-semibold text-balance text-paper-50">
                   {message.heading}
                 </h3>
 
-                <p className="max-w-[30ch] text-sm leading-relaxed text-ink-200">{message.text}</p>
+                <p className="max-w-[30ch] text-sm leading-relaxed text-ink-200 dark:text-zinc-700">
+                  {message.text}
+                </p>
 
                 <Link
                   to={message.ctaTo}

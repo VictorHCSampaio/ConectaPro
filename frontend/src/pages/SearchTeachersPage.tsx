@@ -1,133 +1,137 @@
-import { Loader2 } from "lucide-react";
-import { useEffect, useMemo, useState } from "react";
-import type { ReactNode } from "react";
-import { FilterPanel } from "@/components/search/FilterPanel";
-import { TeacherResultCard } from "@/components/search/TeacherResultCard";
-import { TeacherSearchBar } from "@/components/search/TeacherSearchBar";
-import { SiteFooter } from "@/components/landing/SiteFooter";
-import { SiteHeader } from "@/components/landing/SiteHeader";
-import { Reveal } from "@/components/motion/Reveal";
-import { listarProfessores } from "@/lib/professorService.ts";
-import type { ModalityOption, Teacher } from "@/types/teacher";
+import { Loader2 } from 'lucide-react'
+import { useEffect, useMemo, useState } from 'react'
+import type { ReactNode } from 'react'
+import { FilterPanel } from '@/components/search/FilterPanel'
+import { TeacherResultCard } from '@/components/search/TeacherResultCard'
+import { TeacherSearchBar } from '@/components/search/TeacherSearchBar'
+import { SiteFooter } from '@/components/landing/SiteFooter'
+import { SiteHeader } from '@/components/landing/SiteHeader'
+import { Reveal } from '@/components/motion/Reveal'
+import { listarProfessores } from '@/lib/professorService'
+import type { ModalityFilter, Teacher } from '@/types/teacher'
 
-type SortOption = "relevancia" | "menor-preco" | "maior-avaliacao";
+type SortOption = 'relevancia' | 'menor-preco' | 'maior-avaliacao'
 
 type ResultsMessageProps = {
-  title: string;
-  description: string;
-  children?: ReactNode;
-};
+  title: string
+  description: string
+  children?: ReactNode
+}
 
 function ResultsMessage({ title, description, children }: ResultsMessageProps) {
   return (
     <div className="inset-well flex flex-col items-start gap-2 rounded-lg p-10">
-      <p className="text-lg font-semibold text-ink-900">{title}</p>
-      <p className="text-sm text-ink-600">{description}</p>
+      <p className="text-lg font-semibold text-ink-900 dark:text-white">{title}</p>
+      <p className="text-sm text-ink-600 dark:text-zinc-400">{description}</p>
       {children}
     </div>
-  );
+  )
 }
 
-const FALLBACK_PRICE_RANGE: [number, number] = [0, 200];
+const FALLBACK_PRICE_RANGE: [number, number] = [0, 200]
 
 export function SearchTeachersPage() {
-  const [teachers, setTeachers] = useState<Teacher[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [loadError, setLoadError] = useState<string | null>(null);
+  const [teachers, setTeachers] = useState<Teacher[]>([])
+  const [isLoading, setIsLoading] = useState(true)
+  const [loadError, setLoadError] = useState<string | null>(null)
 
-  const [searchQuery, setSearchQuery] = useState("");
-  const [selectedSubjects, setSelectedSubjects] = useState<string[]>([]);
-  const [modality, setModality] = useState<ModalityOption>("online");
-  const [priceRange, setPriceRange] = useState<[number, number] | null>(null);
-  const [onlyVerified, setOnlyVerified] = useState(false);
-  const [sortOption, setSortOption] = useState<SortOption>("relevancia");
+  const [searchQuery, setSearchQuery] = useState('')
+  const [selectedSubjects, setSelectedSubjects] = useState<string[]>([])
+  const [modality, setModality] = useState<ModalityFilter>('todas')
+  const [priceRange, setPriceRange] = useState<[number, number] | null>(null)
+  const [onlyVerified, setOnlyVerified] = useState(false)
+  const [sortOption, setSortOption] = useState<SortOption>('relevancia')
 
   useEffect(() => {
-    let isActive = true;
+    let isActive = true
 
     listarProfessores()
       .then((list) => {
-        if (isActive) setTeachers(list);
+        if (isActive) setTeachers(list)
       })
       .catch(() => {
-        if (isActive) setLoadError("Não foi possível carregar os professores.");
+        if (isActive) setLoadError('Não foi possível carregar os professores.')
       })
       .finally(() => {
-        if (isActive) setIsLoading(false);
-      });
+        if (isActive) setIsLoading(false)
+      })
 
     return () => {
-      isActive = false;
-    };
-  }, []);
+      isActive = false
+    }
+  }, [])
 
   const subjectOptions = useMemo(
     () => [...new Set(teachers.flatMap((teacher) => teacher.subjects))].sort(),
     [teachers],
-  );
+  )
 
   const priceBounds = useMemo<[number, number]>(() => {
-    if (teachers.length === 0) return FALLBACK_PRICE_RANGE;
-    const prices = teachers.map((teacher) => teacher.pricePerHour);
-    return [Math.floor(Math.min(...prices)), Math.ceil(Math.max(...prices))];
-  }, [teachers]);
+    if (teachers.length === 0) return FALLBACK_PRICE_RANGE
+    const prices = teachers.map((teacher) => teacher.pricePerHour)
+    return [Math.floor(Math.min(...prices)), Math.ceil(Math.max(...prices))]
+  }, [teachers])
 
-  const activePriceRange = priceRange ?? priceBounds;
+  const activePriceRange = priceRange ?? priceBounds
+
+  const verifiedAvailable = useMemo(() => teachers.some((teacher) => teacher.verified), [teachers])
+
+  const ratingsAvailable = useMemo(
+    () => teachers.some((teacher) => teacher.reviewCount > 0),
+    [teachers],
+  )
+
+  const activeFilterCount =
+    selectedSubjects.length +
+    (modality === 'todas' ? 0 : 1) +
+    (priceRange === null ? 0 : 1) +
+    (onlyVerified ? 1 : 0)
 
   function toggleSubject(subject: string) {
     setSelectedSubjects((previous) =>
       previous.includes(subject)
         ? previous.filter((item) => item !== subject)
         : [...previous, subject],
-    );
+    )
   }
 
   function clearFilters() {
-    setSelectedSubjects([]);
-    setModality("online");
-    setPriceRange(null);
-    setOnlyVerified(false);
+    setSelectedSubjects([])
+    setModality('todas')
+    setPriceRange(null)
+    setOnlyVerified(false)
   }
 
   const filteredTeachers = useMemo(() => {
-    const query = searchQuery.trim().toLowerCase();
+    const query = searchQuery.trim().toLowerCase()
 
     const matches = teachers.filter((teacher) => {
       const matchesQuery =
         query.length === 0 ||
         teacher.name.toLowerCase().includes(query) ||
-        teacher.subjects.some((subject) =>
-          subject.toLowerCase().includes(query),
-        );
+        teacher.subjects.some((subject) => subject.toLowerCase().includes(query))
 
       const matchesSubjects =
         selectedSubjects.length === 0 ||
-        teacher.subjects.some((subject) => selectedSubjects.includes(subject));
+        teacher.subjects.some((subject) => selectedSubjects.includes(subject))
 
-      const matchesModality = teacher.modalities.includes(modality);
+      const matchesModality = modality === 'todas' || teacher.modalities.includes(modality)
 
       const matchesPrice =
-        teacher.pricePerHour >= activePriceRange[0] &&
-        teacher.pricePerHour <= activePriceRange[1];
+        teacher.pricePerHour >= activePriceRange[0] && teacher.pricePerHour <= activePriceRange[1]
 
-      const matchesVerified = !onlyVerified || teacher.verified;
+      const matchesVerified = !onlyVerified || teacher.verified
 
-      return (
-        matchesQuery &&
-        matchesSubjects &&
-        matchesModality &&
-        matchesPrice &&
-        matchesVerified
-      );
-    });
+      return matchesQuery && matchesSubjects && matchesModality && matchesPrice && matchesVerified
+    })
 
-    if (sortOption === "menor-preco") {
-      return [...matches].sort((a, b) => a.pricePerHour - b.pricePerHour);
+    if (sortOption === 'menor-preco') {
+      return [...matches].sort((a, b) => a.pricePerHour - b.pricePerHour)
     }
-    if (sortOption === "maior-avaliacao") {
-      return [...matches].sort((a, b) => b.rating - a.rating);
+    if (sortOption === 'maior-avaliacao') {
+      return [...matches].sort((a, b) => b.rating - a.rating)
     }
-    return matches;
+    return matches
   }, [
     teachers,
     searchQuery,
@@ -136,17 +140,14 @@ export function SearchTeachersPage() {
     activePriceRange,
     onlyVerified,
     sortOption,
-  ]);
+  ])
 
   return (
-    <div className="flex min-h-screen flex-col bg-paper-50 transition-colors duration-300 dark:bg-[#0a0a0a]">
+    <div className="flex min-h-screen flex-col bg-paper-50 transition-colors duration-300 dark:bg-night-900">
       <SiteHeader />
 
       <main className="mx-auto w-full max-w-6xl flex-1 px-6 py-10">
-        <p className="label-mono flex items-center gap-2.5 text-paper-600 dark:text-zinc-500">
-          <span className="h-px w-8 bg-ocre-400" />
-          Diretório
-        </p>
+        <p className="label-mono text-paper-600 dark:text-zinc-500">Diretório</p>
         <h1 className="mt-3 mb-6 text-3xl font-semibold tracking-tight text-ink-900 dark:text-white">
           Professores particulares
         </h1>
@@ -166,38 +167,38 @@ export function SearchTeachersPage() {
             onPriceRangeChange={setPriceRange}
             onlyVerified={onlyVerified}
             onOnlyVerifiedChange={setOnlyVerified}
+            verifiedAvailable={verifiedAvailable}
+            activeCount={activeFilterCount}
             onClear={clearFilters}
           />
 
           <div className="flex flex-col gap-3">
-            <div className="flex flex-wrap items-center justify-between gap-3 border-b border-paper-200 pb-3">
-              <p className="text-sm text-ink-700">
-                <span className="tnum font-semibold text-ink-900">
+            <div className="flex flex-wrap items-center justify-between gap-3 border-b border-paper-200 pb-3 dark:border-white/10">
+              <p className="text-sm text-ink-700 dark:text-zinc-300">
+                <span className="tnum font-semibold text-ink-900 dark:text-white">
                   {filteredTeachers.length}
-                </span>{" "}
-                {filteredTeachers.length === 1
-                  ? "professor encontrado"
-                  : "professores encontrados"}
+                </span>{' '}
+                {filteredTeachers.length === 1 ? 'professor encontrado' : 'professores encontrados'}
               </p>
 
               <label className="flex items-center gap-2 text-sm text-paper-600 dark:text-zinc-400">
                 Ordenar por
                 <select
                   value={sortOption}
-                  onChange={(event) =>
-                    setSortOption(event.target.value as SortOption)
-                  }
-                  className="rounded-md border border-paper-300 bg-white px-2.5 py-1.5 text-sm text-ink-800 shadow-[inset_0_1px_0_#fff,0_1px_0_var(--color-paper-200)] outline-none transition-colors hover:border-paper-400 focus:border-ocre-400"
+                  onChange={(event) => setSortOption(event.target.value as SortOption)}
+                  className="raised rounded-md border border-paper-300 bg-white px-2.5 py-1.5 text-sm text-ink-800 outline-none transition-colors hover:border-paper-400 focus:border-ocre-400 dark:border-white/10 dark:bg-night-600 dark:text-white dark:hover:border-white/20 dark:focus:border-ocre-500"
                 >
                   <option value="relevancia">Relevância</option>
                   <option value="menor-preco">Menor preço</option>
-                  <option value="maior-avaliacao">Maior avaliação</option>
+                  <option value="maior-avaliacao" disabled={!ratingsAvailable}>
+                    Maior avaliação
+                  </option>
                 </select>
               </label>
             </div>
 
             {isLoading ? (
-              <div className="inset-well flex items-center gap-2 rounded-lg p-10 text-sm text-paper-600">
+              <div className="inset-well flex items-center gap-2 rounded-lg p-10 text-sm text-paper-600 dark:text-zinc-400">
                 <Loader2 className="size-4 animate-spin" />
                 Carregando professores…
               </div>
@@ -219,7 +220,7 @@ export function SearchTeachersPage() {
                 <button
                   type="button"
                   onClick={clearFilters}
-                  className="mt-2 rounded-md border border-paper-300 bg-white px-4 py-2 text-sm font-semibold text-ink-800 shadow-[inset_0_1px_0_#fff,0_2px_0_var(--color-paper-200)] transition-all duration-150 active:translate-y-0.5 active:shadow-none dark:border-white/10 dark:bg-white/[0.04] dark:text-white dark:shadow-none dark:hover:bg-white/[0.08]"
+                  className="raised mt-2 rounded-md border border-paper-300 bg-white px-4 py-2 text-sm font-semibold text-ink-800 transition-all duration-150 active:translate-y-0.5 active:shadow-none dark:border-white/10 dark:bg-night-600 dark:text-white dark:hover:bg-night-800"
                 >
                   Limpar filtros
                 </button>
@@ -241,5 +242,5 @@ export function SearchTeachersPage() {
 
       <SiteFooter />
     </div>
-  );
+  )
 }

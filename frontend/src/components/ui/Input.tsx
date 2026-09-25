@@ -31,12 +31,12 @@ export function Input({ label, error, icon, trailing, className, id, ...props }:
           className={cn(
             'inset-well w-full rounded-md py-3 text-sm text-ink-900 placeholder:text-paper-400',
             'transition-all duration-200 focus:outline-none',
-            'dark:border-white/10 dark:bg-black/40 dark:text-white dark:placeholder:text-zinc-600 dark:shadow-none',
+            'dark:border-white/10 dark:text-white dark:placeholder:text-zinc-600',
             icon ? 'pl-11' : 'pl-4',
             trailing ? 'pr-12' : 'pr-4',
             error
               ? 'border-alert-600/50 focus:border-alert-600'
-              : 'hover:border-paper-400 focus:border-ocre-400 focus:shadow-[inset_0_2px_4px_rgba(18,38,63,0.09),0_0_0_3px_rgba(192,161,74,0.18)] dark:hover:border-white/20 dark:focus:border-white/30 dark:focus:shadow-none',
+              : 'hover:border-paper-400 focus:border-ocre-400 focus:shadow-[inset_0_2px_4px_rgba(18,38,63,0.09),0_0_0_3px_rgba(192,161,74,0.18)] dark:hover:border-white/20 dark:focus:border-ocre-500 dark:focus:shadow-[inset_0_2px_5px_rgba(0,0,0,0.9),0_0_0_3px_rgba(192,161,74,0.25)]',
             className,
           )}
           {...props}

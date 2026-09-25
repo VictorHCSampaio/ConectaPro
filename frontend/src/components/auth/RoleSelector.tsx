@@ -38,7 +38,9 @@ export function RoleSelector({ value, onChange, onBlur, error }: RoleSelectorPro
 
   return (
     <fieldset className="flex flex-col gap-2">
-      <legend className="label-mono mb-2 text-paper-600 dark:text-zinc-500">Como você quer usar</legend>
+      <legend className="label-mono mb-2 text-paper-600 dark:text-zinc-500">
+        Como você quer usar
+      </legend>
 
       <div className="grid grid-cols-2 gap-3">
         {ROLE_OPTIONS.map((option) => {
@@ -53,7 +55,7 @@ export function RoleSelector({ value, onChange, onBlur, error }: RoleSelectorPro
                 'has-[:focus-visible]:outline-2 has-[:focus-visible]:outline-offset-3 has-[:focus-visible]:outline-ocre-500',
                 isSelected
                   ? 'border-ocre-400 bg-white shadow-[inset_0_1px_0_#fff,0_0_0_3px_rgba(192,161,74,0.18),0_8px_16px_-12px_rgba(18,38,63,0.4)] dark:bg-white/[0.08] dark:shadow-[0_0_0_3px_rgba(192,161,74,0.15)]'
-                  : 'border-paper-300 bg-paper-100 shadow-[inset_0_2px_4px_rgba(18,38,63,0.09),inset_0_-1px_0_#fff] hover:border-paper-400 dark:border-white/10 dark:bg-white/[0.02] dark:shadow-none dark:hover:border-white/20',
+                  : 'border-paper-300 bg-paper-100 pressed hover:border-paper-400 dark:border-white/10 dark:bg-white/[0.02] dark:hover:border-white/20',
                 error && !isSelected && 'border-alert-600/50',
               )}
             >
@@ -69,7 +71,9 @@ export function RoleSelector({ value, onChange, onBlur, error }: RoleSelectorPro
               <span
                 className={cn(
                   'transition-colors',
-                  isSelected ? 'text-ocre-500' : 'text-paper-500 group-hover:text-ink-600 dark:text-zinc-600 dark:group-hover:text-zinc-300',
+                  isSelected
+                    ? 'text-ocre-500'
+                    : 'text-paper-500 group-hover:text-ink-600 dark:text-zinc-600 dark:group-hover:text-zinc-300',
                 )}
               >
                 {option.icon}
@@ -82,7 +86,9 @@ export function RoleSelector({ value, onChange, onBlur, error }: RoleSelectorPro
               >
                 {option.title}
               </span>
-              <span className="text-xs leading-snug text-ink-600 dark:text-zinc-500">{option.description}</span>
+              <span className="text-xs leading-snug text-ink-600 dark:text-zinc-500">
+                {option.description}
+              </span>
             </label>
           )
         })}

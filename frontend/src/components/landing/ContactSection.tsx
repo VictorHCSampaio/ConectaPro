@@ -1,20 +1,20 @@
-import type { FormEvent } from "react";
-import { ArrowRight, Mail, MapPin, Phone } from "lucide-react";
-import { Reveal } from "@/components/motion/Reveal";
+import type { FormEvent } from 'react'
+import { ArrowRight, Mail, MapPin, Phone } from 'lucide-react'
+import { Reveal } from '@/components/motion/Reveal'
 
 type ContactInfo = {
-  icon: typeof Mail;
-  label: string;
-};
+  icon: typeof Mail
+  label: string
+}
 
 const CONTACT_INFOS: ContactInfo[] = [
-  { icon: Mail, label: "contato@conectapro.com.br" },
-  { icon: Phone, label: "(11) 99999-9999" },
-  { icon: MapPin, label: "Brasil - SP" },
-];
+  { icon: Mail, label: 'contato@conectapro.com.br' },
+  { icon: Phone, label: '(11) 99999-9999' },
+  { icon: MapPin, label: 'Brasil - SP' },
+]
 
 function handleSubmit(e: FormEvent<HTMLFormElement>) {
-  e.preventDefault();
+  e.preventDefault()
 }
 
 export function ContactSection() {
@@ -26,14 +26,12 @@ export function ContactSection() {
             <div className="flex flex-col gap-4">
               <span className="label-mono text-ink-600 dark:text-zinc-500">Para Professores</span>
               <h2 className="text-3xl font-semibold leading-tight tracking-tight text-ink-900 dark:text-white sm:text-4xl">
-                Pronto para transformar o{" "}
-                <span className="text-ocre-400">ensino</span>?
+                Pronto para transformar o <span className="text-ocre-400">ensino</span>?
               </h2>
               <p className="max-w-md leading-relaxed text-ink-700 dark:text-zinc-400">
-                Cadastre-se agora por tempo LIMITADO e ganhe 1 mês de teste
-                totalmente gratuito na plataforma. Conecte-se com novos alunos,
-                gerencie sua grade de horários e aumente sua renda dando aulas
-                particulares.
+                Cadastre-se agora por tempo LIMITADO e ganhe 1 mês de teste totalmente gratuito na
+                plataforma. Conecte-se com novos alunos, gerencie sua grade de horários e aumente
+                sua renda dando aulas particulares.
               </p>
             </div>
 
@@ -129,5 +127,5 @@ export function ContactSection() {
         </Reveal>
       </div>
     </section>
-  );
+  )
 }

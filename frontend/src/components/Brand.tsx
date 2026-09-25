@@ -6,7 +6,12 @@ type BrandProps = {
 
 export function Brand({ className }: BrandProps) {
   return (
-    <span className={cn('text-[0.95rem] font-semibold tracking-tight text-ink-900 dark:text-slate-50', className)}>
+    <span
+      className={cn(
+        'text-[0.95rem] font-semibold tracking-tight text-ink-900 dark:text-zinc-50',
+        className,
+      )}
+    >
       ConectaPro
     </span>
   )

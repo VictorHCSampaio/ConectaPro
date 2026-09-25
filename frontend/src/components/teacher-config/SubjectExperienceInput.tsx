@@ -1,105 +1,99 @@
-import { useEffect, useId, useRef, useState } from "react";
-import { Loader2, Search, Trash2 } from "lucide-react";
-import { cn } from "@/lib/cn";
-import { listarMaterias } from "@/lib/materiaService";
-import type { SubjectExperience } from "@/types/teacher-profile";
+import { useEffect, useId, useRef, useState } from 'react'
+import { Loader2, Search, Trash2 } from 'lucide-react'
+import { cn } from '@/lib/cn'
+import { listarMaterias } from '@/lib/materiaService'
+import type { SubjectExperience } from '@/types/teacher-profile'
 
-const MAX_SUBJECTS = 10;
-const LEVELS = ["Iniciante", "Intermediário", "Avançado"] as const;
+const MAX_SUBJECTS = 10
+const LEVELS = ['Iniciante', 'Intermediário', 'Avançado'] as const
 
-interface AvailableSubject {
-  id: string;
-  name: string;
+type AvailableSubject = {
+  id: string
+  name: string
 }
 
-interface SubjectExperienceInputProps {
-  subjects: SubjectExperience[];
-  onChange: (subjects: SubjectExperience[]) => void;
-  error?: string;
+type SubjectExperienceInputProps = {
+  subjects: SubjectExperience[]
+  onChange: (subjects: SubjectExperience[]) => void
+  error?: string
 }
 
-export function SubjectExperienceInput({
-  subjects,
-  onChange,
-  error,
-}: SubjectExperienceInputProps) {
-  const inputId = useId();
-  const containerRef = useRef<HTMLDivElement>(null);
-  const [query, setQuery] = useState("");
-  const [open, setOpen] = useState(false);
+export function SubjectExperienceInput({ subjects, onChange, error }: SubjectExperienceInputProps) {
+  const inputId = useId()
+  const containerRef = useRef<HTMLDivElement>(null)
+  const [query, setQuery] = useState('')
+  const [open, setOpen] = useState(false)
 
-  const [availableSubjects, setAvailableSubjects] = useState<AvailableSubject[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [loadError, setLoadError] = useState<string | null>(null);
+  const [availableSubjects, setAvailableSubjects] = useState<AvailableSubject[]>([])
+  const [isLoading, setIsLoading] = useState(true)
+  const [loadError, setLoadError] = useState<string | null>(null)
 
   useEffect(() => {
-    let isActive = true;
+    let isActive = true
 
     listarMaterias()
       .then((materias) => {
-        if (!isActive) return;
+        if (!isActive) return
         setAvailableSubjects(
           materias
             .filter((materia) => materia.ativa)
             .map((materia) => ({ id: String(materia.id), name: materia.nome })),
-        );
+        )
       })
       .catch(() => {
-        if (isActive) setLoadError("Não foi possível carregar as matérias.");
+        if (isActive) setLoadError('Não foi possível carregar as matérias.')
       })
       .finally(() => {
-        if (isActive) setIsLoading(false);
-      });
+        if (isActive) setIsLoading(false)
+      })
 
     return () => {
-      isActive = false;
-    };
-  }, []);
+      isActive = false
+    }
+  }, [])
 
-  const selectedIds = new Set(subjects.map((s) => s.id));
+  const selectedIds = new Set(subjects.map((s) => s.id))
 
   const suggestions = availableSubjects.filter(
-    (s) =>
-      !selectedIds.has(s.id) &&
-      s.name.toLowerCase().includes(query.trim().toLowerCase()),
-  );
+    (s) => !selectedIds.has(s.id) && s.name.toLowerCase().includes(query.trim().toLowerCase()),
+  )
 
   function addSubject(subject: { id: string; name: string }) {
     onChange([
       ...subjects,
-      { id: subject.id, name: subject.name, observation: "", level: "Iniciante" },
-    ]);
-    setQuery("");
-    setOpen(false);
+      { id: subject.id, name: subject.name, observation: '', level: 'Iniciante' },
+    ])
+    setQuery('')
+    setOpen(false)
   }
 
   function removeSubject(id: string) {
-    onChange(subjects.filter((s) => s.id !== id));
+    onChange(subjects.filter((s) => s.id !== id))
   }
 
   function updateSubject(id: string, patch: Partial<SubjectExperience>) {
-    onChange(subjects.map((s) => (s.id === id ? { ...s, ...patch } : s)));
+    onChange(subjects.map((s) => (s.id === id ? { ...s, ...patch } : s)))
   }
 
   useEffect(() => {
     function onClickOutside(e: MouseEvent) {
       if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
-        setOpen(false);
+        setOpen(false)
       }
     }
-    document.addEventListener("mousedown", onClickOutside);
-    return () => document.removeEventListener("mousedown", onClickOutside);
-  }, []);
+    document.addEventListener('mousedown', onClickOutside)
+    return () => document.removeEventListener('mousedown', onClickOutside)
+  }, [])
 
-  const isAtLimit = subjects.length >= MAX_SUBJECTS;
+  const isAtLimit = subjects.length >= MAX_SUBJECTS
 
   return (
     <div className="flex flex-col gap-3">
-      <span className="label-mono text-paper-600">Matérias / Disciplinas</span>
+      <span className="label-mono text-paper-600 dark:text-zinc-400">Matérias / Disciplinas</span>
 
       {!isAtLimit && (
         <div ref={containerRef} className="relative">
-          <span className="pointer-events-none absolute inset-y-0 left-3.5 z-10 flex items-center text-paper-500">
+          <span className="pointer-events-none absolute inset-y-0 left-3.5 z-10 flex items-center text-paper-500 dark:text-zinc-500">
             <Search className="size-4" />
           </span>
           <input
@@ -108,27 +102,25 @@ export function SubjectExperienceInput({
             autoComplete="off"
             value={query}
             disabled={isLoading}
-            placeholder={
-              isLoading ? "Carregando matérias…" : "Buscar matéria… (ex: Matemática)"
-            }
+            placeholder={isLoading ? 'Carregando matérias…' : 'Buscar matéria… (ex: Matemática)'}
             aria-label="Buscar matéria"
             aria-invalid={Boolean(error)}
             onChange={(e) => {
-              setQuery(e.target.value);
-              setOpen(true);
+              setQuery(e.target.value)
+              setOpen(true)
             }}
             onFocus={() => setOpen(true)}
             className={cn(
-              "inset-well w-full rounded-md py-3 pl-11 pr-4 text-sm text-ink-900 placeholder:text-paper-400",
-              "transition-[border-color,box-shadow] duration-200 focus:outline-none",
+              'inset-well w-full rounded-md py-3 pl-11 pr-4 text-sm text-ink-900 dark:text-white placeholder:text-paper-400',
+              'transition-[border-color,box-shadow] duration-200 focus:outline-none',
               error
-                ? "border-alert-600/50 focus:border-alert-600"
-                : "hover:border-paper-400 focus:border-ocre-400 focus:shadow-[inset_0_2px_4px_rgba(18,38,63,0.09),0_0_0_3px_rgba(192,161,74,0.18)]",
+                ? 'border-alert-600/50 focus:border-alert-600'
+                : 'hover:border-paper-400 dark:hover:border-white/20 focus:border-ocre-400 focus:shadow-[inset_0_2px_4px_rgba(18,38,63,0.09),0_0_0_3px_rgba(192,161,74,0.18)]',
             )}
           />
 
           {isLoading && (
-            <span className="pointer-events-none absolute inset-y-0 right-3.5 z-10 flex items-center text-paper-400">
+            <span className="pointer-events-none absolute inset-y-0 right-3.5 z-10 flex items-center text-paper-400 dark:text-zinc-600">
               <Loader2 className="size-4 animate-spin" />
             </span>
           )}
@@ -137,17 +129,17 @@ export function SubjectExperienceInput({
             <ul
               role="listbox"
               aria-label="Sugestões de matérias"
-              className="absolute z-20 mt-1 w-full overflow-hidden rounded-md border border-paper-200 bg-white shadow-[0_8px_24px_-8px_rgba(18,38,63,0.18)]"
+              className="absolute z-20 mt-1 w-full overflow-hidden rounded-md border border-paper-200 dark:border-white/10 bg-white dark:bg-night-700 shadow-[0_8px_24px_-8px_rgba(18,38,63,0.18)]"
             >
               {suggestions.slice(0, 8).map((subject) => (
                 <li key={subject.id} role="option" aria-selected={false}>
                   <button
                     type="button"
                     onMouseDown={(e) => {
-                      e.preventDefault();
-                      addSubject(subject);
+                      e.preventDefault()
+                      addSubject(subject)
                     }}
-                    className="w-full px-4 py-2.5 text-left text-sm text-ink-800 transition-colors hover:bg-ocre-50 hover:text-ink-900 focus-visible:bg-ocre-50 focus-visible:outline-none"
+                    className="w-full px-4 py-2.5 text-left text-sm text-ink-800 dark:text-zinc-100 transition-colors hover:bg-ocre-50 dark:hover:bg-ocre-400/10 hover:text-ink-900 dark:hover:text-white focus-visible:bg-ocre-50 dark:focus-visible:bg-ocre-400/10 focus-visible:outline-none"
                   >
                     {subject.name}
                   </button>
@@ -159,13 +151,13 @@ export function SubjectExperienceInput({
       )}
 
       {error && (
-        <p role="alert" className="text-xs font-medium text-alert-600">
+        <p role="alert" className="text-xs font-medium text-alert-600 dark:text-alert-200">
           {error}
         </p>
       )}
 
       {loadError && (
-        <p role="alert" className="text-xs font-medium text-alert-600">
+        <p role="alert" className="text-xs font-medium text-alert-600 dark:text-alert-200">
           {loadError}
         </p>
       )}
@@ -175,17 +167,17 @@ export function SubjectExperienceInput({
           {subjects.map((subject) => (
             <div
               key={subject.id}
-              className="rounded-md border border-paper-200 bg-paper-50 p-4"
+              className="rounded-md border border-paper-200 dark:border-white/10 bg-paper-50 dark:bg-night-800 p-4"
             >
               <div className="mb-4 flex items-center justify-between">
-                <span className="text-sm font-semibold text-ink-900">
+                <span className="text-sm font-semibold text-ink-900 dark:text-white">
                   {subject.name}
                 </span>
                 <button
                   type="button"
                   aria-label={`Remover ${subject.name}`}
                   onClick={() => removeSubject(subject.id)}
-                  className="flex items-center rounded p-1 text-paper-400 transition-colors hover:bg-alert-50 hover:text-alert-600 focus-visible:outline-none"
+                  className="flex items-center rounded p-1 text-paper-400 dark:text-zinc-600 transition-colors hover:bg-alert-50 dark:hover:bg-red-950/40 hover:text-alert-600 dark:hover:text-alert-200 focus-visible:outline-none"
                 >
                   <Trash2 className="size-4" />
                 </button>
@@ -193,22 +185,22 @@ export function SubjectExperienceInput({
 
               <div className="flex flex-col gap-3">
                 <div className="flex flex-col gap-1.5">
-                  <label className="label-mono text-xs text-paper-500">
+                  <label className="label-mono text-xs text-paper-500 dark:text-zinc-500">
                     Ramo principal / Observação
                   </label>
                   <input
                     type="text"
                     value={subject.observation}
                     placeholder="Ex: Bhaskara, Redação ENEM"
-                    onChange={(e) =>
-                      updateSubject(subject.id, { observation: e.target.value })
-                    }
-                    className="inset-well w-full rounded-md px-4 py-2.5 text-sm text-ink-900 placeholder:text-paper-400 transition-[border-color,box-shadow] duration-200 focus:outline-none hover:border-paper-400 focus:border-ocre-400 focus:shadow-[inset_0_2px_4px_rgba(18,38,63,0.09),0_0_0_3px_rgba(192,161,74,0.18)]"
+                    onChange={(e) => updateSubject(subject.id, { observation: e.target.value })}
+                    className="inset-well w-full rounded-md px-4 py-2.5 text-sm text-ink-900 dark:text-white placeholder:text-paper-400 transition-[border-color,box-shadow] duration-200 focus:outline-none hover:border-paper-400 dark:hover:border-white/20 focus:border-ocre-400 focus:shadow-[inset_0_2px_4px_rgba(18,38,63,0.09),0_0_0_3px_rgba(192,161,74,0.18)]"
                   />
                 </div>
 
                 <div className="flex flex-col gap-1.5">
-                  <span className="label-mono text-xs text-paper-500">Nível</span>
+                  <span className="label-mono text-xs text-paper-500 dark:text-zinc-500">
+                    Nível
+                  </span>
                   <div className="flex gap-2">
                     {LEVELS.map((level) => (
                       <button
@@ -216,10 +208,10 @@ export function SubjectExperienceInput({
                         type="button"
                         onClick={() => updateSubject(subject.id, { level })}
                         className={cn(
-                          "flex-1 rounded-md border px-3 py-2 text-xs font-medium transition-colors",
+                          'flex-1 rounded-md border px-3 py-2 text-xs font-medium transition-colors',
                           subject.level === level
-                            ? "border-ocre-400 bg-ocre-50 text-ink-900"
-                            : "border-paper-200 bg-white text-paper-500 hover:border-paper-400 hover:text-ink-800",
+                            ? 'border-ocre-400 bg-ocre-50 dark:bg-ocre-400/10 text-ink-900 dark:text-white'
+                            : 'border-paper-200 dark:border-white/10 bg-white dark:bg-night-700 text-paper-500 dark:text-zinc-500 hover:border-paper-400 dark:hover:border-white/20 hover:text-ink-800 dark:hover:text-zinc-100',
                         )}
                       >
                         {level}
@@ -233,9 +225,9 @@ export function SubjectExperienceInput({
         </div>
       )}
 
-      <p className="text-xs text-paper-400">
+      <p className="text-xs text-paper-400 dark:text-zinc-600">
         {subjects.length}/{MAX_SUBJECTS} matérias adicionadas
       </p>
     </div>
-  );
+  )
 }

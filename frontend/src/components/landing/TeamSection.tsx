@@ -55,11 +55,15 @@ export function TeamSection() {
                   alt={`Foto de ${member.name}`}
                   className="mx-auto mb-4 h-24 w-24 rounded-full object-cover ring-2 ring-white/10"
                 />
-                <h3 className="text-lg font-semibold text-ink-900 dark:text-white">{member.name}</h3>
+                <h3 className="text-lg font-semibold text-ink-900 dark:text-white">
+                  {member.name}
+                </h3>
                 <span className="mt-1 text-xs font-medium uppercase tracking-wide text-ocre-500">
                   {member.role}
                 </span>
-                <p className="mt-3 text-sm leading-relaxed text-ink-600 dark:text-zinc-400">{member.description}</p>
+                <p className="mt-3 text-sm leading-relaxed text-ink-600 dark:text-zinc-400">
+                  {member.description}
+                </p>
               </div>
             </Reveal>
           ))}

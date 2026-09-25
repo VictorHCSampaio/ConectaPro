@@ -1,4 +1,5 @@
 export type ModalityOption = 'online' | 'presencial'
+export type ModalityFilter = ModalityOption | 'todas'
 
 export type Teacher = {
   id: string

@@ -12,7 +12,10 @@ export function TeacherSearchBar({ value, onChange }: TeacherSearchBarProps) {
   }
 
   return (
-    <form onSubmit={handleSubmit} className="card flex items-stretch gap-1 rounded-lg p-1.5 transition-all duration-300 dark:border-white/10 dark:bg-black/40 dark:shadow-none">
+    <form
+      onSubmit={handleSubmit}
+      className="card flex items-stretch gap-1 rounded-lg p-1.5 transition-all duration-300 dark:border-white/10"
+    >
       <span className="flex items-center pl-3 text-paper-500 dark:text-zinc-500">
         <Search className="size-4" />
       </span>

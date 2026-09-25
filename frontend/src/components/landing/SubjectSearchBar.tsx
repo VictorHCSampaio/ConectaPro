@@ -17,7 +17,7 @@ export function SubjectSearchBar() {
     <div className="flex flex-col gap-4">
       <form
         onSubmit={handleSubmit}
-        className="card flex flex-col gap-px overflow-hidden rounded-lg p-1.5 transition-all duration-300 dark:border-white/10 dark:bg-white/[0.04] dark:shadow-none sm:flex-row sm:items-stretch"
+        className="card flex flex-col gap-px overflow-hidden rounded-lg p-1.5 transition-all duration-300 dark:border-white/10 sm:flex-row sm:items-stretch"
       >
         <label className="flex flex-1 flex-col gap-0.5 rounded-md px-3.5 py-2.5 transition-colors focus-within:bg-paper-50 dark:focus-within:bg-white/[0.06]">
           <span className="label-mono text-paper-500 dark:text-zinc-500">Matéria</span>
@@ -59,7 +59,7 @@ export function SubjectSearchBar() {
             key={popularSubject}
             type="button"
             onClick={() => setSubject(popularSubject)}
-            className="rounded-full border border-paper-300 bg-white px-3 py-1 text-xs font-medium text-ink-700 shadow-[0_1px_0_var(--color-paper-200)] transition-[background-color,border-color,transform,box-shadow] duration-150 hover:border-ocre-400 hover:bg-ocre-100 active:translate-y-px active:shadow-none dark:border-white/10 dark:bg-white/[0.04] dark:text-zinc-300 dark:shadow-none dark:hover:border-ocre-400/60 dark:hover:bg-ocre-400/10"
+            className="rounded-full border border-paper-300 bg-white px-3 py-1 text-xs font-medium text-ink-700 shadow-[0_1px_0_var(--color-paper-200)] dark:shadow-[0_1px_0_rgba(0,0,0,0.6)] transition-[background-color,border-color,transform,box-shadow] duration-150 hover:border-ocre-400 hover:bg-ocre-100 active:translate-y-px active:shadow-none dark:border-white/10 dark:bg-white/[0.04] dark:text-zinc-300 dark:hover:border-ocre-400/60 dark:hover:bg-ocre-400/10"
           >
             {popularSubject}
           </button>

@@ -12,11 +12,24 @@ type ButtonProps = ButtonHTMLAttributes<HTMLButtonElement> & {
 }
 
 const VARIANT_CLASSES: Record<ButtonVariant, string> = {
-  primary:
-    'bg-ink-800 text-paper-50 shadow-[inset_0_1px_0_rgba(255,255,255,0.2),0_3px_0_var(--color-ink-950),0_10px_20px_-10px_rgba(18,38,63,0.7)] hover:bg-ink-700 active:translate-y-[3px] active:shadow-[inset_0_2px_4px_rgba(0,0,0,0.35)]',
-  secondary:
-    'bg-white text-ink-800 border border-paper-300 shadow-[inset_0_1px_0_#fff,0_3px_0_var(--color-paper-200),0_10px_18px_-12px_rgba(18,38,63,0.4)] hover:border-paper-400 active:translate-y-[3px] active:shadow-[inset_0_2px_4px_rgba(18,38,63,0.16)]',
-  ghost: 'text-ink-600 hover:bg-paper-100 hover:text-ink-900 active:bg-paper-200',
+  primary: cn(
+    'bg-ink-800 text-paper-50 hover:bg-ink-700',
+    'shadow-[inset_0_1px_0_rgba(255,255,255,0.2),0_3px_0_var(--color-ink-950),0_10px_20px_-10px_rgba(18,38,63,0.7)]',
+    'dark:shadow-[inset_0_1px_0_rgba(255,255,255,0.16),0_3px_0_#000,0_10px_20px_-10px_rgba(0,0,0,0.9)]',
+    'active:translate-y-[3px] active:shadow-[inset_0_2px_4px_rgba(0,0,0,0.35)]',
+  ),
+  secondary: cn(
+    'border border-paper-300 bg-white text-ink-800 hover:border-paper-400',
+    'dark:border-white/10 dark:bg-night-700 dark:text-zinc-100 dark:hover:border-white/20',
+    'shadow-[inset_0_1px_0_#fff,0_3px_0_var(--color-paper-200),0_10px_18px_-12px_rgba(18,38,63,0.4)]',
+    'dark:shadow-[inset_0_1px_0_rgba(255,255,255,0.08),0_3px_0_rgba(0,0,0,0.7),0_10px_18px_-12px_rgba(0,0,0,0.85)]',
+    'active:translate-y-[3px] active:shadow-[inset_0_2px_4px_rgba(18,38,63,0.16)]',
+    'dark:active:shadow-[inset_0_2px_4px_rgba(0,0,0,0.8)]',
+  ),
+  ghost: cn(
+    'text-ink-600 hover:bg-paper-100 hover:text-ink-900 active:bg-paper-200',
+    'dark:text-zinc-400 dark:hover:bg-white/5 dark:hover:text-white dark:active:bg-white/10',
+  ),
 }
 
 export function Button({

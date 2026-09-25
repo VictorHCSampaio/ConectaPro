@@ -13,7 +13,12 @@ export function AuthPage() {
   const isRegister = pathname === '/register'
 
   const formSlot = (
-    <motion.div layout="position" transition={SLOT_TRANSITION} key="form" className="h-full bg-white transition-colors duration-300 dark:bg-transparent">
+    <motion.div
+      layout="position"
+      transition={SLOT_TRANSITION}
+      key="form"
+      className="h-full bg-white transition-colors duration-300 dark:bg-transparent"
+    >
       <div className="grid h-full">
         <div className={cn('[grid-area:1/1]', isRegister && 'invisible')}>
           <LoginForm />
@@ -32,17 +37,19 @@ export function AuthPage() {
   )
 
   return (
-    <div className="flex min-h-screen flex-col items-center justify-center grain bg-paper-100 px-4 py-10 transition-colors duration-300 dark:bg-[#0a0a0a] sm:px-6">
+    <div className="flex min-h-screen flex-col items-center justify-center grain bg-paper-100 px-4 py-10 transition-colors duration-300 dark:bg-night-900 sm:px-6">
       <Link to="/" className="relative z-1 mb-8">
         <Brand />
       </Link>
 
-      <div className="relative z-1 mb-5 inline-flex rounded-md border border-paper-300 bg-white p-1 shadow-[inset_0_1px_0_#fff,0_2px_0_var(--color-paper-200)] transition-all duration-300 dark:border-white/10 dark:bg-white/[0.03] dark:shadow-none md:hidden">
+      <div className="relative z-1 mb-5 inline-flex rounded-md border border-paper-300 bg-white p-1 raised transition-all duration-300 dark:border-white/10 dark:bg-white/[0.03] md:hidden">
         <Link
           to="/login"
           className={cn(
             'rounded-sm px-6 py-2 text-sm font-semibold transition-colors',
-            !isRegister ? 'bg-ink-800 text-paper-50 shadow-[inset_0_1px_0_rgba(255,255,255,0.2)]' : 'text-ink-600 hover:text-ink-900 dark:text-zinc-400 dark:hover:text-white',
+            !isRegister
+              ? 'bg-ink-800 text-paper-50 shadow-[inset_0_1px_0_rgba(255,255,255,0.2)]'
+              : 'text-ink-600 hover:text-ink-900 dark:text-zinc-400 dark:hover:text-white',
           )}
         >
           Entrar
@@ -51,7 +58,9 @@ export function AuthPage() {
           to="/register"
           className={cn(
             'rounded-sm px-6 py-2 text-sm font-semibold transition-colors',
-            isRegister ? 'bg-ink-800 text-paper-50 shadow-[inset_0_1px_0_rgba(255,255,255,0.2)]' : 'text-ink-600 hover:text-ink-900 dark:text-zinc-400 dark:hover:text-white',
+            isRegister
+              ? 'bg-ink-800 text-paper-50 shadow-[inset_0_1px_0_rgba(255,255,255,0.2)]'
+              : 'text-ink-600 hover:text-ink-900 dark:text-zinc-400 dark:hover:text-white',
           )}
         >
           Cadastrar

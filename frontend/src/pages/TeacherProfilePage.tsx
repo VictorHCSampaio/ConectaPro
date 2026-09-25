@@ -1,51 +1,39 @@
-import {
-  ArrowLeft,
-  BadgeCheck,
-  BookOpen,
-  CalendarDays,
-  Clock,
-  Monitor,
-} from "lucide-react";
-import { useEffect, useState } from "react";
-import type { ReactNode } from "react";
-import { Link, useParams } from "react-router-dom";
-import { SiteFooter } from "@/components/landing/SiteFooter";
-import { SiteHeader } from "@/components/landing/SiteHeader";
-import { Reveal } from "@/components/motion/Reveal";
-import { Button } from "@/components/ui/Button";
-import { StarRating } from "@/components/ui/StarRating";
-import { cn } from "@/lib/cn";
-import { buscarProfessor } from "@/lib/professorService.ts";
-import { formatModalities, formatRating } from "@/lib/formatTeacher";
-import type { Teacher } from "@/types/teacher";
+import { ArrowLeft, BadgeCheck, BookOpen, CalendarDays, Clock, Monitor } from 'lucide-react'
+import { useEffect, useState } from 'react'
+import type { ReactNode } from 'react'
+import { Link, useParams } from 'react-router-dom'
+import { SiteFooter } from '@/components/landing/SiteFooter'
+import { SiteHeader } from '@/components/landing/SiteHeader'
+import { Reveal } from '@/components/motion/Reveal'
+import { Button } from '@/components/ui/Button'
+import { StarRating } from '@/components/ui/StarRating'
+import { cn } from '@/lib/cn'
+import { buscarProfessor } from '@/lib/professorService'
+import { formatModalities, formatRating } from '@/lib/formatTeacher'
+import type { Teacher } from '@/types/teacher'
 
 const PAGE_SHELL =
-  "flex min-h-screen flex-col bg-paper-50 transition-colors duration-300 dark:bg-[#0a0a0a]";
+  'flex min-h-screen flex-col bg-paper-50 transition-colors duration-300 dark:bg-night-900'
 
 const CARD =
-  "card rounded-xl transition-colors duration-300 dark:border-white/10 dark:bg-white/[0.03] dark:backdrop-blur-md dark:shadow-[0_0_0_1px_rgba(255,255,255,0.04)]";
+  'card rounded-xl transition-colors duration-300 dark:border-white/10 dark:bg-white/[0.03] dark:backdrop-blur-md dark:shadow-[0_0_0_1px_rgba(255,255,255,0.04)]'
 
-const BLOCK_TITLE = "label-mono text-paper-500 dark:text-zinc-500";
+const BLOCK_TITLE = 'label-mono text-paper-500 dark:text-zinc-500'
 
 const CHIP =
-  "flex items-center gap-1.5 rounded-full border border-paper-200 bg-paper-100 px-3 py-1 text-xs font-medium text-ink-700 dark:border-white/10 dark:bg-white/[0.06] dark:text-zinc-300";
+  'flex items-center gap-1.5 rounded-full border border-paper-200 bg-paper-100 px-3 py-1 text-xs font-medium text-ink-700 dark:border-white/10 dark:bg-white/[0.06] dark:text-zinc-300'
 
 const TOKEN =
-  "rounded-md border border-paper-200 bg-white px-2.5 py-1.5 text-sm font-medium text-ink-800 shadow-[inset_0_1px_0_#fff,0_1px_0_var(--color-paper-200)] dark:border-white/10 dark:bg-white/[0.06] dark:text-zinc-200 dark:shadow-none";
+  'rounded-md border border-paper-200 bg-white px-2.5 py-1.5 text-sm font-medium text-ink-800 raised dark:border-white/10 dark:bg-white/[0.06] dark:text-zinc-200'
 
 type BlockProps = {
-  title: string;
-  meta?: ReactNode;
-  children: ReactNode;
-};
+  title: string
+  meta?: ReactNode
+  children: ReactNode
+}
 
 function BlockTitle({ children }: { children: ReactNode }) {
-  return (
-    <h2 className={cn(BLOCK_TITLE, "flex items-center gap-2.5")}>
-      <span className="h-px w-6 bg-ocre-400" />
-      {children}
-    </h2>
-  );
+  return <h2 className={BLOCK_TITLE}>{children}</h2>
 }
 
 function Block({ title, meta, children }: BlockProps) {
@@ -57,14 +45,14 @@ function Block({ title, meta, children }: BlockProps) {
       </div>
       {children}
     </section>
-  );
+  )
 }
 
 type FactRowProps = {
-  icon: ReactNode;
-  label: string;
-  value: ReactNode;
-};
+  icon: ReactNode
+  label: string
+  value: ReactNode
+}
 
 function FactRow({ icon, label, value }: FactRowProps) {
   return (
@@ -73,11 +61,9 @@ function FactRow({ icon, label, value }: FactRowProps) {
         {icon}
         {label}
       </dt>
-      <dd className="text-right font-medium text-ink-800 dark:text-zinc-200">
-        {value}
-      </dd>
+      <dd className="text-right font-medium text-ink-800 dark:text-zinc-200">{value}</dd>
     </div>
-  );
+  )
 }
 
 function SubLabel({ icon, children }: { icon: ReactNode; children: ReactNode }) {
@@ -86,24 +72,19 @@ function SubLabel({ icon, children }: { icon: ReactNode; children: ReactNode }) 
       {icon}
       {children}
     </p>
-  );
+  )
 }
 
 function Skeleton({ className }: { className?: string }) {
   return (
-    <div
-      className={cn(
-        "animate-pulse rounded-md bg-paper-200/70 dark:bg-white/10",
-        className,
-      )}
-    />
-  );
+    <div className={cn('animate-pulse rounded-md bg-paper-200/70 dark:bg-white/10', className)} />
+  )
 }
 
 function ProfileSkeleton() {
   return (
     <>
-      <div className={cn(CARD, "overflow-hidden")}>
+      <div className={cn(CARD, 'overflow-hidden')}>
         <div className="h-12 bg-paper-200/70 dark:bg-white/10" />
         <div className="px-5 py-5">
           <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
@@ -124,13 +105,13 @@ function ProfileSkeleton() {
       </div>
 
       <div className="mt-6 grid gap-6 md:grid-cols-3">
-        <div className={cn(CARD, "flex flex-col gap-3 p-5 md:col-span-2")}>
+        <div className={cn(CARD, 'flex flex-col gap-3 p-5 md:col-span-2')}>
           <Skeleton className="h-3 w-24" />
           <Skeleton className="h-4 w-full" />
           <Skeleton className="h-4 w-11/12" />
           <Skeleton className="h-4 w-7/12" />
         </div>
-        <div className={cn(CARD, "flex flex-col gap-3 p-5 md:col-span-1")}>
+        <div className={cn(CARD, 'flex flex-col gap-3 p-5 md:col-span-1')}>
           <Skeleton className="h-3 w-20" />
           <Skeleton className="h-4 w-full" />
           <Skeleton className="h-4 w-4/5" />
@@ -138,38 +119,38 @@ function ProfileSkeleton() {
         </div>
       </div>
     </>
-  );
+  )
 }
 
 export function TeacherProfilePage() {
-  const { id } = useParams<{ id: string }>();
-  const [teacher, setTeacher] = useState<Teacher | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
-  const [isError, setIsError] = useState(false);
+  const { id } = useParams<{ id: string }>()
+  const [teacher, setTeacher] = useState<Teacher | null>(null)
+  const [isLoading, setIsLoading] = useState(true)
+  const [isError, setIsError] = useState(false)
 
   useEffect(() => {
-    if (!id) return;
+    if (!id) return
 
-    let isActive = true;
-    setIsLoading(true);
-    setIsError(false);
-    setTeacher(null);
+    let isActive = true
+    setIsLoading(true)
+    setIsError(false)
+    setTeacher(null)
 
     buscarProfessor(id)
       .then((found) => {
-        if (isActive) setTeacher(found);
+        if (isActive) setTeacher(found)
       })
       .catch(() => {
-        if (isActive) setIsError(true);
+        if (isActive) setIsError(true)
       })
       .finally(() => {
-        if (isActive) setIsLoading(false);
-      });
+        if (isActive) setIsLoading(false)
+      })
 
     return () => {
-      isActive = false;
-    };
-  }, [id]);
+      isActive = false
+    }
+  }, [id])
 
   if (isLoading) {
     return (
@@ -180,7 +161,7 @@ export function TeacherProfilePage() {
         </main>
         <SiteFooter />
       </div>
-    );
+    )
   }
 
   if (isError || !teacher) {
@@ -196,21 +177,21 @@ export function TeacherProfilePage() {
           </p>
           <Link
             to="/professores"
-            className="mt-2 rounded-md border border-paper-300 bg-white px-5 py-2.5 text-sm font-semibold text-ink-800 shadow-[inset_0_1px_0_#fff,0_2px_0_var(--color-paper-200)] transition-[border-color,transform,box-shadow] duration-150 hover:border-paper-400 active:translate-y-0.5 dark:border-white/10 dark:bg-white/[0.04] dark:text-white dark:shadow-none dark:hover:bg-white/[0.08]"
+            className="mt-2 rounded-md border border-paper-300 bg-white px-5 py-2.5 text-sm font-semibold text-ink-800 raised transition-[border-color,transform,box-shadow] duration-150 hover:border-paper-400 active:translate-y-0.5 dark:border-white/10 dark:bg-white/[0.04] dark:text-white dark:hover:bg-white/[0.08]"
           >
             Ver todos os professores
           </Link>
         </main>
         <SiteFooter />
       </div>
-    );
+    )
   }
 
-  const modalityLabel = formatModalities(teacher.modalities);
-  const weekDays = teacher.weekDays ?? [];
-  const slots = teacher.availability ?? [];
-  const hasWeekDays = weekDays.length > 0;
-  const hasSlots = slots.length > 0;
+  const modalityLabel = formatModalities(teacher.modalities)
+  const weekDays = teacher.weekDays ?? []
+  const slots = teacher.availability ?? []
+  const hasWeekDays = weekDays.length > 0
+  const hasSlots = slots.length > 0
 
   return (
     <div className={PAGE_SHELL}>
@@ -226,12 +207,9 @@ export function TeacherProfilePage() {
         </Link>
 
         <Reveal className="mt-5">
-          <div className={cn(CARD, "overflow-hidden")}>
+          <div className={cn(CARD, 'overflow-hidden')}>
             <div className="grain relative flex items-center bg-ink-800 px-5 py-3 shadow-[inset_0_1px_0_rgba(255,255,255,0.12)]">
-              <p className="label-mono relative z-1 flex items-center gap-2.5 text-paper-300/70">
-                <span className="h-px w-8 bg-ocre-400" />
-                Perfil do professor
-              </p>
+              <p className="label-mono relative z-1 text-paper-300/70">Perfil do professor</p>
               <span className="absolute inset-x-0 bottom-0 h-px bg-ocre-400/50" />
             </div>
 
@@ -264,18 +242,12 @@ export function TeacherProfilePage() {
                         <span className="tnum text-sm font-semibold text-ink-900 dark:text-white">
                           {formatRating(teacher.rating)}
                         </span>
-                        <span className="text-sm text-paper-400 dark:text-zinc-600">
-                          ·
-                        </span>
+                        <span className="text-sm text-paper-400 dark:text-zinc-600">·</span>
                         <span className="text-sm text-paper-600 dark:text-zinc-400">
-                          {teacher.reviewCount}{" "}
-                          {teacher.reviewCount === 1
-                            ? "avaliação"
-                            : "avaliações"}
+                          {teacher.reviewCount}{' '}
+                          {teacher.reviewCount === 1 ? 'avaliação' : 'avaliações'}
                         </span>
-                        <span className="sr-only">
-                          Nota {formatRating(teacher.rating)} de 5
-                        </span>
+                        <span className="sr-only">Nota {formatRating(teacher.rating)} de 5</span>
                       </div>
                     ) : (
                       <p className="text-sm text-paper-600 dark:text-zinc-400">
@@ -294,11 +266,7 @@ export function TeacherProfilePage() {
                       por hora
                     </span>
                   </p>
-                  <Button
-                    variant="primary"
-                    fullWidth={false}
-                    className="shrink-0 px-6"
-                  >
+                  <Button variant="primary" fullWidth={false} className="shrink-0 px-6">
                     Agendar aula
                   </Button>
                 </div>
@@ -312,24 +280,20 @@ export function TeacherProfilePage() {
                 <li className={CHIP}>
                   <BookOpen className="size-3.5 text-paper-500 dark:text-zinc-500" />
                   <span className="tnum">{teacher.subjects.length}</span>
-                  {teacher.subjects.length === 1 ? "matéria" : "matérias"}
+                  {teacher.subjects.length === 1 ? 'matéria' : 'matérias'}
                 </li>
                 {hasWeekDays && (
                   <li className={CHIP}>
                     <CalendarDays className="size-3.5 text-paper-500 dark:text-zinc-500" />
                     <span className="tnum">{weekDays.length}</span>
-                    {weekDays.length === 1
-                      ? "dia na semana"
-                      : "dias na semana"}
+                    {weekDays.length === 1 ? 'dia na semana' : 'dias na semana'}
                   </li>
                 )}
                 {hasSlots && (
                   <li className={CHIP}>
                     <Clock className="size-3.5 text-paper-500 dark:text-zinc-500" />
                     <span className="tnum">{slots.length}</span>
-                    {slots.length === 1
-                      ? "horário"
-                      : "horários"}
+                    {slots.length === 1 ? 'horário' : 'horários'}
                   </li>
                 )}
               </ul>
@@ -343,7 +307,7 @@ export function TeacherProfilePage() {
               {teacher.bio && (
                 <Block title="Sobre mim">
                   <div className="flex flex-col gap-2.5">
-                    {teacher.bio.split("\n\n").map((paragraph, index) => (
+                    {teacher.bio.split('\n\n').map((paragraph, index) => (
                       <p
                         key={index}
                         className="text-sm leading-relaxed text-ink-700 dark:text-zinc-300"
@@ -382,7 +346,10 @@ export function TeacherProfilePage() {
                         </SubLabel>
                         <div className="flex flex-wrap gap-2">
                           {weekDays.map((day) => (
-                            <span key={day} className={cn(TOKEN, "min-w-11 text-center font-semibold")}>
+                            <span
+                              key={day}
+                              className={cn(TOKEN, 'min-w-11 text-center font-semibold')}
+                            >
                               {day}
                             </span>
                           ))}
@@ -393,15 +360,13 @@ export function TeacherProfilePage() {
                     {hasSlots && (
                       <div>
                         <SubLabel
-                          icon={
-                            <Clock className="size-3.5 text-paper-400 dark:text-zinc-500" />
-                          }
+                          icon={<Clock className="size-3.5 text-paper-400 dark:text-zinc-500" />}
                         >
                           Horários
                         </SubLabel>
                         <ul className="flex flex-wrap gap-2">
                           {slots.map((slot) => (
-                            <li key={slot} className={cn(TOKEN, "tnum")}>
+                            <li key={slot} className={cn(TOKEN, 'tnum')}>
                               {slot}
                             </li>
                           ))}
@@ -415,7 +380,7 @@ export function TeacherProfilePage() {
           </Reveal>
 
           <Reveal delay={0.12} className="md:col-span-1">
-            <div className={cn(CARD, "sticky top-24")}>
+            <div className={cn(CARD, 'sticky top-24')}>
               <div className="px-5 py-5">
                 <div className="mb-3">
                   <BlockTitle>Resumo</BlockTitle>
@@ -434,7 +399,7 @@ export function TeacherProfilePage() {
                         <CalendarDays className="size-3.5 shrink-0 text-paper-400 dark:text-zinc-500" />
                       }
                       label="Dias"
-                      value={weekDays.join(", ")}
+                      value={weekDays.join(', ')}
                     />
                   )}
                   {hasSlots && (
@@ -443,11 +408,7 @@ export function TeacherProfilePage() {
                         <Clock className="size-3.5 shrink-0 text-paper-400 dark:text-zinc-500" />
                       }
                       label="Horários"
-                      value={
-                        <span className="tnum">
-                          {slots.length}
-                        </span>
-                      }
+                      value={<span className="tnum">{slots.length}</span>}
                     />
                   )}
                   <FactRow
@@ -455,9 +416,7 @@ export function TeacherProfilePage() {
                       <BadgeCheck className="size-3.5 shrink-0 text-paper-400 dark:text-zinc-500" />
                     }
                     label="Hora-aula"
-                    value={
-                      <span className="tnum">R$ {teacher.pricePerHour}</span>
-                    }
+                    value={<span className="tnum">R$ {teacher.pricePerHour}</span>}
                   />
                 </dl>
 
@@ -477,5 +436,5 @@ export function TeacherProfilePage() {
 
       <SiteFooter />
     </div>
-  );
+  )
 }

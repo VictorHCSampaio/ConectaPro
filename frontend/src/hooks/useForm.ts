@@ -4,7 +4,10 @@ import type { FormEvent } from 'react'
 type FieldErrors<T> = Partial<Record<keyof T, string>>
 type Validate<T> = (values: T) => FieldErrors<T>
 
-export function useForm<T extends Record<string, unknown>>(initialValues: T, validate: Validate<T>) {
+export function useForm<T extends Record<string, unknown>>(
+  initialValues: T,
+  validate: Validate<T>,
+) {
   const [values, setValues] = useState<T>(initialValues)
   const [touched, setTouched] = useState<Partial<Record<keyof T, boolean>>>({})
   const [submitted, setSubmitted] = useState(false)

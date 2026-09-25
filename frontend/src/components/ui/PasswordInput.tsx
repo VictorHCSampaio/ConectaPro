@@ -22,7 +22,7 @@ export function PasswordInput({ label, error, id, ...props }: PasswordInputProps
         <button
           type="button"
           onClick={() => setIsVisible((previous) => !previous)}
-          className="rounded-sm p-2 text-paper-500 transition-colors hover:text-ocre-500 focus-visible:outline-2 focus-visible:outline-ocre-500"
+          className="rounded-sm p-2 text-paper-500 dark:text-zinc-500 transition-colors hover:text-ocre-500 focus-visible:outline-2 focus-visible:outline-ocre-500"
           aria-label={isVisible ? 'Ocultar senha' : 'Mostrar senha'}
         >
           {isVisible ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
