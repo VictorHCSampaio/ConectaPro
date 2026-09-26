@@ -1,0 +1,37 @@
+name: Manter a API ativa
+
+on:
+  schedule:
+    - cron: "*/5 * * * *"
+  workflow_dispatch:
+
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Consultar o health da API
+        env:
+          API_URL: ${{ vars.API_URL }}
+        run: |
+          if [ -z "$API_URL" ]; then
+            echo "Defina a variavel API_URL em Settings > Secrets and variables > Actions > Variables."
+            echo "Exemplo: https://conectapro.onrender.com/api"
+            exit 1
+          fi
+
+          for tentativa in 1 2 3; do
+            codigo=$(curl -s -o resposta.json -w "%{http_code}" --max-time 90 "$API_URL/health" 2>/dev/null || true)
+            codigo=${codigo:-000}
+            echo "Tentativa $tentativa: HTTP $codigo"
+
+            if [ "$codigo" = "200" ]; then
+              cat resposta.json
+              exit 0
+            fi
+
+            [ -s resposta.json ] && cat resposta.json
+            sleep 20
+          done
+
+          echo "A API nao respondeu 200 apos 3 tentativas."
+          exit 1
