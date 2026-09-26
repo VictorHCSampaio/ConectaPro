@@ -46,6 +46,12 @@ public class Endereco {
     @Column
     private String cep;
 
+    @Column
+    private Double latitude;
+
+    @Column
+    private Double longitude;
+
     @ManyToOne
     @JoinColumn(name = "usuario_id")
     private Usuario usuario;

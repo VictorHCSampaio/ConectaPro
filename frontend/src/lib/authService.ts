@@ -15,3 +15,12 @@ export async function loginUsuario(payload: LoginRequestPayload) {
   const { data } = await api.post<MensagemAutenticacaoResponse>('/auth/login', payload)
   return data
 }
+
+export async function getSessaoUsuario() {
+  const { data } = await api.get<MensagemAutenticacaoResponse>('/auth/sessao')
+  return data
+}
+
+export async function logoutUsuario() {
+  await api.post('/auth/logout')
+}

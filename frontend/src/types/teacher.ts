@@ -14,4 +14,13 @@ export type Teacher = {
   bio?: string
   availability?: string[]
   weekDays?: string[]
+  neighborhood?: string | null
+  city?: string | null
+  distanceKm?: number | null
+}
+
+export type TeacherStats = {
+  teacherCount: number
+  subjectCount: number
+  minPricePerHour: number | null
 }

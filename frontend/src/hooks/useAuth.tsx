@@ -1,8 +1,11 @@
-import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react'
+import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react'
 import type { ReactNode } from 'react'
+import { isSessionExpired, setUnauthorizedHandler } from '@/lib/api'
+import { getSessaoUsuario, logoutUsuario } from '@/lib/authService'
 import type { AuthUser } from '@/types/auth'
 
 const STORAGE_KEY = 'conectapro:user'
+const SESSION_CHECK_INTERVAL_MS = 5000
 
 type AuthContextValue = {
   user: AuthUser | null
@@ -23,7 +26,31 @@ function readStoredUser(): AuthUser | null {
 }
 
 export function AuthProvider({ children }: { children: ReactNode }) {
-  const [user, setUser] = useState<AuthUser | null>(readStoredUser)
+  const [user, setUser] = useState<AuthUser | null>(() =>
+    isSessionExpired() ? null : readStoredUser(),
+  )
+  const initialUser = useRef(user)
+
+  useEffect(() => {
+    if (initialUser.current) {
+      getSessaoUsuario().catch(() => undefined)
+    }
+  }, [])
+
+  useEffect(() => {
+    setUnauthorizedHandler(() => setUser(null))
+    return () => setUnauthorizedHandler(null)
+  }, [])
+
+  useEffect(() => {
+    if (!user) return
+    const interval = window.setInterval(() => {
+      if (isSessionExpired()) {
+        setUser(null)
+      }
+    }, SESSION_CHECK_INTERVAL_MS)
+    return () => window.clearInterval(interval)
+  }, [user])
 
   useEffect(() => {
     try {
@@ -43,6 +70,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const signOut = useCallback(() => {
     setUser(null)
+    logoutUsuario().catch(() => undefined)
   }, [])
 
   const value = useMemo(
