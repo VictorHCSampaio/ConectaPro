@@ -1,5 +1,6 @@
 package com.grupo.tfc.conectapro.service;
 
+import com.grupo.tfc.conectapro.config.SessaoUsuario;
 import com.grupo.tfc.conectapro.dto.auth.RegisterRequest;
 import com.grupo.tfc.conectapro.dto.auth.TotpSetupResponse;
 import com.grupo.tfc.conectapro.model.TipoUsuario;
@@ -12,6 +13,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.server.ResponseStatusException;
 
 import java.util.Objects;
+import java.util.UUID;
 
 import static org.springframework.http.HttpStatus.BAD_REQUEST;
 import static org.springframework.http.HttpStatus.UNAUTHORIZED;
@@ -77,8 +79,14 @@ public class AuthenticationService {
             throw new ResponseStatusException(UNAUTHORIZED, "Credênciais inválidas");
         }
 
-        session.setAttribute("usuario", usuario.getId());
+        session.setAttribute(SessaoUsuario.ATRIBUTO, usuario.getId());
         logger.info("Login realizado com sucesso");
         return usuario;
+    }
+
+    public Usuario buscarUsuarioDaSessao(HttpSession session){
+        UUID usuarioId = SessaoUsuario.exigirUsuarioId(session);
+        return usuarioRepository.findById(usuarioId)
+                .orElseThrow(() -> new ResponseStatusException(UNAUTHORIZED, "Sessão expirada. Entre novamente."));
     }
 }

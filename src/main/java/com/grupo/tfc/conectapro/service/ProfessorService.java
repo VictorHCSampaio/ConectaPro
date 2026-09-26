@@ -11,6 +11,7 @@ import com.grupo.tfc.conectapro.model.Materia;
 import com.grupo.tfc.conectapro.model.Professor;
 import com.grupo.tfc.conectapro.model.ProfessorDisponibilidade;
 import com.grupo.tfc.conectapro.model.ProfessorMateria;
+import com.grupo.tfc.conectapro.model.TipoUsuario;
 import com.grupo.tfc.conectapro.model.Usuario;
 import com.grupo.tfc.conectapro.repository.EnderecoRepository;
 import com.grupo.tfc.conectapro.repository.MateriaRepository;
@@ -35,6 +36,7 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 
+import static org.springframework.http.HttpStatus.FORBIDDEN;
 import static org.springframework.http.HttpStatus.NOT_FOUND;
 
 @Service
@@ -83,6 +85,9 @@ public class ProfessorService {
     @Transactional
     public PerfilProfessorResponse salvarPerfil(UUID usuarioId, PerfilProfessorRequest request) {
         Usuario usuario = buscarUsuario(usuarioId);
+        if (usuario.getTipo() != TipoUsuario.PROFESSOR) {
+            throw new ResponseStatusException(FORBIDDEN, "Apenas professores podem configurar este perfil");
+        }
         usuario.setNomeCompleto(request.fullName().trim());
         usuarioRepository.save(usuario);
 
