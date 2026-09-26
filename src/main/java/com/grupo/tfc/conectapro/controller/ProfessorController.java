@@ -36,8 +36,9 @@ public class ProfessorController {
   }
 
   @GetMapping
-  public ResponseEntity<List<ProfessorResumoResponse>> listar() {
-    return ResponseEntity.ok(professorService.listarProfessores());
+  public ResponseEntity<List<ProfessorResumoResponse>> listar(HttpSession session) {
+    UUID usuarioId = SessaoUsuario.buscarUsuarioId(session).orElse(null);
+    return ResponseEntity.ok(professorService.listarProfessores(usuarioId));
   }
 
   @GetMapping("/me")
@@ -47,8 +48,9 @@ public class ProfessorController {
   }
 
   @GetMapping("/{id}")
-  public ResponseEntity<ProfessorResumoResponse> detalhe(@PathVariable UUID id) {
-    return ResponseEntity.ok(professorService.buscarProfessor(id));
+  public ResponseEntity<ProfessorResumoResponse> detalhe(@PathVariable UUID id, HttpSession session) {
+    UUID usuarioId = SessaoUsuario.buscarUsuarioId(session).orElse(null);
+    return ResponseEntity.ok(professorService.buscarProfessor(id, usuarioId));
   }
 
   @PutMapping("/me")
