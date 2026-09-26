@@ -20,8 +20,6 @@ export function SiteHeader() {
   const navigate = useNavigate()
   const { theme, toggleTheme } = useTheme()
 
-  const isTeacher = user?.role === 'PROFESSOR'
-
   function closeMenu() {
     setIsMenuOpen(false)
   }
@@ -79,7 +77,7 @@ export function SiteHeader() {
                   Matérias
                 </Link>
               )}
-              {isTeacher && (
+              {isAuthenticated && (
                 <Link
                   to="/profile/edit"
                   className={cn(PRIMARY_BUTTON_CLASS, 'inline-flex items-center gap-2')}
@@ -166,7 +164,7 @@ export function SiteHeader() {
                     Matérias
                   </Link>
                 )}
-                {isTeacher && (
+                {isAuthenticated && (
                   <Link
                     to="/profile/edit"
                     onClick={closeMenu}
