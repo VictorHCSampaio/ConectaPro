@@ -1,6 +1,7 @@
 package com.grupo.tfc.conectapro.service;
 
 import com.grupo.tfc.conectapro.dto.EnderecoRequest;
+import com.grupo.tfc.conectapro.model.AcaoAuditoria;
 import com.grupo.tfc.conectapro.model.Endereco;
 import com.grupo.tfc.conectapro.model.Usuario;
 import com.grupo.tfc.conectapro.repository.EnderecoRepository;
@@ -25,13 +26,16 @@ public class EnderecoService {
     private final EnderecoRepository enderecoRepository;
     private final UsuarioRepository usuarioRepository;
     private final LocalizacaoService localizacaoService;
+    private final AuditoriaService auditoriaService;
 
     public EnderecoService(EnderecoRepository enderecoRepository,
                            UsuarioRepository usuarioRepository,
-                           LocalizacaoService localizacaoService) {
+                           LocalizacaoService localizacaoService,
+                           AuditoriaService auditoriaService) {
         this.enderecoRepository = enderecoRepository;
         this.usuarioRepository = usuarioRepository;
         this.localizacaoService = localizacaoService;
+        this.auditoriaService = auditoriaService;
     }
 
     @Transactional
@@ -39,7 +43,9 @@ public class EnderecoService {
         Usuario usuario = usuarioRepository.findById(usuarioId)
                 .orElseThrow(() -> new ResponseStatusException(NOT_FOUND, "Usuário não encontrado"));
 
-        return salvar(usuario, request);
+        Endereco salvo = salvar(usuario, request);
+        auditoriaService.registrar(AcaoAuditoria.ENDERECO_ATUALIZADO, usuarioId, "ENDERECO", String.valueOf(salvo.getId()), null);
+        return salvo;
     }
 
     @Transactional

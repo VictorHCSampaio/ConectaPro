@@ -58,10 +58,7 @@ public class UsuarioController {
 
     @PostMapping("/logout")
     public ResponseEntity<Void> logout(HttpServletRequest httpRequest){
-        HttpSession session = httpRequest.getSession(false);
-        if (session != null) {
-            session.invalidate();
-        }
+        authService.logout(httpRequest.getSession(false));
         return ResponseEntity.noContent().build();
     }
 }

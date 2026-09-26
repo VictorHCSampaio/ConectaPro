@@ -7,6 +7,7 @@ import com.grupo.tfc.conectapro.dto.professor.MateriaProfessorRequest;
 import com.grupo.tfc.conectapro.dto.professor.PerfilProfessorRequest;
 import com.grupo.tfc.conectapro.dto.professor.PerfilProfessorResponse;
 import com.grupo.tfc.conectapro.dto.professor.ProfessorResumoResponse;
+import com.grupo.tfc.conectapro.model.AcaoAuditoria;
 import com.grupo.tfc.conectapro.model.Endereco;
 import com.grupo.tfc.conectapro.model.Materia;
 import com.grupo.tfc.conectapro.model.Professor;
@@ -72,6 +73,7 @@ public class ProfessorService {
     private final EnderecoRepository enderecoRepository;
     private final LocalizacaoService localizacaoService;
     private final EnderecoService enderecoService;
+    private final AuditoriaService auditoriaService;
 
     public ProfessorService(UsuarioRepository usuarioRepository,
                             ProfessorRepository professorRepository,
@@ -80,7 +82,8 @@ public class ProfessorService {
                             ProfessorDisponibilidadeRepository disponibilidadeRepository,
                             EnderecoRepository enderecoRepository,
                             LocalizacaoService localizacaoService,
-                            EnderecoService enderecoService) {
+                            EnderecoService enderecoService,
+                            AuditoriaService auditoriaService) {
         this.usuarioRepository = usuarioRepository;
         this.professorRepository = professorRepository;
         this.materiaRepository = materiaRepository;
@@ -89,12 +92,14 @@ public class ProfessorService {
         this.enderecoRepository = enderecoRepository;
         this.localizacaoService = localizacaoService;
         this.enderecoService = enderecoService;
+        this.auditoriaService = auditoriaService;
     }
 
     @Transactional
     public PerfilProfessorResponse salvarPerfil(UUID usuarioId, PerfilProfessorRequest request) {
         Usuario usuario = buscarUsuario(usuarioId);
         if (usuario.getTipo() != TipoUsuario.PROFESSOR) {
+            auditoriaService.registrar(AcaoAuditoria.ACESSO_NEGADO, usuarioId, "PROFESSOR", null, "configuração de perfil por usuário que não é professor");
             throw new ResponseStatusException(FORBIDDEN, "Apenas professores podem configurar este perfil");
         }
         usuario.setNomeCompleto(request.fullName().trim());
@@ -130,6 +135,7 @@ public class ProfessorService {
         salvarDisponibilidade(salvo, request.availability());
 
         logger.info("Perfil de professor salvo. usuarioId={} professorId={}", usuarioId, salvo.getId());
+        auditoriaService.registrar(AcaoAuditoria.PERFIL_ATUALIZADO, usuarioId, "PROFESSOR", salvo.getId().toString(), null);
 
         return buscarPerfil(usuarioId);
     }

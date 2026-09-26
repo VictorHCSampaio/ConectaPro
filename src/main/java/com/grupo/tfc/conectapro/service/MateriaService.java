@@ -1,6 +1,7 @@
 package com.grupo.tfc.conectapro.service;
 
 import com.grupo.tfc.conectapro.dto.MateriaDTO;
+import com.grupo.tfc.conectapro.model.AcaoAuditoria;
 import com.grupo.tfc.conectapro.model.Materia;
 import com.grupo.tfc.conectapro.model.Usuario;
 import com.grupo.tfc.conectapro.repository.MateriaRepository;
@@ -18,10 +19,12 @@ public class MateriaService {
 
     private final MateriaRepository materiaRepository;
     private final UsuarioRepository usuarioRepository;
+    private final AuditoriaService auditoriaService;
 
-    public MateriaService(MateriaRepository materiaRepository, UsuarioRepository usuarioRepository) {
+    public MateriaService(MateriaRepository materiaRepository, UsuarioRepository usuarioRepository, AuditoriaService auditoriaService) {
         this.materiaRepository = materiaRepository;
         this.usuarioRepository = usuarioRepository;
+        this.auditoriaService = auditoriaService;
     }
 
     public List<MateriaDTO> getAllMateriaService(){
@@ -38,6 +41,7 @@ public class MateriaService {
         Usuario usuario = usuarioRepository.findById(usuarioId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Sessão expirada. Entre novamente."));
         if (!usuario.isAdmin()) {
+            auditoriaService.registrar(AcaoAuditoria.ACESSO_NEGADO, usuarioId, "MATERIA", null, "cadastro de matéria sem permissão de administrador");
             throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Apenas administradores podem cadastrar matérias");
         }
 
@@ -47,7 +51,9 @@ public class MateriaService {
         materia.setAtiva(true);
         materia.setCriadoEm(OffsetDateTime.now());
 
-        return paraDTO(materiaRepository.save(materia));
+        Materia salva = materiaRepository.save(materia);
+        auditoriaService.registrar(AcaoAuditoria.MATERIA_CRIADA, usuarioId, "MATERIA", String.valueOf(salva.getId()), "nome=" + salva.getNome());
+        return paraDTO(salva);
     }
 
     private Materia buscarMateria(Integer id) {

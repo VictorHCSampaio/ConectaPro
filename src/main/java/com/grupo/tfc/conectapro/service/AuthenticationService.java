@@ -3,6 +3,7 @@ package com.grupo.tfc.conectapro.service;
 import com.grupo.tfc.conectapro.config.SessaoUsuario;
 import com.grupo.tfc.conectapro.dto.auth.RegisterRequest;
 import com.grupo.tfc.conectapro.dto.auth.TotpSetupResponse;
+import com.grupo.tfc.conectapro.model.AcaoAuditoria;
 import com.grupo.tfc.conectapro.model.TipoUsuario;
 import com.grupo.tfc.conectapro.model.Usuario;
 import com.grupo.tfc.conectapro.repository.UsuarioRepository;
@@ -25,11 +26,13 @@ public class AuthenticationService {
     private final UsuarioRepository usuarioRepository;
     private final TotpService totpService;
     private final SenhaService senhaService;
+    private final AuditoriaService auditoriaService;
 
-    public AuthenticationService(UsuarioRepository usuarioRepository, TotpService totpService, SenhaService senhaService) {
+    public AuthenticationService(UsuarioRepository usuarioRepository, TotpService totpService, SenhaService senhaService, AuditoriaService auditoriaService) {
         this.usuarioRepository = usuarioRepository;
         this.totpService = totpService;
         this.senhaService = senhaService;
+        this.auditoriaService = auditoriaService;
     }
 
     public TotpSetupResponse register(RegisterRequest request){
@@ -47,6 +50,7 @@ public class AuthenticationService {
                 .build();
         Usuario savedUsuario = Objects.requireNonNull(usuarioRepository.save(usuario));
         logger.info("Usuário registrado com sucesso. usuarioId={}", savedUsuario.getId());
+        auditoriaService.registrar(AcaoAuditoria.CADASTRO, savedUsuario.getId(), "USUARIO", savedUsuario.getId().toString(), "tipo=" + savedUsuario.getTipo());
 
         return new TotpSetupResponse(
                 secret,
@@ -71,17 +75,30 @@ public class AuthenticationService {
         Usuario usuario = usuarioRepository.findByEmail(email)
                 .orElseThrow(() -> {
                     logger.warn("Falha no login, usuário não encontrado");
+                    auditoriaService.registrar(AcaoAuditoria.LOGIN_FALHA, null, "USUARIO", null, "usuário não encontrado. email=" + email);
                     return new ResponseStatusException(UNAUTHORIZED, "Credênciais inválidas");
                 });
 
         if (!senhaService.match(senha, usuario.getSenhaHash())){
             logger.warn("Falha ao realizar o login, senha inválida");
+            auditoriaService.registrar(AcaoAuditoria.LOGIN_FALHA, usuario.getId(), "USUARIO", usuario.getId().toString(), "senha inválida");
             throw new ResponseStatusException(UNAUTHORIZED, "Credênciais inválidas");
         }
 
         session.setAttribute(SessaoUsuario.ATRIBUTO, usuario.getId());
         logger.info("Login realizado com sucesso");
+        auditoriaService.registrar(AcaoAuditoria.LOGIN_SUCESSO, usuario.getId(), "USUARIO", usuario.getId().toString(), null);
         return usuario;
+    }
+
+    public void logout(HttpSession session){
+        if (session == null) {
+            return;
+        }
+        if (session.getAttribute(SessaoUsuario.ATRIBUTO) instanceof UUID usuarioId) {
+            auditoriaService.registrar(AcaoAuditoria.LOGOUT, usuarioId, "USUARIO", usuarioId.toString(), null);
+        }
+        session.invalidate();
     }
 
     public Usuario buscarUsuarioDaSessao(HttpSession session){
