@@ -62,6 +62,6 @@ public class MateriaService {
     }
 
     private MateriaDTO paraDTO(Materia materia) {
-        return new MateriaDTO(materia.getId(), materia.getNome(), materia.getDescricao(), materia.getArea());
+        return new MateriaDTO(materia.getId(), materia.getNome(), materia.getDescricao(), materia.getArea(), materia.getAtiva());
     }
 }
