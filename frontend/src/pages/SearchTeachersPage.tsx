@@ -7,10 +7,11 @@ import { TeacherSearchBar } from '@/components/search/TeacherSearchBar'
 import { SiteFooter } from '@/components/landing/SiteFooter'
 import { SiteHeader } from '@/components/landing/SiteHeader'
 import { Reveal } from '@/components/motion/Reveal'
+import { useAuth } from '@/hooks/useAuth'
 import { listarProfessores } from '@/lib/professorService'
 import type { ModalityFilter, Teacher } from '@/types/teacher'
 
-type SortOption = 'relevancia' | 'menor-preco' | 'maior-avaliacao'
+type SortOption = 'relevancia' | 'menor-preco' | 'maior-avaliacao' | 'mais-proximos'
 
 type ResultsMessageProps = {
   title: string
@@ -30,6 +31,10 @@ function ResultsMessage({ title, description, children }: ResultsMessageProps) {
 
 const FALLBACK_PRICE_RANGE: [number, number] = [0, 200]
 
+function distanciaPara(teacher: Teacher) {
+  return teacher.distanceKm ?? Number.POSITIVE_INFINITY
+}
+
 export function SearchTeachersPage() {
   const [teachers, setTeachers] = useState<Teacher[]>([])
   const [isLoading, setIsLoading] = useState(true)
@@ -40,10 +45,16 @@ export function SearchTeachersPage() {
   const [modality, setModality] = useState<ModalityFilter>('todas')
   const [priceRange, setPriceRange] = useState<[number, number] | null>(null)
   const [onlyVerified, setOnlyVerified] = useState(false)
+  const [maxDistance, setMaxDistance] = useState<number | null>(null)
   const [sortOption, setSortOption] = useState<SortOption>('relevancia')
+
+  const { user } = useAuth()
 
   useEffect(() => {
     let isActive = true
+
+    setIsLoading(true)
+    setLoadError(null)
 
     listarProfessores()
       .then((list) => {
@@ -59,7 +70,7 @@ export function SearchTeachersPage() {
     return () => {
       isActive = false
     }
-  }, [])
+  }, [user?.email])
 
   const subjectOptions = useMemo(
     () => [...new Set(teachers.flatMap((teacher) => teacher.subjects))].sort(),
@@ -81,11 +92,19 @@ export function SearchTeachersPage() {
     [teachers],
   )
 
+  const distanceAvailable = useMemo(
+    () => teachers.some((teacher) => teacher.distanceKm != null),
+    [teachers],
+  )
+
+  const activeMaxDistance = distanceAvailable ? maxDistance : null
+
   const activeFilterCount =
     selectedSubjects.length +
     (modality === 'todas' ? 0 : 1) +
     (priceRange === null ? 0 : 1) +
-    (onlyVerified ? 1 : 0)
+    (onlyVerified ? 1 : 0) +
+    (activeMaxDistance === null ? 0 : 1)
 
   function toggleSubject(subject: string) {
     setSelectedSubjects((previous) =>
@@ -100,6 +119,7 @@ export function SearchTeachersPage() {
     setModality('todas')
     setPriceRange(null)
     setOnlyVerified(false)
+    setMaxDistance(null)
   }
 
   const filteredTeachers = useMemo(() => {
@@ -122,7 +142,18 @@ export function SearchTeachersPage() {
 
       const matchesVerified = !onlyVerified || teacher.verified
 
-      return matchesQuery && matchesSubjects && matchesModality && matchesPrice && matchesVerified
+      const matchesDistance =
+        activeMaxDistance === null ||
+        (teacher.distanceKm != null && teacher.distanceKm <= activeMaxDistance)
+
+      return (
+        matchesQuery &&
+        matchesSubjects &&
+        matchesModality &&
+        matchesPrice &&
+        matchesVerified &&
+        matchesDistance
+      )
     })
 
     if (sortOption === 'menor-preco') {
@@ -130,6 +161,9 @@ export function SearchTeachersPage() {
     }
     if (sortOption === 'maior-avaliacao') {
       return [...matches].sort((a, b) => b.rating - a.rating)
+    }
+    if (sortOption === 'mais-proximos') {
+      return [...matches].sort((a, b) => distanciaPara(a) - distanciaPara(b))
     }
     return matches
   }, [
@@ -139,6 +173,7 @@ export function SearchTeachersPage() {
     modality,
     activePriceRange,
     onlyVerified,
+    activeMaxDistance,
     sortOption,
   ])
 
@@ -157,6 +192,9 @@ export function SearchTeachersPage() {
         <div className="mt-8 grid gap-8 lg:grid-cols-[264px_1fr]">
           <FilterPanel
             subjectOptions={subjectOptions}
+            maxDistance={maxDistance}
+            onMaxDistanceChange={setMaxDistance}
+            distanceAvailable={distanceAvailable}
             minPrice={priceBounds[0]}
             maxPrice={priceBounds[1]}
             selectedSubjects={selectedSubjects}
@@ -192,6 +230,9 @@ export function SearchTeachersPage() {
                   <option value="menor-preco">Menor preço</option>
                   <option value="maior-avaliacao" disabled={!ratingsAvailable}>
                     Maior avaliação
+                  </option>
+                  <option value="mais-proximos" disabled={!distanceAvailable}>
+                    Mais próximos
                   </option>
                 </select>
               </label>

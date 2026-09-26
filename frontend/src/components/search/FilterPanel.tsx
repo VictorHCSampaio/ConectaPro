@@ -1,3 +1,4 @@
+import { Link } from 'react-router-dom'
 import { Checkbox } from '@/components/ui/Checkbox'
 import { Radio } from '@/components/ui/Radio'
 import { RangeSlider } from '@/components/ui/RangeSlider'
@@ -6,6 +7,9 @@ import type { ModalityFilter } from '@/types/teacher'
 
 type FilterPanelProps = {
   subjectOptions: string[]
+  maxDistance: number | null
+  onMaxDistanceChange: (distance: number | null) => void
+  distanceAvailable: boolean
   minPrice: number
   maxPrice: number
   selectedSubjects: string[]
@@ -25,6 +29,14 @@ const SECTION = 'flex flex-col gap-3 border-b border-paper-200 px-5 py-5 dark:bo
 const SECTION_TITLE = 'label-mono text-paper-500 dark:text-zinc-500'
 const HINT = 'text-xs text-paper-500 dark:text-zinc-600'
 
+const DISTANCE_OPTIONS: { label: string; value: number | null }[] = [
+  { label: 'Qualquer distância', value: null },
+  { label: 'Até 5 km', value: 5 },
+  { label: 'Até 10 km', value: 10 },
+  { label: 'Até 20 km', value: 20 },
+  { label: 'Até 50 km', value: 50 },
+]
+
 const MODALITY_OPTIONS: { label: string; value: ModalityFilter }[] = [
   { label: 'Todas', value: 'todas' },
   { label: 'Online', value: 'online' },
@@ -33,6 +45,9 @@ const MODALITY_OPTIONS: { label: string; value: ModalityFilter }[] = [
 
 export function FilterPanel({
   subjectOptions,
+  maxDistance,
+  onMaxDistanceChange,
+  distanceAvailable,
   minPrice,
   maxPrice,
   selectedSubjects,
@@ -66,6 +81,34 @@ export function FilterPanel({
         >
           Limpar
         </button>
+      </div>
+
+      <div className={SECTION}>
+        <span className={SECTION_TITLE}>Distância</span>
+        <div className="flex flex-col gap-2.5">
+          {DISTANCE_OPTIONS.map((option) => (
+            <Radio
+              key={option.label}
+              name="distancia"
+              label={option.label}
+              disabled={!distanceAvailable}
+              checked={maxDistance === option.value}
+              onChange={() => onMaxDistanceChange(option.value)}
+            />
+          ))}
+        </div>
+        {!distanceAvailable && (
+          <p className={HINT}>
+            Cadastre seu CEP em{' '}
+            <Link
+              to="/profile/edit"
+              className="font-medium text-ocre-600 underline underline-offset-2 dark:text-ocre-400"
+            >
+              Meu perfil
+            </Link>{' '}
+            para filtrar por distância.
+          </p>
+        )}
       </div>
 
       <div className={SECTION}>
