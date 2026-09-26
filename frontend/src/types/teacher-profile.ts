@@ -85,12 +85,10 @@ export type TeacherProfilePayload = {
   availability: Array<{ day: WeekDay; time: HourSlot | ShiftSlot }>
 }
 
-export type ViaCepResponse = {
+export type EnderecoCep = {
   cep: string
-  logradouro: string
-  complemento: string
-  bairro: string
-  localidade: string
-  uf: string
-  erro?: boolean
+  street: string
+  neighborhood: string
+  city: string
+  state: string
 }

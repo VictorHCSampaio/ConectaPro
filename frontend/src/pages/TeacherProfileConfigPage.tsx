@@ -11,7 +11,6 @@ import {
   User,
 } from 'lucide-react'
 import { Link } from 'react-router-dom'
-import axios from 'axios'
 
 import { AvatarUpload } from '@/components/teacher-config/AvatarUpload'
 import { AvailabilityGrid } from '@/components/teacher-config/AvailabilityGrid'
@@ -24,7 +23,9 @@ import { SiteFooter } from '@/components/landing/SiteFooter'
 import { SiteHeader } from '@/components/landing/SiteHeader'
 import { useAuth } from '@/hooks/useAuth'
 import { extractErrorMessage } from '@/lib/api'
+import { buscarEnderecoPorCep } from '@/lib/enderecoService'
 import { cn } from '@/lib/cn'
+import { maskCep } from '@/lib/masks'
 import { buscarPerfilProfessor, salvarPerfilProfessor } from '@/lib/teacherProfileService'
 import type {
   ApiModality,
@@ -34,7 +35,6 @@ import type {
   TeacherProfileFormData,
   TeacherProfilePayload,
   TeachingModel,
-  ViaCepResponse,
   WeekDay,
   HourSlot,
   ShiftSlot,
@@ -45,12 +45,6 @@ function maskPhone(raw: string): string {
   if (digits.length <= 2) return digits.replace(/^(\d{0,2})/, '($1')
   if (digits.length <= 7) return digits.replace(/^(\d{2})(\d{0,5})/, '($1) $2')
   return digits.replace(/^(\d{2})(\d{5})(\d{0,4})/, '($1) $2-$3')
-}
-
-function maskCep(raw: string): string {
-  const digits = raw.replace(/\D/g, '').slice(0, 8)
-  if (digits.length <= 5) return digits
-  return `${digits.slice(0, 5)}-${digits.slice(5)}`
 }
 
 function formatCurrency(rawInput: string): string {
@@ -396,35 +390,28 @@ export function TeacherProfileConfigPage() {
     setCepFetchError(null)
 
     const digits = masked.replace(/\D/g, '')
-    if (digits.length === 8) fetchViaCep(digits)
+    if (digits.length === 8) fetchEndereco(digits)
   }
 
-  const fetchViaCep = useCallback(async (cepDigits: string) => {
+  const fetchEndereco = useCallback(async (cepDigits: string) => {
     setCepLoading(true)
     setCepFetchError(null)
 
     try {
-      const { data } = await axios.get<ViaCepResponse>(
-        `https://viacep.com.br/ws/${cepDigits}/json/`,
-      )
-
-      if (data.erro) {
-        setCepFetchError('CEP não encontrado. Verifique e tente novamente.')
-        return
-      }
+      const endereco = await buscarEnderecoPorCep(cepDigits)
 
       setForm((prev) => ({
         ...prev,
         address: {
           ...prev.address,
-          logradouro: data.logradouro,
-          bairro: data.bairro,
-          cidade: data.localidade,
-          estado: data.uf,
+          logradouro: endereco.street,
+          bairro: endereco.neighborhood,
+          cidade: endereco.city,
+          estado: endereco.state,
         },
       }))
-    } catch {
-      setCepFetchError('Falha ao buscar o CEP. Verifique sua conexão.')
+    } catch (error) {
+      setCepFetchError(extractErrorMessage(error, 'Falha ao buscar o CEP. Verifique sua conexão.'))
     } finally {
       setCepLoading(false)
     }
@@ -433,7 +420,7 @@ export function TeacherProfileConfigPage() {
   function handleCepBlur() {
     touch('cep')
     const digits = form.address.cep.replace(/\D/g, '')
-    if (digits.length === 8) fetchViaCep(digits)
+    if (digits.length === 8) fetchEndereco(digits)
   }
 
   function handlePriceChange(raw: string) {
@@ -710,7 +697,7 @@ export function TeacherProfileConfigPage() {
                           aria-label="Buscar CEP"
                           onClick={() => {
                             const digits = form.address.cep.replace(/\D/g, '')
-                            if (digits.length === 8) fetchViaCep(digits)
+                            if (digits.length === 8) fetchEndereco(digits)
                           }}
                           className="flex size-8 items-center justify-center rounded-md text-paper-400 dark:text-zinc-600 transition-colors hover:bg-paper-100 dark:hover:bg-white/5 hover:text-ink-700 dark:hover:text-zinc-300"
                         >
