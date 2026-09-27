@@ -5,6 +5,7 @@ import { AdminMateriasPage } from '@/pages/AdminMateriasPage'
 import { AuthPage } from '@/pages/AuthPage'
 import { LandingPage } from '@/pages/LandingPage'
 import { ProfilePage } from '@/pages/ProfilePage'
+import { ProfileViewPage } from '@/pages/ProfileViewPage'
 import { SearchTeachersPage } from '@/pages/SearchTeachersPage'
 import { TeacherProfilePage } from '@/pages/TeacherProfilePage'
 
@@ -30,6 +31,14 @@ function App() {
       />
       <Route path="/login" element={<AuthPage />} />
       <Route path="/register" element={<AuthPage />} />
+      <Route
+        path="/perfil"
+        element={
+          <RequireAuth>
+            <ProfileViewPage />
+          </RequireAuth>
+        }
+      />
       <Route
         path="/profile/edit"
         element={
