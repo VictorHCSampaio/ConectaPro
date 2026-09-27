@@ -262,8 +262,8 @@ export function TeacherProfilePage() {
                   </div>
                 </div>
 
-                <div className="flex w-full items-center justify-between gap-4 sm:w-auto sm:justify-end">
-                  <p className="leading-tight">
+                <div className="flex w-full items-center justify-end gap-4 sm:w-auto">
+                  <p className="leading-tight text-right">
                     <span className="tnum text-2xl font-semibold text-ink-900 dark:text-white">
                       R$ {teacher.pricePerHour}
                     </span>
@@ -271,9 +271,6 @@ export function TeacherProfilePage() {
                       por hora
                     </span>
                   </p>
-                  <Button variant="primary" fullWidth={false} className="shrink-0 px-6">
-                    Agendar aula
-                  </Button>
                 </div>
               </div>
 

@@ -79,7 +79,7 @@ export function SiteHeader() {
               )}
               {isAuthenticated && (
                 <Link
-                  to="/profile/edit"
+                  to="/perfil"
                   className={cn(PRIMARY_BUTTON_CLASS, 'inline-flex items-center gap-2')}
                 >
                   <UserRound className="size-4" />
@@ -166,7 +166,7 @@ export function SiteHeader() {
                 )}
                 {isAuthenticated && (
                   <Link
-                    to="/profile/edit"
+                    to="/perfil"
                     onClick={closeMenu}
                     className="flex items-center justify-center gap-2 rounded-md bg-ink-800 px-3 py-2.5 text-center font-semibold text-paper-50 shadow-[inset_0_1px_0_rgba(255,255,255,0.2),0_3px_0_var(--color-ink-950)] active:translate-y-[3px] active:shadow-none"
                   >

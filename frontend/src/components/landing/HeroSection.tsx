@@ -3,10 +3,12 @@ import { FeaturedPanel } from '@/components/landing/FeaturedPanel'
 import { SubjectSearchBar } from '@/components/landing/SubjectSearchBar'
 import { Counter } from '@/components/motion/Counter'
 import { Reveal } from '@/components/motion/Reveal'
+import { useAuth } from '@/hooks/useAuth'
 import { listarProfessores } from '@/lib/professorService'
 import type { Teacher } from '@/types/teacher'
 
 export function HeroSection() {
+  const { isAuthenticated } = useAuth()
   const [teachers, setTeachers] = useState<Teacher[]>([])
   const [isLoading, setIsLoading] = useState(true)
 
@@ -66,7 +68,7 @@ export function HeroSection() {
         </Reveal>
 
         <Reveal delay={0.12} className="lg:pl-6">
-          <FeaturedPanel teachers={teachers} isLoading={isLoading} />
+          <FeaturedPanel teachers={teachers} isLoading={isLoading} obscure={!isAuthenticated} />
         </Reveal>
       </div>
 
