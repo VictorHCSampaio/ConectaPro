@@ -50,8 +50,8 @@ export function HeroSection() {
 
   return (
     <section className="grain border-b border-paper-200 transition-colors duration-300 dark:border-white/10">
-      <div className="relative z-1 mx-auto grid max-w-6xl gap-14 px-6 py-16 lg:grid-cols-[1.02fr_0.98fr] lg:items-center lg:gap-20 lg:py-24">
-        <Reveal className="flex flex-col gap-6">
+      <div className="relative z-1 mx-auto grid max-w-6xl grid-cols-1 gap-14 px-6 py-16 lg:grid-cols-[minmax(0,1.02fr)_minmax(0,0.98fr)] lg:items-center lg:gap-20 lg:py-24">
+        <Reveal className="flex min-w-0 flex-col gap-6">
           <p className="label-mono text-paper-600 dark:text-zinc-500">
             Diretório de aulas particulares
           </p>
@@ -67,7 +67,7 @@ export function HeroSection() {
           <SubjectSearchBar />
         </Reveal>
 
-        <Reveal delay={0.12} className="lg:pl-6">
+        <Reveal delay={0.12} className="min-w-0 lg:pl-6">
           <FeaturedPanel teachers={teachers} isLoading={isLoading} obscure={!isAuthenticated} />
         </Reveal>
       </div>
