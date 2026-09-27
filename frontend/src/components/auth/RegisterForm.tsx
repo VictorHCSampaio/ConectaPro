@@ -1,7 +1,7 @@
 import { Mail, User } from 'lucide-react'
-import { useState } from 'react'
-import { Link } from 'react-router-dom'
+import { useState, type MouseEvent } from 'react'
 import { FormFeedback } from '@/components/auth/FormFeedback'
+import { LegalTermsModal, type LegalDocumentType } from '@/components/auth/LegalTermsModal'
 import { RoleSelector } from '@/components/auth/RoleSelector'
 import { Button } from '@/components/ui/Button'
 import { Checkbox } from '@/components/ui/Checkbox'
@@ -12,6 +12,9 @@ import { extractErrorMessage } from '@/lib/api'
 import { registerUsuario } from '@/lib/authService'
 import { validateRegisterForm } from '@/lib/validation'
 import type { RegisterFormValues } from '@/types/auth'
+
+const LEGAL_LINK_CLASS =
+  'm-0 inline cursor-pointer bg-transparent p-0 font-[inherit] font-medium leading-snug text-ink-800 underline decoration-paper-300 underline-offset-2 transition-colors hover:decoration-ocre-400 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ocre-500 dark:text-zinc-300 dark:decoration-white/20 dark:hover:decoration-ocre-400'
 
 const INITIAL_VALUES: RegisterFormValues = {
   role: null,
@@ -25,10 +28,19 @@ const INITIAL_VALUES: RegisterFormValues = {
 export function RegisterForm() {
   const [wasSubmitted, setWasSubmitted] = useState(false)
   const [submitError, setSubmitError] = useState<string | null>(null)
+  const [legalDocument, setLegalDocument] = useState<LegalDocumentType | null>(null)
   const { values, setField, touchField, fieldError, handleSubmit, isSubmitting } = useForm(
     INITIAL_VALUES,
     validateRegisterForm,
   )
+
+  function openLegalDocument(documentType: LegalDocumentType) {
+    return (event: MouseEvent<HTMLButtonElement>) => {
+      event.preventDefault()
+      event.stopPropagation()
+      setLegalDocument(documentType)
+    }
+  }
 
   const onSubmit = handleSubmit(async (formValues) => {
     setSubmitError(null)
@@ -120,30 +132,39 @@ export function RegisterForm() {
           label={
             <>
               Concordo com os{' '}
-              <Link
-                to="#"
-                className="border-b border-paper-300 font-medium text-ink-800 transition-colors hover:border-ocre-400 dark:border-white/20 dark:text-zinc-300 dark:hover:border-ocre-400"
+              <button
+                type="button"
+                className={LEGAL_LINK_CLASS}
+                onClick={openLegalDocument('terms')}
               >
                 Termos de Uso
-              </Link>{' '}
+              </button>{' '}
               e a{' '}
-              <Link
-                to="#"
-                className="border-b border-paper-300 font-medium text-ink-800 transition-colors hover:border-ocre-400 dark:border-white/20 dark:text-zinc-300 dark:hover:border-ocre-400"
+              <button
+                type="button"
+                className={LEGAL_LINK_CLASS}
+                onClick={openLegalDocument('privacy')}
               >
                 Política de Privacidade
-              </Link>
+              </button>
             </>
           }
           checked={values.acceptTerms}
           onChange={(event) => setField('acceptTerms', event.target.checked)}
+          onBlur={() => touchField('acceptTerms')}
           error={fieldError('acceptTerms')}
         />
 
-        <Button type="submit" isLoading={isSubmitting}>
+        <Button type="submit" isLoading={isSubmitting} disabled={!values.acceptTerms}>
           Criar conta
         </Button>
       </form>
+
+      <LegalTermsModal
+        open={legalDocument !== null}
+        onClose={() => setLegalDocument(null)}
+        documentType={legalDocument}
+      />
     </div>
   )
 }
