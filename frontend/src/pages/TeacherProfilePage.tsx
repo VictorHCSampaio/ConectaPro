@@ -1,4 +1,4 @@
-import { ArrowLeft, BadgeCheck, BookOpen, CalendarDays, Clock, Monitor } from 'lucide-react'
+import { ArrowLeft, BadgeCheck, BookOpen, CalendarDays, Clock, MapPin, Monitor } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import type { ReactNode } from 'react'
 import { Link, useParams } from 'react-router-dom'
@@ -7,9 +7,10 @@ import { SiteHeader } from '@/components/landing/SiteHeader'
 import { Reveal } from '@/components/motion/Reveal'
 import { Button } from '@/components/ui/Button'
 import { StarRating } from '@/components/ui/StarRating'
+import { useAuth } from '@/hooks/useAuth'
 import { cn } from '@/lib/cn'
 import { buscarProfessor } from '@/lib/professorService'
-import { formatModalities, formatRating } from '@/lib/formatTeacher'
+import { formatDistance, formatModalities, formatRating } from '@/lib/formatTeacher'
 import type { Teacher } from '@/types/teacher'
 
 const PAGE_SHELL =
@@ -128,6 +129,8 @@ export function TeacherProfilePage() {
   const [isLoading, setIsLoading] = useState(true)
   const [isError, setIsError] = useState(false)
 
+  const { user } = useAuth()
+
   useEffect(() => {
     if (!id) return
 
@@ -150,7 +153,7 @@ export function TeacherProfilePage() {
     return () => {
       isActive = false
     }
-  }, [id])
+  }, [id, user?.email])
 
   if (isLoading) {
     return (
@@ -188,6 +191,8 @@ export function TeacherProfilePage() {
   }
 
   const modalityLabel = formatModalities(teacher.modalities)
+  const locationLabel =
+    teacher.distanceKm == null ? teacher.city : `${formatDistance(teacher.distanceKm)} de você`
   const weekDays = teacher.weekDays ?? []
   const slots = teacher.availability ?? []
   const hasWeekDays = weekDays.length > 0
@@ -294,6 +299,12 @@ export function TeacherProfilePage() {
                     <Clock className="size-3.5 text-paper-500 dark:text-zinc-500" />
                     <span className="tnum">{slots.length}</span>
                     {slots.length === 1 ? 'horário' : 'horários'}
+                  </li>
+                )}
+                {locationLabel && (
+                  <li className={CHIP}>
+                    <MapPin className="size-3.5 text-paper-500 dark:text-zinc-500" />
+                    {locationLabel}
                   </li>
                 )}
               </ul>
@@ -409,6 +420,15 @@ export function TeacherProfilePage() {
                       }
                       label="Horários"
                       value={<span className="tnum">{slots.length}</span>}
+                    />
+                  )}
+                  {locationLabel && (
+                    <FactRow
+                      icon={
+                        <MapPin className="size-3.5 shrink-0 text-paper-400 dark:text-zinc-500" />
+                      }
+                      label={teacher.distanceKm == null ? 'Cidade' : 'Distância'}
+                      value={locationLabel}
                     />
                   )}
                   <FactRow

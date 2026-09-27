@@ -1,16 +1,19 @@
 package com.grupo.tfc.conectapro.service;
 
+import com.grupo.tfc.conectapro.dto.EnderecoRequest;
 import com.grupo.tfc.conectapro.dto.professor.DisponibilidadeRequest;
 import com.grupo.tfc.conectapro.dto.professor.EnderecoProfessorRequest;
 import com.grupo.tfc.conectapro.dto.professor.MateriaProfessorRequest;
 import com.grupo.tfc.conectapro.dto.professor.PerfilProfessorRequest;
 import com.grupo.tfc.conectapro.dto.professor.PerfilProfessorResponse;
 import com.grupo.tfc.conectapro.dto.professor.ProfessorResumoResponse;
+import com.grupo.tfc.conectapro.model.AcaoAuditoria;
 import com.grupo.tfc.conectapro.model.Endereco;
 import com.grupo.tfc.conectapro.model.Materia;
 import com.grupo.tfc.conectapro.model.Professor;
 import com.grupo.tfc.conectapro.model.ProfessorDisponibilidade;
 import com.grupo.tfc.conectapro.model.ProfessorMateria;
+import com.grupo.tfc.conectapro.model.TipoUsuario;
 import com.grupo.tfc.conectapro.model.Usuario;
 import com.grupo.tfc.conectapro.repository.EnderecoRepository;
 import com.grupo.tfc.conectapro.repository.MateriaRepository;
@@ -18,6 +21,7 @@ import com.grupo.tfc.conectapro.repository.ProfessorDisponibilidadeRepository;
 import com.grupo.tfc.conectapro.repository.ProfessorMateriaRepository;
 import com.grupo.tfc.conectapro.repository.ProfessorRepository;
 import com.grupo.tfc.conectapro.repository.UsuarioRepository;
+import com.grupo.tfc.conectapro.service.LocalizacaoService.Coordenada;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
@@ -34,7 +38,9 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
+import static org.springframework.http.HttpStatus.FORBIDDEN;
 import static org.springframework.http.HttpStatus.NOT_FOUND;
 
 @Service
@@ -65,24 +71,37 @@ public class ProfessorService {
     private final ProfessorMateriaRepository professorMateriaRepository;
     private final ProfessorDisponibilidadeRepository disponibilidadeRepository;
     private final EnderecoRepository enderecoRepository;
+    private final LocalizacaoService localizacaoService;
+    private final EnderecoService enderecoService;
+    private final AuditoriaService auditoriaService;
 
     public ProfessorService(UsuarioRepository usuarioRepository,
                             ProfessorRepository professorRepository,
                             MateriaRepository materiaRepository,
                             ProfessorMateriaRepository professorMateriaRepository,
                             ProfessorDisponibilidadeRepository disponibilidadeRepository,
-                            EnderecoRepository enderecoRepository) {
+                            EnderecoRepository enderecoRepository,
+                            LocalizacaoService localizacaoService,
+                            EnderecoService enderecoService,
+                            AuditoriaService auditoriaService) {
         this.usuarioRepository = usuarioRepository;
         this.professorRepository = professorRepository;
         this.materiaRepository = materiaRepository;
         this.professorMateriaRepository = professorMateriaRepository;
         this.disponibilidadeRepository = disponibilidadeRepository;
         this.enderecoRepository = enderecoRepository;
+        this.localizacaoService = localizacaoService;
+        this.enderecoService = enderecoService;
+        this.auditoriaService = auditoriaService;
     }
 
     @Transactional
     public PerfilProfessorResponse salvarPerfil(UUID usuarioId, PerfilProfessorRequest request) {
         Usuario usuario = buscarUsuario(usuarioId);
+        if (usuario.getTipo() != TipoUsuario.PROFESSOR) {
+            auditoriaService.registrar(AcaoAuditoria.ACESSO_NEGADO, usuarioId, "PROFESSOR", null, "configuração de perfil por usuário que não é professor");
+            throw new ResponseStatusException(FORBIDDEN, "Apenas professores podem configurar este perfil");
+        }
         usuario.setNomeCompleto(request.fullName().trim());
         usuarioRepository.save(usuario);
 
@@ -111,11 +130,12 @@ public class ProfessorService {
 
         Professor salvo = professorRepository.save(professor);
 
-        salvarEndereco(usuario, request.address());
+        enderecoService.salvar(usuario, paraEnderecoRequest(request.address()));
         salvarMaterias(salvo, request.subjects());
         salvarDisponibilidade(salvo, request.availability());
 
         logger.info("Perfil de professor salvo. usuarioId={} professorId={}", usuarioId, salvo.getId());
+        auditoriaService.registrar(AcaoAuditoria.PERFIL_ATUALIZADO, usuarioId, "PROFESSOR", salvo.getId().toString(), null);
 
         return buscarPerfil(usuarioId);
     }
@@ -164,18 +184,30 @@ public class ProfessorService {
     }
 
     @Transactional(readOnly = true)
-    public List<ProfessorResumoResponse> listarProfessores() {
-        return professorRepository.findAll().stream()
-                .map(this::paraResumo)
+    public List<ProfessorResumoResponse> listarProfessores(UUID usuarioId) {
+        List<Professor> professores = professorRepository.findAll();
+        Map<UUID, Endereco> enderecos = buscarEnderecos(professores);
+        Coordenada origem = localizacaoService.buscarCoordenada(cepDeOrigem(usuarioId)).orElse(null);
+
+        return professores.stream()
+                .map(professor -> paraResumo(professor, enderecos.get(professor.getUsuario().getId()), origem))
                 .sorted(Comparator.comparing(ProfessorResumoResponse::name, String.CASE_INSENSITIVE_ORDER))
                 .toList();
     }
 
     @Transactional(readOnly = true)
-    public ProfessorResumoResponse buscarProfessor(UUID professorId) {
-        return professorRepository.findById(professorId)
-                .map(this::paraResumo)
+    public ProfessorResumoResponse buscarProfessor(UUID professorId, UUID usuarioId) {
+        Professor professor = professorRepository.findById(professorId)
                 .orElseThrow(() -> new ResponseStatusException(NOT_FOUND, "Professor não encontrado"));
+        Endereco endereco = enderecoRepository.findFirstByUsuarioId(professor.getUsuario().getId()).orElse(null);
+
+        if (professor.getUsuario().getId().equals(usuarioId)) {
+            return paraResumo(professor, endereco, null);
+        }
+
+        Coordenada origem = localizacaoService.buscarCoordenada(cepDeOrigem(usuarioId)).orElse(null);
+
+        return paraResumo(professor, endereco, origem);
     }
 
     private Usuario buscarUsuario(UUID usuarioId) {
@@ -183,7 +215,7 @@ public class ProfessorService {
                 .orElseThrow(() -> new ResponseStatusException(NOT_FOUND, "Usuário não encontrado"));
     }
 
-    private ProfessorResumoResponse paraResumo(Professor professor) {
+    private ProfessorResumoResponse paraResumo(Professor professor, Endereco endereco, Coordenada origem) {
         String nome = professor.getUsuario().getNomeCompleto();
 
         List<String> materias = professorMateriaRepository.findByProfessorId(professor.getId())
@@ -218,8 +250,54 @@ public class ProfessorService {
                 DIAS_SEMANA.entrySet().stream()
                         .filter(dia -> slots.stream().anyMatch(slot -> dia.getKey().equals(slot.getDiaSemana())))
                         .map(Map.Entry::getValue)
-                        .toList()
+                        .toList(),
+                endereco == null ? null : endereco.getBairro(),
+                endereco == null ? null : endereco.getCidade(),
+                distanciaAte(professor, endereco, origem)
         );
+    }
+
+    private String cepDeOrigem(UUID usuarioId) {
+        if (usuarioId == null) {
+            return null;
+        }
+
+        return enderecoRepository.findFirstByUsuarioId(usuarioId)
+                .map(Endereco::getCep)
+                .orElse(null);
+    }
+
+    private Map<UUID, Endereco> buscarEnderecos(List<Professor> professores) {
+        List<UUID> usuarioIds = professores.stream()
+                .map(professor -> professor.getUsuario().getId())
+                .toList();
+
+        if (usuarioIds.isEmpty()) {
+            return Map.of();
+        }
+
+        return enderecoRepository.findByUsuarioIdIn(usuarioIds).stream()
+                .collect(Collectors.toMap(
+                        endereco -> endereco.getUsuario().getId(),
+                        endereco -> endereco,
+                        (primeiro, segundo) -> primeiro));
+    }
+
+    private Double distanciaAte(Professor professor, Endereco endereco, Coordenada origem) {
+        if (origem == null) {
+            return null;
+        }
+
+        return localizacaoService.distanciaEmKm(origem, coordenadaDoProfessor(professor, endereco));
+    }
+
+    private Coordenada coordenadaDoProfessor(Professor professor, Endereco endereco) {
+        if (endereco != null && endereco.getLatitude() != null && endereco.getLongitude() != null) {
+            return new Coordenada(endereco.getLatitude(), endereco.getLongitude());
+        }
+
+        String cep = endereco == null || endereco.getCep() == null ? professor.getCep() : endereco.getCep();
+        return localizacaoService.buscarCoordenada(cep).orElse(null);
     }
 
     private boolean atendeInstituicoes(Professor professor) {
@@ -240,20 +318,13 @@ public class ProfessorService {
         return (partes[0].charAt(0) + "" + partes[partes.length - 1].charAt(0)).toUpperCase(Locale.ROOT);
     }
 
-    private void salvarEndereco(Usuario usuario, EnderecoProfessorRequest request) {
-        Endereco endereco = enderecoRepository.findFirstByUsuarioId(usuario.getId())
-                .orElseGet(() -> {
-                    Endereco novo = new Endereco();
-                    novo.setUsuario(usuario);
-                    return novo;
-                });
-
-        endereco.setCep(request.cep());
-        endereco.setLogradouro(request.street());
-        endereco.setBairro(request.neighborhood());
-        endereco.setCidade(request.city());
-        endereco.setEstado(request.state());
-        enderecoRepository.save(endereco);
+    private EnderecoRequest paraEnderecoRequest(EnderecoProfessorRequest address) {
+        return new EnderecoRequest(
+                address.cep(),
+                address.street(),
+                address.neighborhood(),
+                address.city(),
+                address.state());
     }
 
     private void salvarMaterias(Professor professor, List<MateriaProfessorRequest> materias) {

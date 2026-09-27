@@ -1,11 +1,11 @@
 import { Navigate, Route, Routes } from 'react-router-dom'
 import { RequireAdmin } from '@/components/auth/RequireAdmin'
-import { RequireRole } from '@/components/auth/RequireRole'
+import { RequireAuth } from '@/components/auth/RequireAuth'
 import { AdminMateriasPage } from '@/pages/AdminMateriasPage'
 import { AuthPage } from '@/pages/AuthPage'
 import { LandingPage } from '@/pages/LandingPage'
+import { ProfilePage } from '@/pages/ProfilePage'
 import { SearchTeachersPage } from '@/pages/SearchTeachersPage'
-import { TeacherProfileConfigPage } from '@/pages/TeacherProfileConfigPage'
 import { TeacherProfilePage } from '@/pages/TeacherProfilePage'
 
 function App() {
@@ -19,9 +19,9 @@ function App() {
       <Route
         path="/profile/edit"
         element={
-          <RequireRole role="PROFESSOR">
-            <TeacherProfileConfigPage />
-          </RequireRole>
+          <RequireAuth>
+            <ProfilePage />
+          </RequireAuth>
         }
       />
       <Route

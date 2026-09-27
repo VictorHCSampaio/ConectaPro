@@ -10,3 +10,8 @@ export function formatModalities(modalities: Teacher['modalities']) {
   }
   return modalities.includes('online') ? 'Somente online' : 'Somente presencial'
 }
+
+export function formatDistance(distanceKm: number) {
+  if (distanceKm < 10) return `${distanceKm.toFixed(1).replace('.', ',')} km`
+  return `${Math.round(distanceKm)} km`
+}
