@@ -14,6 +14,9 @@ public record ProfessorResumoResponse(
         boolean verified,
         String bio,
         List<String> availability,
-        List<String> weekDays
+        List<String> weekDays,
+        String neighborhood,
+        String city,
+        Double distanceKm
 ) {
 }

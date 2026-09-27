@@ -1,7 +1,7 @@
-import { BadgeCheck } from 'lucide-react'
+import { BadgeCheck, MapPin } from 'lucide-react'
 import { Link } from 'react-router-dom'
 import { StarRating } from '@/components/ui/StarRating'
-import { formatModalities, formatRating } from '@/lib/formatTeacher'
+import { formatDistance, formatModalities, formatRating } from '@/lib/formatTeacher'
 import type { Teacher } from '@/types/teacher'
 
 type TeacherResultCardProps = {
@@ -9,6 +9,9 @@ type TeacherResultCardProps = {
 }
 
 export function TeacherResultCard({ teacher }: TeacherResultCardProps) {
+  const location =
+    teacher.distanceKm == null ? teacher.city : `${formatDistance(teacher.distanceKm)} de você`
+
   return (
     <article className="card flex flex-col gap-4 rounded-lg p-5 transition-all duration-300 dark:border-white/10 dark:bg-white/[0.03] dark:backdrop-blur-md dark:shadow-[0_0_0_1px_rgba(255,255,255,0.04)] dark:hover:bg-white/[0.06] sm:flex-row sm:items-center sm:justify-between sm:gap-6">
       <div className="flex items-start gap-4">
@@ -43,6 +46,15 @@ export function TeacherResultCard({ teacher }: TeacherResultCardProps) {
             )}
             <span className="hidden text-paper-300 dark:text-zinc-700 sm:inline">|</span>
             <span>{formatModalities(teacher.modalities)}</span>
+            {location && (
+              <>
+                <span className="hidden text-paper-300 dark:text-zinc-700 sm:inline">|</span>
+                <span className="flex items-center gap-1">
+                  <MapPin className="size-3.5" />
+                  {location}
+                </span>
+              </>
+            )}
           </div>
         </div>
       </div>
