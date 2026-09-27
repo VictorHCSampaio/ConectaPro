@@ -189,10 +189,16 @@ public class ProfessorService {
         Map<UUID, Endereco> enderecos = buscarEnderecos(professores);
         Coordenada origem = localizacaoService.buscarCoordenada(cepDeOrigem(usuarioId)).orElse(null);
 
-        return professores.stream()
+        List<ProfessorResumoResponse> resumos = professores.stream()
                 .map(professor -> paraResumo(professor, enderecos.get(professor.getUsuario().getId()), origem))
                 .sorted(Comparator.comparing(ProfessorResumoResponse::name, String.CASE_INSENSITIVE_ORDER))
                 .toList();
+
+        if (usuarioId == null) {
+            return resumos.stream().map(this::redigirParaVisitante).toList();
+        }
+
+        return resumos;
     }
 
     @Transactional(readOnly = true)
@@ -206,8 +212,28 @@ public class ProfessorService {
         }
 
         Coordenada origem = localizacaoService.buscarCoordenada(cepDeOrigem(usuarioId)).orElse(null);
+        ProfessorResumoResponse resumo = paraResumo(professor, endereco, origem);
 
-        return paraResumo(professor, endereco, origem);
+        return usuarioId == null ? redigirParaVisitante(resumo) : resumo;
+    }
+
+    private ProfessorResumoResponse redigirParaVisitante(ProfessorResumoResponse resumo) {
+        return new ProfessorResumoResponse(
+                resumo.id(),
+                "",
+                resumo.initials(),
+                resumo.subjects(),
+                resumo.rating(),
+                resumo.reviewCount(),
+                resumo.modalities(),
+                null,
+                resumo.verified(),
+                resumo.bio(),
+                resumo.availability(),
+                resumo.weekDays(),
+                resumo.neighborhood(),
+                resumo.city(),
+                resumo.distanceKm());
     }
 
     private Usuario buscarUsuario(UUID usuarioId) {

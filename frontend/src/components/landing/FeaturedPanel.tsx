@@ -7,6 +7,7 @@ import type { Teacher } from '@/types/teacher'
 type FeaturedPanelProps = {
   teachers: Teacher[]
   isLoading: boolean
+  obscure?: boolean
 }
 
 const ROW =
@@ -29,7 +30,7 @@ function FeaturedSkeleton() {
   )
 }
 
-export function FeaturedPanel({ teachers, isLoading }: FeaturedPanelProps) {
+export function FeaturedPanel({ teachers, isLoading, obscure = false }: FeaturedPanelProps) {
   const featured = teachers.slice(0, 3)
   const hasVerified = featured.some((teacher) => teacher.verified)
   const hasBothModalities = featured.some(
@@ -64,9 +65,15 @@ export function FeaturedPanel({ teachers, isLoading }: FeaturedPanelProps) {
                 </span>
 
                 <div className="min-w-0 flex-1">
-                  <p className="truncate text-sm font-semibold text-ink-900 dark:text-white">
-                    {teacher.name}
-                  </p>
+                  {obscure ? (
+                    <p className="truncate text-sm font-medium text-paper-500 italic dark:text-zinc-500">
+                      Cadastre-se para ver
+                    </p>
+                  ) : (
+                    <p className="truncate text-sm font-semibold text-ink-900 dark:text-white">
+                      {teacher.name}
+                    </p>
+                  )}
                   <p className="truncate text-xs text-paper-600 dark:text-zinc-400">
                     {teacher.subjects.join(' · ')}
                   </p>
@@ -85,7 +92,11 @@ export function FeaturedPanel({ teachers, isLoading }: FeaturedPanelProps) {
                 </div>
 
                 <p className="tnum text-right text-base font-semibold text-ink-900 dark:text-white">
-                  R$ {teacher.pricePerHour}
+                  {obscure ? (
+                    <span className="text-paper-400 dark:text-zinc-600">R$ ••</span>
+                  ) : (
+                    `R$ ${teacher.pricePerHour}`
+                  )}
                 </p>
               </li>
             ))}
@@ -96,7 +107,7 @@ export function FeaturedPanel({ teachers, isLoading }: FeaturedPanelProps) {
           to="/professores"
           className="block border-t border-paper-200 bg-paper-50 px-5 py-3 text-center text-sm font-semibold text-ink-700 transition-colors hover:bg-paper-100 hover:text-ink-900 dark:border-white/10 dark:bg-white/[0.03] dark:text-zinc-300 dark:hover:bg-white/[0.06] dark:hover:text-white"
         >
-          Ver todos os professores
+          {obscure ? 'Entre para ver os professores' : 'Ver todos os professores'}
         </Link>
       </div>
 
