@@ -12,8 +12,22 @@ function App() {
   return (
     <Routes>
       <Route path="/" element={<LandingPage />} />
-      <Route path="/professores" element={<SearchTeachersPage />} />
-      <Route path="/professores/:id" element={<TeacherProfilePage />} />
+      <Route
+        path="/professores"
+        element={
+          <RequireAuth>
+            <SearchTeachersPage />
+          </RequireAuth>
+        }
+      />
+      <Route
+        path="/professores/:id"
+        element={
+          <RequireAuth>
+            <TeacherProfilePage />
+          </RequireAuth>
+        }
+      />
       <Route path="/login" element={<AuthPage />} />
       <Route path="/register" element={<AuthPage />} />
       <Route
