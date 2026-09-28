@@ -1,4 +1,4 @@
-import { Loader2 } from 'lucide-react'
+import { Loader2, SlidersHorizontal } from 'lucide-react'
 import { useEffect, useMemo, useState } from 'react'
 import type { ReactNode } from 'react'
 import { FilterPanel } from '@/components/search/FilterPanel'
@@ -7,6 +7,7 @@ import { TeacherSearchBar } from '@/components/search/TeacherSearchBar'
 import { SiteFooter } from '@/components/landing/SiteFooter'
 import { SiteHeader } from '@/components/landing/SiteHeader'
 import { Reveal } from '@/components/motion/Reveal'
+import { cn } from '@/lib/cn'
 import { useAuth } from '@/hooks/useAuth'
 import { listarProfessores } from '@/lib/professorService'
 import type { ModalityFilter, Teacher } from '@/types/teacher'
@@ -47,6 +48,7 @@ export function SearchTeachersPage() {
   const [onlyVerified, setOnlyVerified] = useState(false)
   const [maxDistance, setMaxDistance] = useState<number | null>(null)
   const [sortOption, setSortOption] = useState<SortOption>('relevancia')
+  const [filtersOpen, setFiltersOpen] = useState(false)
 
   const { user } = useAuth()
 
@@ -189,26 +191,43 @@ export function SearchTeachersPage() {
 
         <TeacherSearchBar value={searchQuery} onChange={setSearchQuery} />
 
-        <div className="mt-8 grid gap-8 lg:grid-cols-[264px_1fr]">
-          <FilterPanel
-            subjectOptions={subjectOptions}
-            maxDistance={maxDistance}
-            onMaxDistanceChange={setMaxDistance}
-            distanceAvailable={distanceAvailable}
-            minPrice={priceBounds[0]}
-            maxPrice={priceBounds[1]}
-            selectedSubjects={selectedSubjects}
-            onToggleSubject={toggleSubject}
-            modality={modality}
-            onModalityChange={setModality}
-            priceRange={activePriceRange}
-            onPriceRangeChange={setPriceRange}
-            onlyVerified={onlyVerified}
-            onOnlyVerifiedChange={setOnlyVerified}
-            verifiedAvailable={verifiedAvailable}
-            activeCount={activeFilterCount}
-            onClear={clearFilters}
-          />
+        <button
+          type="button"
+          onClick={() => setFiltersOpen((open) => !open)}
+          aria-expanded={filtersOpen}
+          className="raised mt-6 flex w-full items-center justify-center gap-2 rounded-md border border-paper-300 bg-white px-4 py-2.5 text-sm font-semibold text-ink-800 transition-colors hover:border-paper-400 lg:hidden dark:border-white/10 dark:bg-night-700 dark:text-white dark:hover:border-white/20"
+        >
+          <SlidersHorizontal className="size-4" />
+          {filtersOpen ? 'Ocultar filtros' : 'Filtros'}
+          {activeFilterCount > 0 && (
+            <span className="tnum rounded-full bg-ocre-400/20 px-2 py-0.5 text-xs font-semibold text-ocre-600 dark:bg-ocre-400/15 dark:text-ocre-200">
+              {activeFilterCount}
+            </span>
+          )}
+        </button>
+
+        <div className="mt-4 grid gap-8 lg:mt-8 lg:grid-cols-[264px_1fr]">
+          <div className={cn(filtersOpen ? 'block' : 'hidden', 'lg:block')}>
+            <FilterPanel
+              subjectOptions={subjectOptions}
+              maxDistance={maxDistance}
+              onMaxDistanceChange={setMaxDistance}
+              distanceAvailable={distanceAvailable}
+              minPrice={priceBounds[0]}
+              maxPrice={priceBounds[1]}
+              selectedSubjects={selectedSubjects}
+              onToggleSubject={toggleSubject}
+              modality={modality}
+              onModalityChange={setModality}
+              priceRange={activePriceRange}
+              onPriceRangeChange={setPriceRange}
+              onlyVerified={onlyVerified}
+              onOnlyVerifiedChange={setOnlyVerified}
+              verifiedAvailable={verifiedAvailable}
+              activeCount={activeFilterCount}
+              onClear={clearFilters}
+            />
+          </div>
 
           <div className="flex flex-col gap-3">
             <div className="flex flex-wrap items-center justify-between gap-3 border-b border-paper-200 pb-3 dark:border-white/10">

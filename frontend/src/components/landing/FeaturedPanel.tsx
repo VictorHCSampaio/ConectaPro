@@ -112,7 +112,7 @@ export function FeaturedPanel({ teachers, isLoading, obscure = false }: Featured
       </div>
 
       {hasBothModalities && (
-        <div className="pointer-events-none absolute -right-5 -bottom-4 hidden items-center gap-2 rounded-md border border-paper-200 bg-white px-3.5 py-2.5 shadow-[0_10px_24px_-12px_rgba(18,38,63,0.5)] transition-colors duration-300 dark:border-white/10 dark:bg-night-600 dark:shadow-[0_10px_24px_-12px_rgba(0,0,0,0.9)] sm:flex">
+        <div className="pointer-events-none absolute -right-5 -bottom-4 hidden items-center gap-2 rounded-md border border-paper-200 bg-white px-3.5 py-2.5 shadow-[0_10px_24px_-12px_rgba(18,38,63,0.5)] transition-colors duration-300 dark:border-white/10 dark:bg-night-600 dark:shadow-[0_10px_24px_-12px_rgba(0,0,0,0.9)] lg:flex">
           <Video className="size-4 text-ocre-500" />
           <span className="text-xs font-medium text-ink-700 dark:text-zinc-300">
             Online e presencial
