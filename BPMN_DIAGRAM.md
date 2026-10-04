@@ -1,68 +1,156 @@
 # 📊 Diagrama BPMN - Processos ConectaPro
 
-## 1️⃣ Processo de Contratação (Aluno/Responsável)
+## 1️⃣ Processo de Agendamento e Contratação (Aluno/Responsável)
+
+_Responsável: Victor H C Sampaio - RGM 11231101604_
 
 ```mermaid
 graph TD
-    A["🟢 Aluno Acessa Plataforma"] --> B["📝 Registrar ou Login"]
-    B --> C["🔍 Buscar Professor<br/>(Matéria + CEP)"]
-    C --> D["🎯 Filtrar Resultados<br/>(Preço, Disponibilidade)"]
-    D --> E["👤 Visualizar Perfil<br/>Completo"]
-    E --> F["💬 Solicitar Aula"]
-    F --> G["💳 Efetuar Pagamento<br/>(Mercado Pago)"]
-    G --> H{Pagamento<br/>Aprovado?}
-    H -->|Sim| I["✅ Contratação Confirmada"]
-    H -->|Não| J["❌ Pagamento Rejeitado"]
-    I --> K["📧 Email de Confirmação"]
-    K --> L["🎉 Aula Agendada"]
-    J --> M["⚠️ Tentar Novamente"]
-    M --> G
-    
+    subgraph Aluno["👤 Aluno"]
+        A["🟢 Aluno Acessa Plataforma"]
+        B["📝 Registrar ou Login"]
+        C["🔍 Buscar Professor<br/>(Matéria + CEP)"]
+        D["🎯 Filtrar Resultados<br/>(Preço, Disponibilidade)"]
+        E["👤 Visualizar Perfil<br/>Completo"]
+        F["📅 Visualizar Disponibilidade<br/>de Horários do Professor"]
+        G["🗓️ Marcar/Reservar Horário"]
+        O["⚠️ Tentar Novamente"]
+    end
+
+    subgraph MercadoPago["💳 Mercado Pago"]
+        H["💳 Efetuar Pagamento<br/>(Valor Aula + R$ 5 Taxa)"]
+        I{Pagamento<br/>Aprovado?}
+        K["❌ Pagamento Rejeitado"]
+    end
+
+    subgraph Sistema["⚙️ Sistema"]
+        J["✅ Contratação Confirmada"]
+        L["📧 Email de Confirmação"]
+        M["🎉 Aula Agendada"]
+        N["📱 Notificação ao Professor"]
+    end
+
+    A --> B
+    B --> C
+    C --> D
+    D --> E
+    E --> F
+    F --> G
+    G --> H
+    H --> I
+    I -->|Sim| J
+    I -->|Não| K
+    J --> L
+    L --> M
+    M --> N
+    K --> O
+    O --> H
+
     style A fill:#90EE90
-    style L fill:#90EE90
-    style I fill:#87CEEB
-    style J fill:#FFB6C6
+    style J fill:#90EE90
+    style M fill:#90EE90
+    style H fill:#87CEEB
+    style K fill:#FFB6C6
 ```
 
 ---
 
-## 2️⃣ Processo de Configuração de Perfil (Professor)
+## 2️⃣ Processo de Configuração de Perfil e Assinatura (Professor)
+
+_Responsável: Victor H C Sampaio - RGM 11231101604_
 
 ```mermaid
 graph TD
-    A["🟢 Professor Acessa Plataforma"] --> B["📝 Registrar ou Login"]
-    B --> C["👨‍🏫 Criar Perfil Profissional"]
-    C --> D["📚 Adicionar Disciplinas<br/>(Matérias + Nível)"]
-    D --> E["📅 Definir Disponibilidade<br/>(Dias e Horários)"]
-    E --> F["🏠 Configurar Endereço<br/>(CEP + Localização)"]
-    F --> G["💰 Definir Preços<br/>(Particular + Instituições)"]
-    G --> H["📸 Upload de Avatar<br/>(AWS S3)"]
-    H --> I["✅ Perfil Ativo<br/>Visível na Busca"]
-    
-    style A fill:#FFD700
-    style I fill:#FFD700
+    subgraph Professor["👨‍🏫 Professor"]
+        A["🟢 Professor Acessa Plataforma"]
+        B["📝 Registrar ou Login"]
+        C["👨‍🏫 Criar Perfil Profissional"]
+        D["🎯 Definir Objetivo de Ensino<br/>(Particulares, Instituições ou Ambos)"]
+        E["📚 Adicionar Disciplinas<br/>(Matérias + Nível)"]
+        F["🔬 Detalhar Especialidades<br/>(Ex: Dev Web, Backend, Geometria)"]
+        G["💼 Adicionar Experiência Profissional<br/>(Opcional: locais que lecionou, tempo de carreira)"]
+        H["🎓 Inserir Certificações e Diplomas<br/>(Opcional)"]
+        I["📅 Configurar Grade de Disponibilidade<br/>(Horários reservados são ocultados)"]
+        J["🏠 Configurar Endereço<br/>(CEP + Localização)"]
+        K["💰 Definir Preço da Aula<br/>e/ou Pretensão Salarial"]
+        L["📸 Upload de Avatar<br/>(AWS S3)"]
+        M["💳 Assinar Plano /<br/>Pagar Mensalidade"]
+        Q["⚠️ Tentar Novamente"]
+    end
+
+    subgraph MercadoPago["💳 Mercado Pago"]
+        N{Pagamento<br/>Aprovado?}
+        P["❌ Pagamento Rejeitado"]
+    end
+
+    subgraph Sistema["⚙️ Sistema"]
+        O["✅ Perfil Ativo e<br/>Visível na Busca"]
+    end
+
+    A --> B
+    B --> C
+    C --> D
+    D --> E
+    E --> F
+    F --> G
+    G --> H
+    H --> I
+    I --> J
+    J --> K
+    K --> L
+    L --> M
+    M --> N
+    N -->|Sim| O
+    N -->|Não| P
+    P --> Q
+    Q --> M
+
+    style A fill:#DAA520
+    style O fill:#DAA520
     style D fill:#87CEEB
-    style G fill:#87CEEB
+    style F fill:#87CEEB
+    style I fill:#87CEEB
+    style K fill:#87CEEB
+    style P fill:#FFB6C6
 ```
 
 ---
 
 ## 3️⃣ Processo de Busca e Filtro (Sistema)
 
+_Responsável: Allan C D Guedes - RGM 11231103051_
+
 ```mermaid
 graph TD
-    A["🟢 Aluno Inicia Busca"] --> B["📍 Validar CEP<br/>(ViaCEP)"]
-    B --> C{CEP<br/>Válido?}
-    C -->|Sim| D["🗺️ Calcular Coordenadas"]
-    C -->|Não| E["❌ CEP Inválido"]
-    E --> F["⚠️ Solicitar Novo CEP"]
+    subgraph Aluno["👤 Aluno"]
+        A["🟢 Aluno Inicia Busca"]
+        F["⚠️ Solicitar Novo CEP"]
+    end
+
+    subgraph Sistema["⚙️ Sistema"]
+        B["📍 Validar CEP<br/>(ViaCEP)"]
+        C{CEP<br/>Válido?}
+        D["🗺️ Calcular Coordenadas"]
+        E["❌ CEP Inválido"]
+        G["🔍 Buscar Professores Ativos<br/>no Banco de Dados com Assinatura em Dia"]
+        H["📏 Calcular Distância<br/>em KM"]
+        I["⬆️ Ordenar por<br/>Proximidade"]
+        J["🎯 Aplicar Filtros<br/>(Matéria, Preço)"]
+        K["📊 Exibir Resultados<br/>ao Aluno"]
+    end
+
+    A --> B
+    B --> C
+    C -->|Sim| D
+    C -->|Não| E
+    E --> F
     F --> B
-    D --> G["🔍 Buscar Professores<br/>no Banco de Dados"]
-    G --> H["📏 Calcular Distância<br/>em KM"]
-    H --> I["⬆️ Ordenar por<br/>Proximidade"]
-    I --> J["🎯 Aplicar Filtros<br/>(Matéria, Preço)"]
-    J --> K["📊 Exibir Resultados<br/>ao Aluno"]
-    
+    D --> G
+    G --> H
+    H --> I
+    I --> J
+    J --> K
+
     style A fill:#90EE90
     style K fill:#90EE90
     style E fill:#FFB6C6
@@ -72,24 +160,103 @@ graph TD
 
 ---
 
-## 4️⃣ Processo de Pagamento (Integração Mercado Pago)
+## 4️⃣ Processo de Pagamento da Mensalidade (Integração Mercado Pago)
+
+_Responsável: Henrique C M Costa - RGM 11222100629_
+
+### 4.1 - Pagamento da Mensalidade (Professor)
 
 ```mermaid
 graph TD
-    A["🟢 Aluno Clica em Pagar"] --> B["💳 Preparar Dados<br/>de Cobrança"]
-    B --> C["🔗 Enviar para<br/>Mercado Pago"]
-    C --> D{Status da<br/>Transação?}
-    D -->|Aprovado| E["✅ Registrar Pagamento<br/>no Banco de Dados"]
-    D -->|Recusado| F["❌ Pagamento Recusado"]
-    D -->|Pendente| G["⏳ Aguardando Confirmação"]
-    E --> H["📧 Enviar Email<br/>de Confirmação<br/>(SendGrid)"]
-    F --> I["⚠️ Notificar Aluno"]
-    G --> J["⏳ Aguardar Callback"]
-    H --> K["🎉 Contratação Ativa"]
-    I --> L["🔄 Permitir Novo Pagamento"]
+    subgraph Professor["👨‍🏫 Professor"]
+        A["🟢 Professor Escolhe Plano<br/>(Mensal, Trimestral ou Anual)"]
+        N["🔄 Renovar Assinatura / Novo Pagamento"]
+    end
+
+    subgraph Sistema["⚙️ Sistema"]
+        B["💳 Preparar Dados<br/>de Cobrança"]
+        C["🔗 Enviar para<br/>Mercado Pago"]
+        E["✅ Registrar Assinatura<br/>no Banco de Dados"]
+        H["📧 Enviar Email de Confirmação<br/>(SendGrid)"]
+        I["⚠️ Notificar Professor do Erro"]
+        J["⏳ Aguardar Callback (Webhook)"]
+        K["🎉 Perfil Ativado na Busca"]
+        L["🔄 Permitir Nova Tentativa<br/>(Imediata)"]
+        M["📅 Fim do Período Contratado"]
+    end
+
+    subgraph MercadoPago["💳 Mercado Pago"]
+        D{Status da<br/>Transação?}
+        F["❌ Pagamento Recusado"]
+        G["⏳ Aguardando Confirmação"]
+    end
+
+    A --> B
+    B --> C
+    C --> D
+    D -->|Aprovado| E
+    D -->|Recusado| F
+    D -->|Pendente| G
+    E --> H
+    F --> I
+    G --> J
+    H --> K
+    I --> L
+    K --> M
+    M --> N
     J --> D
     L --> A
-    
+    N --> A
+
+    style A fill:#DAA520
+    style K fill:#DAA520
+    style E fill:#87CEEB
+    style F fill:#FFB6C6
+    style H fill:#87CEEB
+    style M fill:#6A5ACD
+```
+
+---
+
+### 4.2 - Pagamento do Agendamento de Aula (Aluno)
+
+```mermaid
+graph TD
+    subgraph Aluno["👤 Aluno"]
+        A["🟢 Aluno Clica em Reservar/Pagar"]
+    end
+
+    subgraph Sistema["⚙️ Sistema"]
+        B["💳 Preparar Cobrança<br/>(Valor Aula + R$ 5 Taxa)"]
+        C["🔗 Enviar para<br/>Mercado Pago (Split/Checkout)"]
+        E["✅ Registrar Agendamento<br/>no Banco de Dados"]
+        H["📧 Notificar Aluno e Professor<br/>(SendGrid)"]
+        I["⚠️ Notificar Aluno"]
+        J["⏳ Aguardar Callback (Webhook)"]
+        K["🎉 Aula Agendada e Confirmada"]
+        L["🔄 Permitir Novo Pagamento"]
+    end
+
+    subgraph MercadoPago["💳 Mercado Pago"]
+        D{Status da<br/>Transação?}
+        F["❌ Pagamento Recusado"]
+        G["⏳ Aguardando Confirmação"]
+    end
+
+    A --> B
+    B --> C
+    C --> D
+    D -->|Aprovado| E
+    D -->|Recusado| F
+    D -->|Pendente| G
+    E --> H
+    F --> I
+    G --> J
+    H --> K
+    I --> L
+    J --> D
+    L --> A
+
     style A fill:#90EE90
     style K fill:#90EE90
     style E fill:#87CEEB
@@ -101,22 +268,43 @@ graph TD
 
 ## 5️⃣ Processo de Autenticação com 2FA (TOTP)
 
+_Responsável: Allan C D Guedes - RGM 11231103051_
+
 ```mermaid
 graph TD
-    A["🟢 Novo Usuário"] --> B["📝 Preencher Cadastro<br/>(Email + Senha)"]
-    B --> C["✅ Registrar Usuário<br/>no Banco de Dados"]
-    C --> D["🔐 Gerar QR Code TOTP"]
-    D --> E["📱 Usuário Escaneia<br/>QR Code"]
-    E --> F["✔️ Confirmar TOTP"]
-    F --> G["🟢 Login - Email + Senha"]
-    G --> H["📱 Inserir Código TOTP<br/>(6 dígitos)"]
-    H --> I{Código<br/>Válido?}
-    I -->|Sim| J["✅ Sessão Iniciada<br/>(JWT + Session)"]
-    I -->|Não| K["❌ Código Inválido"]
-    K --> L["🔄 Solicitar Novo Código"]
+    subgraph Usuario["👤 Usuário"]
+        A["🟢 Novo Usuário"]
+        B["📝 Preencher Cadastro<br/>(Email + Senha)"]
+        E["📱 Usuário Escaneia<br/>QR Code"]
+        F["✔️ Confirmar TOTP"]
+        G["🟢 Login - Email + Senha"]
+        H["📱 Inserir Código TOTP<br/>(6 dígitos)"]
+        M["🚪 Acesso à Plataforma"]
+    end
+
+    subgraph Sistema["⚙️ Sistema"]
+        C["✅ Registrar Usuário<br/>no Banco de Dados"]
+        D["🔐 Gerar QR Code TOTP"]
+        I{Código<br/>Válido?}
+        J["✅ Sessão Iniciada<br/>(JWT + Session)"]
+        K["❌ Código Inválido"]
+        L["🔄 Solicitar Novo Código"]
+    end
+
+    A --> B
+    B --> C
+    C --> D
+    D --> E
+    E --> F
+    F --> G
+    G --> H
+    H --> I
+    I -->|Sim| J
+    I -->|Não| K
+    K --> L
     L --> H
-    J --> M["🚪 Acesso à Plataforma"]
-    
+    J --> M
+
     style A fill:#90EE90
     style M fill:#90EE90
     style J fill:#87CEEB
@@ -130,31 +318,38 @@ graph TD
 ```mermaid
 graph LR
     subgraph Professor["👨‍🏫 PROFESSOR"]
-        P1["Registrar"] --> P2["Criar Perfil"] --> P3["Definir Aulas"] --> P4["✅ Ativo"]
+        P1["Registrar"] --> P2["Criar Perfil"] --> P3["Pagar Assinatura"] --> P4["✅ Perfil Ativo"]
     end
-    
+
     subgraph Aluno["👤 ALUNO"]
-        A1["Registrar"] --> A2["Buscar"] --> A3["Filtrar"] --> A4["Selecionar"] --> A5["Pagar"]
+        A1["Registrar"] --> A2["Buscar Prof."] --> A3["Ver Grade de Horários"] --> A4["Reservar & Pagar (Split/ Contrato)"]
     end
-    
+
     subgraph Sistema["⚙️ SISTEMA"]
-        S1["Validar CEP<br/>ViaCEP"] --> S2["Calcular<br/>Distância"] --> S3["Buscar<br/>BD"] --> S4["Ordenar &<br/>Filtrar"]
+        S1["Validar CEP<br/>ViaCEP"] --> S2["Calcular<br/>Distância"] --> S3["Buscar<br/>BD (Prof. Ativos)"] --> S4["Ordenar &<br/>Filtrar"]
     end
-    
-    subgraph Pagamento["💳 PAGAMENTO"]
-        PAG1["Mercado Pago"] --> PAG2["Registrar"] --> PAG3["Email<br/>SendGrid"]
+
+    subgraph Pagamento["💳 MERCADO PAGO<br/>(Central Financeira)"]
+        PAG1["Assinatura Mensal<br/>(Professor)"]
+        PAG2["Aula Particular + Taxa<br/>(Aluno)"]
+        PAG3["Salário / Contrato B2B<br/>(Escola/Universidade)"]
     end
-    
-    P4 -.->|Disponível| A2
+
+    P3 --> PAG1
+    PAG1 -->|Aprova| P4
+    P4 -.->|Visível para| A2
     A2 --> S1
-    S4 --> A3
-    A5 --> PAG1
-    PAG3 --> A6["✅ Contrato Ativo"]
-    
-    style Professor fill:#FFD700
-    style Aluno fill:#87CEEB
+    S3 --> A3
+    A4 --> PAG2
+    A4 --> PAG3
+    PAG2 -->|Aprova| A5["🎉 Aula/Contrato<br/>Agendado"]
+    PAG3 -->|Aprova| A5
+    A5 -.->|Notifica| P4
+
+    style Professor fill:#DAA520
+    style Cliente fill:#87CEEB
     style Sistema fill:#90EE90
-    style Pagamento fill:#FF6B6B
+    style Pagamentos fill:#FF6B6B
 ```
 
 ---
@@ -163,118 +358,131 @@ graph LR
 
 ```mermaid
 sequenceDiagram
-    actor Student as 👤 Aluno
-    participant Frontend as 🖥️ Frontend React
-    participant Backend as 🔧 Backend Spring Boot
+    actor Teacher as 👨‍🏫 Professor
+    actor Client as 👤 Aluno / Escola
+    participant Frontend as 🖥️ Frontend
+    participant Backend as 🔧 Backend
     participant Database as 🗄️ PostgreSQL
     participant ViaCEP as 📍 ViaCEP
     participant MercadoPago as 💳 Mercado Pago
-    
-    Student->>Frontend: 1. Registrar/Login
-    Frontend->>Backend: POST /auth/register
-    Backend->>Database: Salvar usuário
-    Database-->>Backend: Usuário criado
-    
-    Student->>Frontend: 2. Buscar professor por CEP
+
+    %% Fluxo 1: Assinatura do Professor
+    Teacher->>Frontend: 1. Criar Perfil Completo
+    Frontend->>MercadoPago: POST /checkout (Mensalidade)
+    MercadoPago-->>Frontend: URL de pagamento
+    Teacher->>MercadoPago: Inserir dados do cartão
+    MercadoPago-->>Backend: Webhook de confirmação (Mensalidade)
+    Backend->>Database: Atualizar status do professor (ATIVO)
+
+    %% Fluxo 2: Busca e Validação
+    Client->>Frontend: 2. Buscar professor por CEP
     Frontend->>Backend: GET /professores (CEP)
     Backend->>ViaCEP: Validar e obter coordenadas
-    ViaCEP-->>Backend: Coordenadas
-    Backend->>Database: SELECT professores
-    Database-->>Backend: Lista de professores
+    ViaCEP-->>Backend: Coordenadas validadas
+    Backend->>Database: SELECT professores WHERE status='ATIVO'
+    Database-->>Backend: Lista de professores ativos
     Backend->>Backend: Calcular distância
-    Backend-->>Frontend: Lista ordenada por distância
-    
-    Student->>Frontend: 3. Visualizar perfil
-    Frontend->>Backend: GET /professores/{id}
-    Backend->>Database: SELECT professor detalhes
-    Database-->>Backend: Dados completos
-    Backend-->>Frontend: Perfil do professor
-    
-    Student->>Frontend: 4. Efetuar pagamento
-    Frontend->>MercadoPago: POST /checkout
+    Backend-->>Frontend: Lista ordenada por proximidade
+
+    %% Fluxo 3: Reserva e Pagamento (Split)
+    Client->>Frontend: 3. Visualizar Grade e Reservar
+    Frontend->>Backend: POST /reserva (Bloqueia horário)
+    Backend->>MercadoPago: POST /checkout_split (Aula + Taxa R$5)
     MercadoPago-->>Frontend: URL de pagamento
-    Student->>MercadoPago: Inserir dados cartão
-    MercadoPago-->>Backend: Webhook de confirmação
-    Backend->>Database: Registrar pagamento
-    Database-->>Backend: Pagamento salvo
-    Backend-->>Frontend: ✅ Sucesso
+    Client->>MercadoPago: Inserir dados do cartão
+    MercadoPago-->>Backend: Webhook de confirmação (Split)
+    Backend->>Database: Salvar agendamento / contrato
+    Backend-->>Teacher: Notificação de aula/contrato fechado
+    Backend-->>Frontend: ✅ Reserva Confirmada
 ```
 
 ---
 
 ## 📊 Matriz de Responsabilidades (RACI)
 
-| Atividade | Aluno | Professor | Sistema | Mercado Pago | AWS S3 | ViaCEP | SendGrid |
-|-----------|-------|-----------|---------|--------------|--------|--------|----------|
-| Registrar | R | R | A | | | | |
-| Criar Perfil | | R | A | | | | |
-| Upload Avatar | | R | A | ✓ | | | |
-| Buscar Professor | R | | A | | | | |
-| Validar CEP | | | A | | | ✓ | |
-| Calcular Distância | | | A | | | | |
-| Pagar Assinatura | R | | A | ✓ | | | |
-| Enviar Email | | | A | | | | ✓ |
-| Auditoria | | | A | | | | |
+| Atividade                      | Aluno/Escola | Professor | Sistema | Mercado Pago | AWS S3 | ViaCEP | SendGrid |
+| ------------------------------ | ------------ | --------- | ------- | ------------ | ------ | ------ | -------- |
+| Registrar Conta                | R            | R         | A       |              |        |        |          |
+| Criar Perfil Completo          |              | R         | A       |              |        |        |          |
+| Upload de Avatar/Certificados  |              | R         | A       |              | ✓      |        |          |
+| Pagar Mensalidade (Assinatura) |              | R         | A       | ✓            |        |        |          |
+| Buscar Professor por Filtros   | R            |           | A       |              |        |        |          |
+| Validar CEP e Distância        |              |           | A       |              |        | ✓      |          |
+| Reservar Horário na Grade      | R            |           | A       |              |        |        |          |
+| Pagar Aula + Taxa (Split)      | R            |           | A       | ✓            |        |        |          |
+| Enviar Emails/Notificações     |              |           | A       |              |        |        | ✓        |
+| Auditoria de Transações        |              |           | A       |              |        |        |          |
 
-**R = Responsável | A = Accountable | C = Consulta | I = Informado**
+**R = Responsável | A = Accountable (Aprovador) | C = Consultado | I = Informado**
 
 ---
 
-## 🔄 Estados Possíveis de Uma Contratação
+## 🔄 Estados Possíveis no Sistema
+
+### Status da Assinatura do Professor
 
 ```mermaid
 stateDiagram-v2
-    [*] --> Buscando: Aluno busca
-    Buscando --> PerfisVisualizados: Professores encontrados
-    PerfisVisualizados --> Selecionado: Aluno escolhe
-    Selecionado --> Pagando: Clica em contratar
-    Pagando --> PendentePagamento: Aguardando processamento
-    PendentePagamento --> Ativa: ✅ Pagamento confirmado
-    PendentePagamento --> Cancelada: ❌ Pagamento rejeitado
-    Ativa --> EmAndamento: Aula agendada
-    EmAndamento --> Concluida: Aula finalizada
-    Cancelada --> [*]
-    Concluida --> [*]
+    [*] --> ContaCriada: Registro inicial
+    ContaCriada --> AguardandoPagamento: Perfil preenchido
+    AguardandoPagamento --> Ativo: ✅ Mensalidade Paga
+    Ativo --> Inadimplente: Falha na renovação
+    Inadimplente --> Oculto: Removido das buscas
+    Oculto --> Ativo: Nova tentativa aprovada
+```
+
+### Status da Reserva de Aula (Aluno/Escola)
+
+```mermaid
+stateDiagram-v2
+    [*] --> Buscando: Cliente pesquisa
+    Buscando --> VisualizandoGrade: Escolhe professor
+    VisualizandoGrade --> ProcessandoPagamento: Reserva horário
+    ProcessandoPagamento --> Agendado: ✅ Pagamento Split Aprovado
+    ProcessandoPagamento --> Cancelado: ❌ Pagamento Recusado
+    Agendado --> Concluido: Aula/Contrato finalizado
 ```
 
 ---
 
 ## 🎯 Caso de Uso Principal
 
-**Título:** Contratar Professor Particular
+**Título:** Contratar Professor (Aula Particular ou Instituição)
 
-**Atores:** Aluno, Professor, Sistema ConectaPro
+**Atores:** Aluno/Escola (Cliente), Professor, Sistema ConectaPro
 
 **Pré-condições:**
-- Aluno registrado e autenticado
-- Professor tem perfil completo e ativo
-- Sistema tem conexão com ViaCEP e Mercado Pago
+
+- Cliente e Professor registrados e autenticados.
+- Professor pagou a mensalidade e está com o status "ATIVO" (Visível na busca).
+- Professor possui horários disponíveis em sua Grade.
 
 **Fluxo Principal:**
-1. Aluno acessa a plataforma
-2. Aluno busca professor por matéria e CEP
-3. Sistema valida CEP com ViaCEP
-4. Sistema calcula distância até cada professor
-5. Sistema exibe professores ordenados por proximidade
-6. Aluno visualiza detalhes do perfil
-7. Aluno clica em "Contratar"
-8. Aluno efetua pagamento via Mercado Pago
-9. Sistema registra a contratação
-10. Sistema envia email de confirmação via SendGrid
-11. Aula é agendada
+
+1. Cliente acessa a plataforma e busca professor por matéria/CEP.
+2. Sistema valida CEP (ViaCEP) e exibe professores ativos ordenados por proximidade.
+3. Cliente acessa o perfil do professor, visualiza certificações e a grade de horários.
+4. Cliente seleciona os horários desejados e clica em "Reservar e Pagar".
+5. Sistema direciona para o checkout do Mercado Pago (com regra de Split).
+6. Cliente efetua o pagamento (Valor do Professor + R$ 5,00 de Taxa da Plataforma).
+7. Mercado Pago aprova a transação e repassa os valores correspondentes.
+8. Sistema bloqueia o horário na grade do professor.
+9. Sistema notifica (via SendGrid) ambas as partes sobre a confirmação da aula/contrato.
 
 **Pós-condições:**
-- Contratação ativa no sistema
-- Emails enviados para aluno e professor
-- Histórico registrado na auditoria
+
+- Aula agendada ou contrato B2B firmado.
+- Receita distribuída (Professor recebe o valor da hora/aula; Plataforma retém a taxa).
+- Horários removidos da grade de disponibilidade pública do professor.
 
 ---
 
 ## 📝 Notas Técnicas
 
 - **Autenticação:** JWT + Session + TOTP (2FA)
-- **Autorização:** Role-based (PROFESSOR, ALUNO, ADMIN)
-- **Auditoria:** Todas as ações críticas são registradas
-- **Transações:** Uso de `@Transactional` para garantir consistência
-- **Localização:** Cálculo de distância via Haversine formula
-- **Segurança:** BCrypt para senhas, CORS habilitado, HTTPS obrigatório
+- **Autorização:** Role-based (PROFESSOR, ALUNO, ESCOLA, ADMIN)
+- **Auditoria:** Todas as ações críticas (pagamentos, cadastros, reservas) são registradas.
+- **Transações:** Uso de `@Transactional` para garantir consistência no banco de dados.
+- **Localização:** Cálculo de distância via Haversine formula (PostGIS/GeoJSON recomendado para o futuro).
+- **Segurança:** BCrypt para senhas, CORS habilitado, HTTPS obrigatório.
+- **Pagamentos:** Integração com Mercado Pago via API de Checkout Pro com funcionalidade de Split de Pagamentos.
