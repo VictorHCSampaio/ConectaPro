@@ -128,7 +128,7 @@ graph TD
     end
 
     subgraph Sistema["⚙️ Sistema"]
-        B["📍 Validar CEP<br/>(ViaCEP)"]
+        B["📍 Validar CEP<br/>(BrasilAPI)"]
         C{CEP<br/>Válido?}
         D["🗺️ Calcular Coordenadas"]
         E["❌ CEP Inválido"]
@@ -326,7 +326,7 @@ graph LR
     end
 
     subgraph Sistema["⚙️ SISTEMA"]
-        S1["Validar CEP<br/>ViaCEP"] --> S2["Calcular<br/>Distância"] --> S3["Buscar<br/>BD (Prof. Ativos)"] --> S4["Ordenar &<br/>Filtrar"]
+        S1["Validar CEP<br/>BrasilAPI"] --> S2["Calcular<br/>Distância"] --> S3["Buscar<br/>BD (Prof. Ativos)"] --> S4["Ordenar &<br/>Filtrar"]
     end
 
     subgraph Pagamento["💳 MERCADO PAGO<br/>(Central Financeira)"]
@@ -363,7 +363,7 @@ sequenceDiagram
     participant Frontend as 🖥️ Frontend
     participant Backend as 🔧 Backend
     participant Database as 🗄️ PostgreSQL
-    participant ViaCEP as 📍 ViaCEP
+    participant BrasilAPI as 📍 BrasilAPI
     participant MercadoPago as 💳 Mercado Pago
 
     %% Fluxo 1: Assinatura do Professor
@@ -377,8 +377,8 @@ sequenceDiagram
     %% Fluxo 2: Busca e Validação
     Client->>Frontend: 2. Buscar professor por CEP
     Frontend->>Backend: GET /professores (CEP)
-    Backend->>ViaCEP: Validar e obter coordenadas
-    ViaCEP-->>Backend: Coordenadas validadas
+    Backend->>BrasilAPI: Validar e obter coordenadas
+    BrasilAPI-->>Backend: Coordenadas validadas
     Backend->>Database: SELECT professores WHERE status='ATIVO'
     Database-->>Backend: Lista de professores ativos
     Backend->>Backend: Calcular distância
@@ -400,18 +400,18 @@ sequenceDiagram
 
 ## 📊 Matriz de Responsabilidades (RACI)
 
-| Atividade                      | Aluno/Escola | Professor | Sistema | Mercado Pago | AWS S3 | ViaCEP | SendGrid |
-| ------------------------------ | ------------ | --------- | ------- | ------------ | ------ | ------ | -------- |
-| Registrar Conta                | R            | R         | A       |              |        |        |          |
-| Criar Perfil Completo          |              | R         | A       |              |        |        |          |
-| Upload de Avatar/Certificados  |              | R         | A       |              | ✓      |        |          |
-| Pagar Mensalidade (Assinatura) |              | R         | A       | ✓            |        |        |          |
-| Buscar Professor por Filtros   | R            |           | A       |              |        |        |          |
-| Validar CEP e Distância        |              |           | A       |              |        | ✓      |          |
-| Reservar Horário na Grade      | R            |           | A       |              |        |        |          |
-| Pagar Aula + Taxa (Split)      | R            |           | A       | ✓            |        |        |          |
-| Enviar Emails/Notificações     |              |           | A       |              |        |        | ✓        |
-| Auditoria de Transações        |              |           | A       |              |        |        |          |
+| Atividade                      | Aluno/Escola | Professor | Sistema | Mercado Pago | AWS S3 | BrasilAPI | SendGrid |
+| ------------------------------ | ------------ | --------- | ------- | ------------ | ------ | --------- | -------- |
+| Registrar Conta                | R            | R         | A       |              |        |           |          |
+| Criar Perfil Completo          |              | R         | A       |              |        |           |          |
+| Upload de Avatar/Certificados  |              | R         | A       |              | ✓      |           |          |
+| Pagar Mensalidade (Assinatura) |              | R         | A       | ✓            |        |           |          |
+| Buscar Professor por Filtros   | R            |           | A       |              |        |           |          |
+| Validar CEP e Distância        |              |           | A       |              |        | ✓         |          |
+| Reservar Horário na Grade      | R            |           | A       |              |        |           |          |
+| Pagar Aula + Taxa (Split)      | R            |           | A       | ✓            |        |           |          |
+| Enviar Emails/Notificações     |              |           | A       |              |        |           | ✓        |
+| Auditoria de Transações        |              |           | A       |              |        |           |          |
 
 **R = Responsável | A = Accountable (Aprovador) | C = Consultado | I = Informado**
 
@@ -460,7 +460,7 @@ stateDiagram-v2
 **Fluxo Principal:**
 
 1. Cliente acessa a plataforma e busca professor por matéria/CEP.
-2. Sistema valida CEP (ViaCEP) e exibe professores ativos ordenados por proximidade.
+2. Sistema valida CEP (BrasilAPI) e exibe professores ativos ordenados por proximidade.
 3. Cliente acessa o perfil do professor, visualiza certificações e a grade de horários.
 4. Cliente seleciona os horários desejados e clica em "Reservar e Pagar".
 5. Sistema direciona para o checkout do Mercado Pago (com regra de Split).
