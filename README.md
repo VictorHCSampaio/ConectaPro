@@ -21,20 +21,24 @@ O **ConectaPro** nasce para curar essa dor, funcionando como um hub especializad
 
 ### Front-end
 
-- **React & JavaScript:** Criação da interface de usuário responsiva.
-- **Tailwind CSS:** Estilização ágil por meio de classes utilitárias.
+- **React + TypeScript:** Interface responsiva em SPA, com build via Vite.
+- **Tailwind CSS:** Estilização por meio de classes utilitárias.
+- **React Router & Axios:** Roteamento das páginas e consumo da API.
 - **Vercel:** Hospedagem (Deploy) da aplicação web.
 
 ### Back-end
 
-- **Java & Spring Boot:** Criação da API RESTful central.
+- **Java & Spring Boot:** API RESTful central.
 - **PostgreSQL:** Banco de dados relacional com mapeamento via Spring Data JPA e Hibernate.
-- **JWT & BCrypt:** Segurança de acesso via tokens e criptografia avançada de senhas.
+- **Spring Security:** Autenticação por sessão (login/senha), senhas protegidas com BCrypt e verificação em duas etapas por TOTP.
 - **Render:** Hospedagem da API e da base de dados principal.
 
 ### Integrações Externas
 
-- **ViaCEP:** Preenchimento automático e viabilização dos filtros de endereço.
+- **BrasilAPI:** Consulta de CEP para preenchimento automático de endereço e cálculo da distância entre aluno e professor.
+
+## Atualizações Futuras
+
 - **Mercado Pago:** Gestão de transações financeiras referentes à assinatura da plataforma.
 - **AWS S3:** Armazenamento em nuvem de arquivos estáticos, documentos comprobatórios e imagens de perfil.
 - **SendGrid:** Disparo automatizado de e-mails transacionais.
