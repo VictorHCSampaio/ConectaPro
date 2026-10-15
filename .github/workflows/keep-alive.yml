@@ -15,23 +15,26 @@ jobs:
         run: |
           if [ -z "$API_URL" ]; then
             echo "Defina a variavel API_URL em Settings > Secrets and variables > Actions > Variables."
-            echo "Exemplo: https://conectapro.onrender.com/api"
+            echo "Exemplo: https://conectapro-vd9q.onrender.com/api"
             exit 1
           fi
 
-          for tentativa in 1 2 3; do
-            codigo=$(curl -s -o resposta.json -w "%{http_code}" --max-time 90 "$API_URL/health" 2>/dev/null || true)
+          for tentativa in 1 2 3 4; do
+            codigo=$(curl -s -o resposta.json -w "%{http_code}" \
+              --connect-timeout 20 --max-time 170 "$API_URL/health" 2>/dev/null || true)
             codigo=${codigo:-000}
             echo "Tentativa $tentativa: HTTP $codigo"
 
-            if [ "$codigo" = "200" ]; then
-              cat resposta.json
+            if [ "$codigo" = "200" ] || [ "$codigo" = "503" ]; then
+              [ -s resposta.json ] && cat resposta.json
+              echo ""
+              echo "Servico acordado (HTTP $codigo)."
               exit 0
             fi
 
             [ -s resposta.json ] && cat resposta.json
-            sleep 20
+            sleep 10
           done
 
-          echo "A API nao respondeu 200 apos 3 tentativas."
+          echo "A API nao respondeu apos 4 tentativas."
           exit 1
