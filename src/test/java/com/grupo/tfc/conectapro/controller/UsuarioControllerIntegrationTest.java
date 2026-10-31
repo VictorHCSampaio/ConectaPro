@@ -18,7 +18,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 @SpringBootTest
 @ActiveProfiles("test")
-class UsuarioControllerIT {
+class UsuarioControllerIntegrationTest {
 
     private static final String EMAIL_REGISTRO = "integracao.register@conectapro.com";
 
