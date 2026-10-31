@@ -50,7 +50,7 @@ class MateriaControllerIntegrationTest {
     }
 
     @Test
-    void listMaterias_shouldReturn200WithList() {
+    void listar_deveRetornar200ComLista() {
         long ts = System.nanoTime();
         String nome = "Matematica " + ts;
         criarMateriaComoAdmin(nome, "Algebra linear");
@@ -65,7 +65,7 @@ class MateriaControllerIntegrationTest {
     }
 
     @Test
-    void getById_existing_shouldReturn200WithFields() {
+    void buscarPorId_existente_deveRetornar200ComCampos() {
         long ts = System.nanoTime();
         String nome = "Fisica " + ts;
         Integer id = criarMateriaComoAdmin(nome, "Cinematica");
@@ -84,7 +84,7 @@ class MateriaControllerIntegrationTest {
     }
 
     @Test
-    void getById_nonExistent_shouldReturn404WithMessage() {
+    void buscarPorId_inexistente_deveRetornar404ComMensagem() {
         ResponseEntity<Map<String, Object>> response = client.get().uri(MATERIAS + "/" + NONEXISTENT_ID)
                 .retrieve()
                 .toEntity(new ParameterizedTypeReference<>() {});
@@ -95,7 +95,7 @@ class MateriaControllerIntegrationTest {
     }
 
     @Test
-    void createMateriaFlow_shouldAppearInList() {
+    void criarEListar_comoAdmin_deveAparecerNaLista() {
         long ts = System.nanoTime();
         String cookie = registrarAdminELogar("admin" + ts + "@conecta.pro", "senha12345");
         String nome = "Quimica " + ts;
@@ -124,6 +124,78 @@ class MateriaControllerIntegrationTest {
                 });
     }
 
+    @Test
+    void criar_comoAdmin_deveRetornar201EPersistir() {
+        long ts = System.nanoTime();
+        String cookie = registrarAdminELogar("admin" + ts + "@conecta.pro", "senha12345");
+        String nome = "Biologia " + ts;
+
+        ResponseEntity<MateriaDTO> response = client.post().uri(MATERIAS)
+                .header(HttpHeaders.COOKIE, cookie)
+                .contentType(MediaType.APPLICATION_JSON)
+                .body(new MateriaDTO(null, nome, "Genetica", null, null))
+                .retrieve()
+                .toEntity(MateriaDTO.class);
+
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.CREATED);
+        MateriaDTO body = response.getBody();
+        assertThat(body).isNotNull();
+        assertThat(body.id()).isNotNull();
+        assertThat(body.nome()).isEqualTo(nome);
+
+        assertThat(materiaRepository.findById(body.id()))
+                .isPresent()
+                .get()
+                .satisfies(materia -> assertThat(materia.getNome()).isEqualTo(nome));
+    }
+
+    @Test
+    void criar_comoAdmin_deveRetornar201ComHeaderContentTypeJson() {
+        long ts = System.nanoTime();
+        String cookie = registrarAdminELogar("admin" + ts + "@conecta.pro", "senha12345");
+        String nome = "Sociologia " + ts;
+
+        ResponseEntity<MateriaDTO> response = client.post().uri(MATERIAS)
+                .header(HttpHeaders.COOKIE, cookie)
+                .contentType(MediaType.APPLICATION_JSON)
+                .body(new MateriaDTO(null, nome, "Teoria social", null, null))
+                .retrieve()
+                .toEntity(MateriaDTO.class);
+
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.CREATED);
+        assertThat(response.getBody()).isNotNull();
+        assertThat(response.getHeaders().getContentType()).isNotNull();
+        assertThat(response.getHeaders().getContentType().isCompatibleWith(MediaType.APPLICATION_JSON)).isTrue();
+    }
+
+    @Test
+    void criar_semSessao_deveRetornar401() {
+        long ts = System.nanoTime();
+
+        ResponseEntity<Void> response = client.post().uri(MATERIAS)
+                .contentType(MediaType.APPLICATION_JSON)
+                .body(new MateriaDTO(null, "Historia " + ts, "Idade media", null, null))
+                .retrieve()
+                .toBodilessEntity();
+
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.UNAUTHORIZED);
+    }
+
+    @Test
+    void criar_comUsuarioNaoAdmin_deveRetornar403() {
+        long ts = System.nanoTime();
+        String cookie = registrarUsuarioComumELogar("usuario" + ts + "@conecta.pro", "senha12345");
+
+        ResponseEntity<Void> response = client.post().uri(MATERIAS)
+                .header(HttpHeaders.COOKIE, cookie)
+                .contentType(MediaType.APPLICATION_JSON)
+                .body(new MateriaDTO(null, "Geografia " + ts, "Relevo", null, null))
+                .retrieve()
+                .toBodilessEntity();
+
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.FORBIDDEN);
+    }
+
     private Integer criarMateriaComoAdmin(String nome, String descricao) {
         long ts = System.nanoTime();
         String cookie = registrarAdminELogar("admin" + ts + "@conecta.pro", "senha12345");
@@ -150,6 +222,23 @@ class MateriaControllerIntegrationTest {
         Usuario usuario = usuarioRepository.findByEmail(email).orElseThrow();
         usuario.setAdmin(true);
         usuarioRepository.save(usuario);
+
+        ResponseEntity<Void> login = client.post().uri(AUTH + "/login")
+                .contentType(MediaType.APPLICATION_JSON)
+                .body(Map.of("email", email, "senha", senha))
+                .retrieve()
+                .toBodilessEntity();
+
+        assertThat(login.getStatusCode()).isEqualTo(HttpStatus.OK);
+        return extrairJsessionId(login.getHeaders());
+    }
+
+    private String registrarUsuarioComumELogar(String email, String senha) {
+        client.post().uri(AUTH + "/register")
+                .contentType(MediaType.APPLICATION_JSON)
+                .body(Map.of("nome", "Usuario Teste", "email", email, "senha", senha, "tipo", "PROFESSOR"))
+                .retrieve()
+                .toBodilessEntity();
 
         ResponseEntity<Void> login = client.post().uri(AUTH + "/login")
                 .contentType(MediaType.APPLICATION_JSON)

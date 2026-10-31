@@ -18,9 +18,10 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 @SpringBootTest
 @ActiveProfiles("test")
-class UsuarioControllerIT {
+class UsuarioControllerIntegrationTest {
 
     private static final String EMAIL_REGISTRO = "integracao.register@conectapro.com";
+    private static final String EMAIL_DUPLICADO = "integracao.duplicado@conectapro.com";
 
     @Autowired
     private WebApplicationContext webApplicationContext;
@@ -37,6 +38,8 @@ class UsuarioControllerIT {
                 .build();
 
         usuarioRepository.findByEmail(EMAIL_REGISTRO)
+                .ifPresent(usuarioRepository::delete);
+        usuarioRepository.findByEmail(EMAIL_DUPLICADO)
                 .ifPresent(usuarioRepository::delete);
     }
 
@@ -88,5 +91,33 @@ class UsuarioControllerIT {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(payloadEmailEmBranco))
                 .andExpect(status().isBadRequest());
+    }
+
+
+    // Cenário 3 — Erro 4xx: e-mail já cadastrado dispara BAD_REQUEST
+
+
+    @Test
+    void registrar_comEmailDuplicado_deveRetornar400() throws Exception {
+        // Arrange
+        String payload = """
+                {
+                  "nome": "Usuário Duplicado",
+                  "email": "%s",
+                  "password": "senha@123"
+                }
+                """.formatted(EMAIL_DUPLICADO);
+
+        mockMvc.perform(post("/auth/register")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(payload))
+                .andExpect(status().isOk());
+
+        // Act + Assert
+        mockMvc.perform(post("/auth/register")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(payload))
+                .andExpect(status().isBadRequest())
+                .andExpect(status().reason("Email ja cadastrado"));
     }
 }
