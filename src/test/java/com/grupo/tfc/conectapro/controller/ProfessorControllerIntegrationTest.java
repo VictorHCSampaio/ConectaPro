@@ -25,7 +25,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 @SpringBootTest
 @ActiveProfiles("test")
-class ProfessorControllerIT {
+class ProfessorControllerIntegrationTest {
 
     private static final String EMAIL_PROFESSOR_IT = "professor.it@conectapro.com";
     private static final String EMAIL_ALUNO_IT    = "aluno.it@conectapro.com";
