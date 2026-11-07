@@ -1,6 +1,7 @@
 package com.grupo.tfc.conectapro.controller;
 
 import com.grupo.tfc.conectapro.dto.MateriaDTO;
+import com.grupo.tfc.conectapro.dto.auth.LoginResponse;
 import com.grupo.tfc.conectapro.model.Usuario;
 import com.grupo.tfc.conectapro.repository.MateriaRepository;
 import com.grupo.tfc.conectapro.repository.UsuarioRepository;
@@ -10,7 +11,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.web.server.LocalServerPort;
 import org.springframework.core.ParameterizedTypeReference;
-import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
@@ -97,11 +97,11 @@ class MateriaControllerIntegrationTest {
     @Test
     void createMateriaFlow_shouldAppearInList() {
         long ts = System.nanoTime();
-        String cookie = registrarAdminELogar("admin" + ts + "@conecta.pro", "senha12345");
+        String token = registrarAdminELogar("admin" + ts + "@conecta.pro", "senha12345");
         String nome = "Quimica " + ts;
 
         ResponseEntity<MateriaDTO> criada = client.post().uri(MATERIAS)
-                .header(HttpHeaders.COOKIE, cookie)
+                .header("Authorization", "Bearer " + token)
                 .contentType(MediaType.APPLICATION_JSON)
                 .body(new MateriaDTO(null, nome, "Quimica organica", null, null))
                 .retrieve()
@@ -126,10 +126,10 @@ class MateriaControllerIntegrationTest {
 
     private Integer criarMateriaComoAdmin(String nome, String descricao) {
         long ts = System.nanoTime();
-        String cookie = registrarAdminELogar("admin" + ts + "@conecta.pro", "senha12345");
+        String token = registrarAdminELogar("admin" + ts + "@conecta.pro", "senha12345");
 
         ResponseEntity<MateriaDTO> response = client.post().uri(MATERIAS)
-                .header(HttpHeaders.COOKIE, cookie)
+                .header("Authorization", "Bearer " + token)
                 .contentType(MediaType.APPLICATION_JSON)
                 .body(new MateriaDTO(null, nome, descricao, null, null))
                 .retrieve()
@@ -143,7 +143,7 @@ class MateriaControllerIntegrationTest {
     private String registrarAdminELogar(String email, String senha) {
         client.post().uri(AUTH + "/register")
                 .contentType(MediaType.APPLICATION_JSON)
-                .body(Map.of("nome", "Admin Teste", "email", email, "senha", senha, "tipo", "PROFESSOR"))
+                .body(Map.of("nome", "Admin Teste", "email", email, "password", senha))
                 .retrieve()
                 .toBodilessEntity();
 
@@ -151,34 +151,26 @@ class MateriaControllerIntegrationTest {
         usuario.setAdmin(true);
         usuarioRepository.save(usuario);
 
-        ResponseEntity<Void> login = client.post().uri(AUTH + "/login")
+        ResponseEntity<LoginResponse> login = client.post().uri(AUTH + "/login")
                 .contentType(MediaType.APPLICATION_JSON)
                 .body(Map.of("email", email, "senha", senha))
                 .retrieve()
-                .toBodilessEntity();
+                .toEntity(LoginResponse.class);
 
         assertThat(login.getStatusCode()).isEqualTo(HttpStatus.OK);
-        return extrairJsessionId(login.getHeaders());
-    }
-
-    private String extrairJsessionId(HttpHeaders headers) {
-        List<String> cookies = headers.get(HttpHeaders.SET_COOKIE);
-        assertThat(cookies).isNotNull().isNotEmpty();
-        return cookies.stream()
-                .filter(cookie -> cookie.startsWith("JSESSIONID"))
-                .map(cookie -> cookie.split(";", 2)[0])
-                .findFirst()
-                .orElseThrow();
+        assertThat(login.getBody()).isNotNull();
+        assertThat(login.getBody().token()).isNotNull();
+        return login.getBody().token();
     }
 
     @Test
     void criar_comoAdmin_deveRetornar201EPersistir() {
         long ts = System.nanoTime();
-        String cookie = registrarAdminELogar("admin" + ts + "@conecta.pro", "senha12345");
+        String token = registrarAdminELogar("admin" + ts + "@conecta.pro", "senha12345");
         String nome = "Biologia " + ts;
 
         ResponseEntity<MateriaDTO> response = client.post().uri(MATERIAS)
-                .header(HttpHeaders.COOKIE, cookie)
+                .header("Authorization", "Bearer " + token)
                 .contentType(MediaType.APPLICATION_JSON)
                 .body(new MateriaDTO(null, nome, "Genetica", null, null))
                 .retrieve()
@@ -199,11 +191,11 @@ class MateriaControllerIntegrationTest {
     @Test
     void criar_comoAdmin_deveRetornar201ComHeaderContentTypeJson() {
         long ts = System.nanoTime();
-        String cookie = registrarAdminELogar("admin" + ts + "@conecta.pro", "senha12345");
+        String token = registrarAdminELogar("admin" + ts + "@conecta.pro", "senha12345");
         String nome = "Sociologia " + ts;
 
         ResponseEntity<MateriaDTO> response = client.post().uri(MATERIAS)
-                .header(HttpHeaders.COOKIE, cookie)
+                .header("Authorization", "Bearer " + token)
                 .contentType(MediaType.APPLICATION_JSON)
                 .body(new MateriaDTO(null, nome, "Teoria social", null, null))
                 .retrieve()
@@ -216,7 +208,7 @@ class MateriaControllerIntegrationTest {
     }
 
     @Test
-    void criar_semSessao_deveRetornar401() {
+    void criar_semToken_deveRetornar401() {
         long ts = System.nanoTime();
 
         ResponseEntity<Void> response = client.post().uri(MATERIAS)
@@ -231,10 +223,10 @@ class MateriaControllerIntegrationTest {
     @Test
     void criar_comUsuarioNaoAdmin_deveRetornar403() {
         long ts = System.nanoTime();
-        String cookie = registrarUsuarioComumELogar("usuario" + ts + "@conecta.pro", "senha12345");
+        String token = registrarUsuarioComumELogar("usuario" + ts + "@conecta.pro", "senha12345");
 
         ResponseEntity<Void> response = client.post().uri(MATERIAS)
-                .header(HttpHeaders.COOKIE, cookie)
+                .header("Authorization", "Bearer " + token)
                 .contentType(MediaType.APPLICATION_JSON)
                 .body(new MateriaDTO(null, "Geografia " + ts, "Relevo", null, null))
                 .retrieve()
@@ -246,17 +238,19 @@ class MateriaControllerIntegrationTest {
     private String registrarUsuarioComumELogar(String email, String senha) {
         client.post().uri(AUTH + "/register")
                 .contentType(MediaType.APPLICATION_JSON)
-                .body(Map.of("nome", "Usuario Teste", "email", email, "senha", senha, "tipo", "PROFESSOR"))
+                .body(Map.of("nome", "Usuario Teste", "email", email, "password", senha))
                 .retrieve()
                 .toBodilessEntity();
 
-        ResponseEntity<Void> login = client.post().uri(AUTH + "/login")
+        ResponseEntity<LoginResponse> login = client.post().uri(AUTH + "/login")
                 .contentType(MediaType.APPLICATION_JSON)
                 .body(Map.of("email", email, "senha", senha))
                 .retrieve()
-                .toBodilessEntity();
+                .toEntity(LoginResponse.class);
 
         assertThat(login.getStatusCode()).isEqualTo(HttpStatus.OK);
-        return extrairJsessionId(login.getHeaders());
+        assertThat(login.getBody()).isNotNull();
+        assertThat(login.getBody().token()).isNotNull();
+        return login.getBody().token();
     }
 }

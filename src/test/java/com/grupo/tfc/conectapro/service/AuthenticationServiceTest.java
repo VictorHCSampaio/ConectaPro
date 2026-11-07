@@ -1,18 +1,17 @@
 package com.grupo.tfc.conectapro.service;
 
-import com.grupo.tfc.conectapro.config.SessaoUsuario;
+import com.grupo.tfc.conectapro.dto.auth.LoginResponse;
 import com.grupo.tfc.conectapro.model.AcaoAuditoria;
 import com.grupo.tfc.conectapro.model.TipoUsuario;
 import com.grupo.tfc.conectapro.model.Usuario;
 import com.grupo.tfc.conectapro.repository.UsuarioRepository;
-import jakarta.servlet.http.HttpSession;
+import com.auth0.jwt.interfaces.DecodedJWT;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.NullAndEmptySource;
 import org.junit.jupiter.params.provider.ValueSource;
-import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.http.HttpStatus;
@@ -44,19 +43,24 @@ class AuthenticationServiceTest {
     private AuditoriaService auditoriaService;
 
     @Mock
-    private HttpSession session;
+    private JwtService jwtService;
 
-    @InjectMocks
     private AuthenticationService authenticationService;
 
     private static final String EMAIL_VALIDO = "joao.silva@email.com";
     private static final String SENHA_CORRETA = "S3nh@Correta!";
     private static final String SENHA_HASH = "$2a$10$abcdefghijklmnopqrstuuVGnxyz1234567890abcdefghijk";
+    private static final String FAKE_TOKEN = "eyJhbGciOiJIUzI1NiJ9.fake.token";
+    private static final String FAKE_PRE_AUTH_TOKEN = "eyJhbGciOiJIUzI1NiJ9.preauth.token";
 
     private Usuario usuarioPadrao;
 
     @BeforeEach
     void setUp() {
+        authenticationService = new AuthenticationService(
+                usuarioRepository, totpService, senhaService, auditoriaService, jwtService
+        );
+
         usuarioPadrao = Usuario.builder()
                 .id(UUID.randomUUID())
                 .nomeCompleto("João Silva")
@@ -66,22 +70,26 @@ class AuthenticationServiceTest {
                 .build();
     }
 
-    
+
     // Cenário 1 — Caminho Feliz
-    
+
 
     @Test
     void deveRealizarLoginComSucesso() {
         // Arrange
         when(usuarioRepository.findByEmail(EMAIL_VALIDO)).thenReturn(Optional.of(usuarioPadrao));
         when(senhaService.match(SENHA_CORRETA, SENHA_HASH)).thenReturn(true);
+        when(jwtService.gerarToken(usuarioPadrao.getId(), "ALUNO", false)).thenReturn(FAKE_TOKEN);
 
         // Act
-        Usuario resultado = authenticationService.login(EMAIL_VALIDO, SENHA_CORRETA, session);
+        LoginResponse resultado = authenticationService.login(EMAIL_VALIDO, SENHA_CORRETA);
 
         // Assert
-        assertThat(resultado).isEqualTo(usuarioPadrao);
-        verify(session).setAttribute(SessaoUsuario.ATRIBUTO, usuarioPadrao.getId());
+        assertThat(resultado.status()).isEqualTo("AUTHENTICATED");
+        assertThat(resultado.nomeCompleto()).isEqualTo("João Silva");
+        assertThat(resultado.tipo()).isEqualTo(TipoUsuario.ALUNO);
+        assertThat(resultado.token()).isEqualTo(FAKE_TOKEN);
+        verify(jwtService).gerarToken(usuarioPadrao.getId(), "ALUNO", false);
         verify(auditoriaService).registrar(
                 eq(AcaoAuditoria.LOGIN_SUCESSO),
                 eq(usuarioPadrao.getId()),
@@ -91,9 +99,66 @@ class AuthenticationServiceTest {
         );
     }
 
-    
+    @Test
+    void deveRetornarTotpRequiredQuandoTotpAtivo() {
+        // Arrange
+        usuarioPadrao.setTotpAtivo(true);
+        usuarioPadrao.setSegredoTotp("JBSWY3DPEHPK3PXP");
+        when(usuarioRepository.findByEmail(EMAIL_VALIDO)).thenReturn(Optional.of(usuarioPadrao));
+        when(senhaService.match(SENHA_CORRETA, SENHA_HASH)).thenReturn(true);
+        when(jwtService.gerarPreAuthToken(usuarioPadrao.getId())).thenReturn(FAKE_PRE_AUTH_TOKEN);
+
+        // Act
+        LoginResponse resultado = authenticationService.login(EMAIL_VALIDO, SENHA_CORRETA);
+
+        // Assert
+        assertThat(resultado.status()).isEqualTo("TOTP_REQUIRED");
+        assertThat(resultado.token()).isEqualTo(FAKE_PRE_AUTH_TOKEN);
+        verify(jwtService).gerarPreAuthToken(usuarioPadrao.getId());
+        verify(jwtService, never()).gerarToken(any(), any(), anyBoolean());
+        verify(auditoriaService, never()).registrar(eq(AcaoAuditoria.LOGIN_SUCESSO), any(), any(), any(), any());
+    }
+
+    @Test
+    void deveVerificarTotpComSucesso() {
+        // Arrange
+        UUID userId = usuarioPadrao.getId();
+        usuarioPadrao.setTotpAtivo(true);
+        usuarioPadrao.setSegredoTotp("JBSWY3DPEHPK3PXP");
+
+        DecodedJWT jwt = mock(DecodedJWT.class);
+        when(jwtService.validarToken(FAKE_PRE_AUTH_TOKEN)).thenReturn(jwt);
+        when(jwtService.extrairScope(jwt)).thenReturn(JwtService.SCOPE_PRE_AUTH);
+        when(jwtService.extrairUserId(jwt)).thenReturn(userId);
+        when(usuarioRepository.findById(userId)).thenReturn(Optional.of(usuarioPadrao));
+        when(totpService.verificarCodigo("JBSWY3DPEHPK3PXP", 123456)).thenReturn(true);
+        when(jwtService.gerarToken(userId, "ALUNO", false)).thenReturn(FAKE_TOKEN);
+
+        // Act
+        LoginResponse resultado = authenticationService.verificarTotp(123456, FAKE_PRE_AUTH_TOKEN);
+
+        // Assert
+        assertThat(resultado.status()).isEqualTo("AUTHENTICATED");
+        assertThat(resultado.nomeCompleto()).isEqualTo("João Silva");
+        assertThat(resultado.token()).isEqualTo(FAKE_TOKEN);
+        verify(auditoriaService).registrar(eq(AcaoAuditoria.TOTP_VERIFICADO), eq(userId), any(), any(), any());
+    }
+
+    @Test
+    void deveLancarExcecaoQuandoTotpSemPreAuthToken() {
+        // Act
+        ResponseStatusException excecao = assertThrows(
+                ResponseStatusException.class,
+                () -> authenticationService.verificarTotp(123456, null)
+        );
+
+        // Assert
+        assertThat(excecao.getStatusCode()).isEqualTo(HttpStatus.UNAUTHORIZED);
+    }
+
+
     // Cenário 2 — Violação de Regra: senha inválida
-    
+
 
     @Test
     void deveLancarExcecaoQuandoSenhaInvalida() {
@@ -104,12 +169,12 @@ class AuthenticationServiceTest {
         // Act
         ResponseStatusException excecao = assertThrows(
                 ResponseStatusException.class,
-                () -> authenticationService.login(EMAIL_VALIDO, "senhaErrada!", session)
+                () -> authenticationService.login(EMAIL_VALIDO, "senhaErrada!")
         );
 
         // Assert
         assertThat(excecao.getStatusCode()).isEqualTo(HttpStatus.UNAUTHORIZED);
-        verify(session, never()).setAttribute(any(), any());
+        verify(jwtService, never()).gerarToken(any(), any(), anyBoolean());
         verify(auditoriaService).registrar(
                 eq(AcaoAuditoria.LOGIN_FALHA),
                 eq(usuarioPadrao.getId()),
@@ -119,9 +184,9 @@ class AuthenticationServiceTest {
         );
     }
 
-    
+
     // Cenário 3 — Caso-Limite: e-mail não encontrado ou inválido
-    
+
 
     @ParameterizedTest
     @NullAndEmptySource
@@ -133,7 +198,7 @@ class AuthenticationServiceTest {
         // Act
         ResponseStatusException excecao = assertThrows(
                 ResponseStatusException.class,
-                () -> authenticationService.login(email, SENHA_CORRETA, session)
+                () -> authenticationService.login(email, SENHA_CORRETA)
         );
 
         // Assert

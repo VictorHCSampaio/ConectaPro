@@ -12,6 +12,7 @@ import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 import org.springframework.web.context.WebApplicationContext;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.springframework.security.test.web.servlet.setup.SecurityMockMvcConfigurers.springSecurity;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -34,6 +35,7 @@ class UsuarioControllerIntegrationTest {
     void setUp() {
         mockMvc = MockMvcBuilders
                 .webAppContextSetup(webApplicationContext)
+                .apply(springSecurity())
                 .build();
 
         usuarioRepository.findByEmail(EMAIL_REGISTRO)
@@ -41,7 +43,7 @@ class UsuarioControllerIntegrationTest {
     }
 
     // Cenário 1 — Caminho Feliz: POST /auth/register persiste usuário no banco
-    
+
 
     @Test
     void deveRetornar200ECriarUsuarioQuandoPayloadValido() throws Exception {
@@ -68,9 +70,9 @@ class UsuarioControllerIntegrationTest {
         assertThat(usuarioRepository.findByEmail(EMAIL_REGISTRO)).isPresent();
     }
 
-    
+
     // Cenário 2 — Erro 4xx: e-mail em branco dispara Bean Validation
-    
+
 
     @Test
     void deveRetornarErroQuandoEmailInvalidoOuDuplicado() throws Exception {

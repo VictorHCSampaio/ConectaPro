@@ -39,6 +39,27 @@ export type MensagemAutenticacaoResponse = {
   isAdmin: boolean
 }
 
+export type LoginResponse = {
+  status: 'TOTP_REQUIRED' | 'AUTHENTICATED'
+  message?: string
+  token?: string
+  nomeCompleto?: string
+  tipo?: UserRole
+  isAdmin?: boolean
+}
+
+export type TotpVerifyPayload = {
+  code: number
+}
+
+export type TotpActivatePayload = {
+  totpCode: number
+}
+
+export type TotpStatusResponse = {
+  totpAtivo: boolean
+}
+
 export type AuthUser = {
   name: string
   email: string

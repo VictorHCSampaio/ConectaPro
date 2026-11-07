@@ -1,5 +1,6 @@
 package com.grupo.tfc.conectapro.model;
 
+import com.grupo.tfc.conectapro.config.TotpSegredoConverter;
 import jakarta.persistence.*;
 import lombok.*;
 
@@ -25,7 +26,7 @@ public class Usuario {
     @Column(nullable = false, unique = true)
     private String email;
 
-    @Column(name = "senha_hash")
+    @Column(name = "senha_hash", length = 255)
     private String senhaHash;
 
     @Enumerated(EnumType.STRING)
@@ -38,4 +39,12 @@ public class Usuario {
 
     @Column(name = "is_admin")
     private boolean admin;
+
+    @Convert(converter = TotpSegredoConverter.class)
+    @Column(name = "segredo_totp", length = 255)
+    private String segredoTotp;
+
+    @Column(name = "totp_ativo")
+    @Builder.Default
+    private boolean totpAtivo = false;
 }

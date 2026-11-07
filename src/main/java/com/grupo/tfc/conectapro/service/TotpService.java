@@ -25,12 +25,12 @@ public class TotpService {
         this.securityAuthentication = securityAuthentication;
     }
 
-    public String secretGenerator(){
+    public String gerarSegredo(){
         GoogleAuthenticatorKey key = googleAuthenticator.createCredentials();
         return key.getKey();
     }
 
-    public String qrUriGenerator(String email, String secret){
+    public String gerarQrUri(String email, String secret){
         String emissor = securityAuthentication.totp().emissor();
         String label = emissor + ":" + email;
         String encodedLabel = URLEncoder.encode(label, StandardCharsets.UTF_8);
@@ -40,7 +40,7 @@ public class TotpService {
         return qrUri;
     }
 
-    public boolean verifyCode(String secret, int code){
+    public boolean verificarCodigo(String secret, int code){
         return googleAuthenticator.authorize(secret, code);
     }
 }

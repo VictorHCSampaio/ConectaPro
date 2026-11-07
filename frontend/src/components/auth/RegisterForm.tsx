@@ -3,6 +3,7 @@ import { useState, type MouseEvent } from 'react'
 import { FormFeedback } from '@/components/auth/FormFeedback'
 import { LegalTermsModal, type LegalDocumentType } from '@/components/auth/LegalTermsModal'
 import { RoleSelector } from '@/components/auth/RoleSelector'
+import { TotpSetupStep } from '@/components/auth/TotpSetupStep'
 import { Button } from '@/components/ui/Button'
 import { Checkbox } from '@/components/ui/Checkbox'
 import { Input } from '@/components/ui/Input'
@@ -11,7 +12,7 @@ import { useForm } from '@/hooks/useForm'
 import { extractErrorMessage } from '@/lib/api'
 import { registerUsuario } from '@/lib/authService'
 import { validateRegisterForm } from '@/lib/validation'
-import type { RegisterFormValues } from '@/types/auth'
+import type { RegisterFormValues, TotpSetupResponse } from '@/types/auth'
 
 const LEGAL_LINK_CLASS =
   'm-0 inline cursor-pointer bg-transparent p-0 font-[inherit] font-medium leading-snug text-ink-800 underline decoration-paper-300 underline-offset-2 transition-colors hover:decoration-ocre-400 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ocre-500 dark:text-zinc-300 dark:decoration-white/20 dark:hover:decoration-ocre-400'
@@ -26,7 +27,7 @@ const INITIAL_VALUES: RegisterFormValues = {
 }
 
 export function RegisterForm() {
-  const [wasSubmitted, setWasSubmitted] = useState(false)
+  const [totpSetup, setTotpSetup] = useState<(TotpSetupResponse & { email: string; password: string }) | null>(null)
   const [submitError, setSubmitError] = useState<string | null>(null)
   const [legalDocument, setLegalDocument] = useState<LegalDocumentType | null>(null)
   const { values, setField, touchField, fieldError, handleSubmit, isSubmitting } = useForm(
@@ -45,20 +46,24 @@ export function RegisterForm() {
   const onSubmit = handleSubmit(async (formValues) => {
     setSubmitError(null)
     try {
-      await registerUsuario({
+      const data = await registerUsuario({
         nome: formValues.fullName,
         email: formValues.email,
         password: formValues.password,
         role: formValues.role ?? 'ALUNO',
       })
 
-      setWasSubmitted(true)
+      setTotpSetup({ ...data, email: formValues.email, password: formValues.password })
     } catch (error) {
       setSubmitError(
         extractErrorMessage(error, 'Não foi possível criar sua conta. Tente novamente.'),
       )
     }
   })
+
+  if (totpSetup) {
+    return <TotpSetupStep {...totpSetup} />
+  }
 
   return (
     <div className="flex h-full flex-col justify-center gap-6 px-8 py-10 sm:px-10 md:px-12">
@@ -70,10 +75,6 @@ export function RegisterForm() {
           Preencha seus dados para se cadastrar.
         </p>
       </div>
-
-      {wasSubmitted && (
-        <FormFeedback message="Conta criada. Verifique seu e-mail para continuar." />
-      )}
 
       {submitError && <FormFeedback variant="error" message={submitError} />}
 
