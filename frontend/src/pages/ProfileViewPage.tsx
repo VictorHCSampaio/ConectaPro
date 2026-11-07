@@ -1,6 +1,6 @@
 import { Loader2, Pencil } from 'lucide-react'
 import { useEffect, useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { Navigate, useNavigate } from 'react-router-dom'
 import { SiteFooter } from '@/components/landing/SiteFooter'
 import { SiteHeader } from '@/components/landing/SiteHeader'
 import { FormSection } from '@/components/teacher-config/FormSection'
@@ -160,6 +160,10 @@ function TeacherProfileView() {
 
 export function ProfileViewPage() {
   const { user } = useAuth()
+
+  if (user?.role === 'PROFESSOR' && user.statusConta === 'PENDENTE_PAGAMENTO') {
+    return <Navigate to="/pagamento" replace />
+  }
 
   return user?.role === 'PROFESSOR' ? <TeacherProfileView /> : <StudentProfilePage />
 }

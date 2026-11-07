@@ -53,10 +53,17 @@ export function LoginForm() {
         email: formValues.email.trim(),
         role: response.tipo!,
         isAdmin: response.isAdmin!,
+        statusConta: response.statusConta,
       })
 
       setWasSubmitted(true)
-      setTimeout(() => navigate(response.tipo === 'PROFESSOR' ? '/profile/edit' : '/'), 900)
+      const destino =
+        response.statusConta === 'PENDENTE_PAGAMENTO'
+          ? '/pagamento'
+          : response.tipo === 'PROFESSOR'
+            ? '/profile/edit'
+            : '/'
+      setTimeout(() => navigate(destino), 900)
     } catch (error) {
       setSubmitError(extractErrorMessage(error, 'Não foi possível entrar. Tente novamente.'))
     }
@@ -78,10 +85,17 @@ export function LoginForm() {
         email: values.email.trim(),
         role: response.tipo!,
         isAdmin: response.isAdmin!,
+        statusConta: response.statusConta,
       })
 
       setWasSubmitted(true)
-      setTimeout(() => navigate(response.tipo === 'PROFESSOR' ? '/profile/edit' : '/'), 900)
+      const destino =
+        response.statusConta === 'PENDENTE_PAGAMENTO'
+          ? '/pagamento'
+          : response.tipo === 'PROFESSOR'
+            ? '/profile/edit'
+            : '/'
+      setTimeout(() => navigate(destino), 900)
     } catch (error) {
       setTotpError(extractErrorMessage(error, 'Código inválido. Tente novamente.'))
     } finally {

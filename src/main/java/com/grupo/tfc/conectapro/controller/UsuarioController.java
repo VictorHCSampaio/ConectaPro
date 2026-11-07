@@ -82,7 +82,8 @@ public class UsuarioController {
                 "Autenticado",
                 usuario.getNomeCompleto(),
                 usuario.getTipo(),
-                usuario.isAdmin()
+                usuario.isAdmin(),
+                usuario.getStatusConta()
         ));
     }
 

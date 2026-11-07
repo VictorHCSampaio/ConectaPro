@@ -5,6 +5,7 @@ import com.grupo.tfc.conectapro.dto.auth.LoginResponse;
 import com.grupo.tfc.conectapro.dto.auth.RegisterRequest;
 import com.grupo.tfc.conectapro.dto.auth.TotpConfiguracaoResponse;
 import com.grupo.tfc.conectapro.model.AcaoAuditoria;
+import com.grupo.tfc.conectapro.model.StatusConta;
 import com.grupo.tfc.conectapro.model.TipoUsuario;
 import com.grupo.tfc.conectapro.model.Usuario;
 import com.grupo.tfc.conectapro.repository.UsuarioRepository;
@@ -48,12 +49,15 @@ public class AuthenticationService {
 
         String secret = totpService.gerarSegredo();
 
+        TipoUsuario tipo = resolverTipo(request.role());
+
         Usuario usuario = Usuario.builder()
                 .nomeCompleto(request.nome())
                 .email(request.email())
                 .senhaHash(senhaService.senhaHash(request.password()))
-                .tipo(resolverTipo(request.role()))
+                .tipo(tipo)
                 .segredoTotp(secret)
+                .statusConta(tipo == TipoUsuario.PROFESSOR ? StatusConta.PENDENTE_PAGAMENTO : StatusConta.ATIVO)
                 .build();
         Usuario savedUsuario = Objects.requireNonNull(usuarioRepository.save(usuario));
         logger.info("Usuário registrado com sucesso. usuarioId={}", savedUsuario.getId());
@@ -101,7 +105,7 @@ public class AuthenticationService {
         String token = jwtService.gerarToken(usuario.getId(), usuario.getTipo().name(), usuario.isAdmin());
         logger.info("Login realizado com sucesso");
         auditoriaService.registrar(AcaoAuditoria.LOGIN_SUCESSO, usuario.getId(), "USUARIO", usuario.getId().toString(), null);
-        return LoginResponse.authenticated(token, usuario.getNomeCompleto(), usuario.getTipo(), usuario.isAdmin());
+        return LoginResponse.authenticated(token, usuario.getNomeCompleto(), usuario.getTipo(), usuario.isAdmin(), usuario.getStatusConta());
     }
 
     public LoginResponse verificarTotp(int totpCode, String preAuthToken) {
@@ -130,7 +134,7 @@ public class AuthenticationService {
         logger.info("TOTP verificado com sucesso. usuarioId={}", usuario.getId());
         auditoriaService.registrar(AcaoAuditoria.TOTP_VERIFICADO, usuario.getId(), "USUARIO", usuario.getId().toString(), null);
         auditoriaService.registrar(AcaoAuditoria.LOGIN_SUCESSO, usuario.getId(), "USUARIO", usuario.getId().toString(), "login com 2FA");
-        return LoginResponse.authenticated(token, usuario.getNomeCompleto(), usuario.getTipo(), usuario.isAdmin());
+        return LoginResponse.authenticated(token, usuario.getNomeCompleto(), usuario.getTipo(), usuario.isAdmin(), usuario.getStatusConta());
     }
 
     public void ativarTotp(UUID usuarioId, int totpCode) {

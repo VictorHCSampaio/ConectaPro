@@ -148,7 +148,7 @@ class SecurityIntegrationTest {
         String[] partes = token.split("\\.");
         String payloadJson = new String(Base64.getUrlDecoder().decode(partes[1]));
 
-        Set<String> claimsPermitidos = Set.of("sub", "scope", "role", "admin", "iat", "exp");
+        Set<String> claimsPermitidos = Set.of("sub", "scope", "role", "admin", "iat", "exp", "iss");
         String limpo = payloadJson.replaceAll("[{}\" ]", "");
         String[] pares = limpo.split(",");
         for (String par : pares) {

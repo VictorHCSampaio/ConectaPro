@@ -4,6 +4,8 @@ import { RequireAuth } from '@/components/auth/RequireAuth'
 import { AdminMateriasPage } from '@/pages/AdminMateriasPage'
 import { AuthPage } from '@/pages/AuthPage'
 import { LandingPage } from '@/pages/LandingPage'
+import { PagamentoPage } from '@/pages/PagamentoPage'
+import { PagamentoResultadoPage } from '@/pages/PagamentoResultadoPage'
 import { ProfilePage } from '@/pages/ProfilePage'
 import { ProfileViewPage } from '@/pages/ProfileViewPage'
 import { SearchTeachersPage } from '@/pages/SearchTeachersPage'
@@ -31,6 +33,17 @@ function App() {
       />
       <Route path="/login" element={<AuthPage />} />
       <Route path="/register" element={<AuthPage />} />
+      <Route
+        path="/pagamento"
+        element={
+          <RequireAuth>
+            <PagamentoPage />
+          </RequireAuth>
+        }
+      />
+      <Route path="/pagamento/sucesso" element={<PagamentoResultadoPage variante="sucesso" />} />
+      <Route path="/pagamento/falha" element={<PagamentoResultadoPage variante="falha" />} />
+      <Route path="/pagamento/pendente" element={<PagamentoResultadoPage variante="pendente" />} />
       <Route
         path="/perfil"
         element={

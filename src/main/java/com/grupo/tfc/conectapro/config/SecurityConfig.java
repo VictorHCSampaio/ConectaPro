@@ -54,6 +54,7 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.GET, "/professores", "/professores/{id}").permitAll()
                         .requestMatchers(HttpMethod.GET, "/materias", "/materias/{id}").permitAll()
                         .requestMatchers(HttpMethod.GET, "/enderecos/{cep}").permitAll()
+                        .requestMatchers("/pagamentos/webhook/mercadopago").permitAll()
                         .anyRequest().authenticated()
                 )
                 .exceptionHandling(ex -> ex

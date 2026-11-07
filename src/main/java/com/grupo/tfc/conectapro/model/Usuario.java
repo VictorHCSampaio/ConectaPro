@@ -4,6 +4,8 @@ import com.grupo.tfc.conectapro.config.TotpSegredoConverter;
 import jakarta.persistence.*;
 import lombok.*;
 
+import static com.grupo.tfc.conectapro.model.StatusConta.ATIVO;
+
 import java.time.OffsetDateTime;
 import java.util.UUID;
 
@@ -47,4 +49,9 @@ public class Usuario {
     @Column(name = "totp_ativo")
     @Builder.Default
     private boolean totpAtivo = false;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "status_conta")
+    @Builder.Default
+    private StatusConta statusConta = ATIVO;
 }

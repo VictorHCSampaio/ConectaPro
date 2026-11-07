@@ -37,7 +37,10 @@ export type MensagemAutenticacaoResponse = {
   nomeCompleto: string
   tipo: UserRole
   isAdmin: boolean
+  statusConta?: StatusConta
 }
+
+export type StatusConta = 'ATIVO' | 'PENDENTE_PAGAMENTO'
 
 export type LoginResponse = {
   status: 'TOTP_REQUIRED' | 'AUTHENTICATED'
@@ -46,6 +49,7 @@ export type LoginResponse = {
   nomeCompleto?: string
   tipo?: UserRole
   isAdmin?: boolean
+  statusConta?: StatusConta
 }
 
 export type TotpVerifyPayload = {
@@ -65,4 +69,5 @@ export type AuthUser = {
   email: string
   role: UserRole | null
   isAdmin: boolean
+  statusConta?: StatusConta
 }

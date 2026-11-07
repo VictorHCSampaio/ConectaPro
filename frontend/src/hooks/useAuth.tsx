@@ -25,6 +25,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             email: '',
             role: data.tipo,
             isAdmin: data.isAdmin,
+            statusConta: data.statusConta,
           }),
         )
         .catch(() => {
