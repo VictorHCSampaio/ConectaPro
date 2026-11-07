@@ -1,4 +1,4 @@
-import { CreditCard, Loader2, Sparkles } from 'lucide-react'
+import { CreditCard, Sparkles } from 'lucide-react'
 import { useState } from 'react'
 import { SiteFooter } from '@/components/landing/SiteFooter'
 import { SiteHeader } from '@/components/landing/SiteHeader'

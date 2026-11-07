@@ -1,5 +1,5 @@
 import { CheckCircle, AlertTriangle, Clock } from 'lucide-react'
-import { useNavigate, useSearchParams } from 'react-router-dom'
+import { useNavigate } from 'react-router-dom'
 import { SiteFooter } from '@/components/landing/SiteFooter'
 import { SiteHeader } from '@/components/landing/SiteHeader'
 import { Button } from '@/components/ui/Button'
@@ -32,7 +32,6 @@ const config: Record<Variante, { icon: typeof CheckCircle; title: string; descri
 
 export function PagamentoResultadoPage({ variante }: { variante: Variante }) {
   const navigate = useNavigate()
-  const [searchParams] = useSearchParams()
   const { icon: Icon, title, description, color, bg } = config[variante]
 
   return (
