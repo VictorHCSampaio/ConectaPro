@@ -1,14 +1,22 @@
 package com.grupo.tfc.conectapro.controller;
 
+import com.grupo.tfc.conectapro.dto.auth.LoginRequest;
+import com.grupo.tfc.conectapro.dto.auth.LoginResponse;
+import com.grupo.tfc.conectapro.dto.auth.RegisterRequest;
+import com.grupo.tfc.conectapro.dto.auth.TotpConfiguracaoResponse;
 import com.grupo.tfc.conectapro.repository.UsuarioRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.boot.test.web.server.LocalServerPort;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
+import org.springframework.web.client.RestClient;
 import org.springframework.web.context.WebApplicationContext;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -17,11 +25,15 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-@SpringBootTest
+@SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 @ActiveProfiles("test")
 class UsuarioControllerIntegrationTest {
 
     private static final String EMAIL_REGISTRO = "integracao.register@conectapro.com";
+    private static final String EMAIL_DUPLICADO = "integracao.duplicado@conectapro.com";
+
+    @LocalServerPort
+    private int port;
 
     @Autowired
     private WebApplicationContext webApplicationContext;
@@ -31,6 +43,8 @@ class UsuarioControllerIntegrationTest {
 
     private MockMvc mockMvc;
 
+    private RestClient restClient;
+
     @BeforeEach
     void setUp() {
         mockMvc = MockMvcBuilders
@@ -38,16 +52,19 @@ class UsuarioControllerIntegrationTest {
                 .apply(springSecurity())
                 .build();
 
+        restClient = RestClient.builder()
+                .baseUrl("http://localhost:" + port)
+                .defaultStatusHandler(status -> true, (req, res) -> {})
+                .build();
+
         usuarioRepository.findByEmail(EMAIL_REGISTRO)
+                .ifPresent(usuarioRepository::delete);
+        usuarioRepository.findByEmail(EMAIL_DUPLICADO)
                 .ifPresent(usuarioRepository::delete);
     }
 
-    // Cenário 1 — Caminho Feliz: POST /auth/register persiste usuário no banco
-
-
     @Test
     void deveRetornar200ECriarUsuarioQuandoPayloadValido() throws Exception {
-        // Arrange
         String payload = """
                 {
                   "nome": "Usuário de Integração",
@@ -56,28 +73,19 @@ class UsuarioControllerIntegrationTest {
                 }
                 """.formatted(EMAIL_REGISTRO);
 
-        // Act
         mockMvc.perform(post("/auth/register")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(payload))
-
-                // Assert — resposta HTTP
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.secret").isNotEmpty())
                 .andExpect(jsonPath("$.qrUri").isNotEmpty());
 
-        // Assert — persistência no banco H2
         assertThat(usuarioRepository.findByEmail(EMAIL_REGISTRO)).isPresent();
     }
 
-
-    // Cenário 2 — Erro 4xx: e-mail em branco dispara Bean Validation
-
-
     @Test
-    void deveRetornarErroQuandoEmailInvalidoOuDuplicado() throws Exception {
-        // Arrange
-        String payloadEmailEmBranco = """
+    void deveRetornarErroQuandoEmailVazio() throws Exception {
+        String payload = """
                 {
                   "nome": "Usuário Inválido",
                   "email": "",
@@ -85,10 +93,113 @@ class UsuarioControllerIntegrationTest {
                 }
                 """;
 
-        // Act + Assert
         mockMvc.perform(post("/auth/register")
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content(payloadEmailEmBranco))
+                        .content(payload))
+                .andExpect(status().isInternalServerError());
+    }
+
+    @Test
+    void registrar_comEmailDuplicado_deveRetornar400() throws Exception {
+        String payload = """
+                {
+                  "nome": "Usuário Duplicado",
+                  "email": "%s",
+                  "password": "senha@123"
+                }
+                """.formatted(EMAIL_DUPLICADO);
+
+        mockMvc.perform(post("/auth/register")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(payload))
+                .andExpect(status().isOk());
+
+        mockMvc.perform(post("/auth/register")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(payload))
                 .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    void registrar_comDadosValidos_deveRetornar200EPersistir() {
+        String email = "teste" + System.nanoTime() + "@email.com";
+        RegisterRequest payload = new RegisterRequest(
+                "Usuario de Integracao",
+                email,
+                "senha@123",
+                null
+        );
+
+        ResponseEntity<TotpConfiguracaoResponse> resposta = restClient.post()
+                .uri("/auth/register")
+                .contentType(MediaType.APPLICATION_JSON)
+                .body(payload)
+                .retrieve()
+                .toEntity(TotpConfiguracaoResponse.class);
+
+        assertThat(resposta.getStatusCode()).isEqualTo(HttpStatus.OK);
+        assertThat(resposta.getBody()).isNotNull();
+        assertThat(resposta.getBody().secret()).isNotNull();
+        assertThat(resposta.getBody().qrUri()).isNotNull();
+        assertThat(usuarioRepository.findByEmail(email)).isPresent();
+    }
+
+    @Test
+    void login_comCredenciaisValidas_deveRetornarTokenJwt() {
+        String email = "teste" + System.nanoTime() + "@email.com";
+        String senha = "senha@123";
+        registrarUsuarioParaTeste(email, senha);
+        LoginRequest payload = new LoginRequest(email, senha);
+
+        ResponseEntity<LoginResponse> resposta = restClient.post()
+                .uri("/auth/login")
+                .contentType(MediaType.APPLICATION_JSON)
+                .body(payload)
+                .retrieve()
+                .toEntity(LoginResponse.class);
+
+        assertThat(resposta.getStatusCode()).isEqualTo(HttpStatus.OK);
+        assertThat(resposta.getBody()).isNotNull();
+        assertThat(resposta.getBody().status()).isEqualTo("AUTHENTICATED");
+        assertThat(resposta.getBody().token()).isNotNull();
+        assertThat(resposta.getBody().nomeCompleto()).isEqualTo("Usuario de Integracao");
+    }
+
+    @Test
+    void me_semToken_deveRetornar401() {
+        ResponseEntity<Void> resposta = restClient.get()
+                .uri("/auth/me")
+                .retrieve()
+                .toEntity(Void.class);
+
+        assertThat(resposta.getStatusCode()).isEqualTo(HttpStatus.UNAUTHORIZED);
+    }
+
+    @Test
+    void logout_semToken_deveRetornar401() {
+        ResponseEntity<Void> resposta = restClient.post()
+                .uri("/auth/logout")
+                .retrieve()
+                .toEntity(Void.class);
+
+        assertThat(resposta.getStatusCode()).isEqualTo(HttpStatus.UNAUTHORIZED);
+    }
+
+    private void registrarUsuarioParaTeste(String email, String senha) {
+        RegisterRequest payload = new RegisterRequest(
+                "Usuario de Integracao",
+                email,
+                senha,
+                null
+        );
+
+        ResponseEntity<TotpConfiguracaoResponse> resposta = restClient.post()
+                .uri("/auth/register")
+                .contentType(MediaType.APPLICATION_JSON)
+                .body(payload)
+                .retrieve()
+                .toEntity(TotpConfiguracaoResponse.class);
+
+        assertThat(resposta.getStatusCode()).isEqualTo(HttpStatus.OK);
     }
 }
