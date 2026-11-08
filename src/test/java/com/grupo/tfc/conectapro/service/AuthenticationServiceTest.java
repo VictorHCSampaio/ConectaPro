@@ -1,5 +1,6 @@
 package com.grupo.tfc.conectapro.service;
 
+import com.grupo.tfc.conectapro.config.SecurityAuthenticationProperties;
 import com.grupo.tfc.conectapro.dto.auth.LoginResponse;
 import com.grupo.tfc.conectapro.model.AcaoAuditoria;
 import com.grupo.tfc.conectapro.model.TipoUsuario;
@@ -57,8 +58,11 @@ class AuthenticationServiceTest {
 
     @BeforeEach
     void setUp() {
+        SecurityAuthenticationProperties authProperties = new SecurityAuthenticationProperties(
+                5, 30, new SecurityAuthenticationProperties.TotpPropriedades("ConectaPro")
+        );
         authenticationService = new AuthenticationService(
-                usuarioRepository, totpService, senhaService, auditoriaService, jwtService
+                usuarioRepository, totpService, senhaService, auditoriaService, jwtService, authProperties
         );
 
         usuarioPadrao = Usuario.builder()
@@ -180,7 +184,7 @@ class AuthenticationServiceTest {
                 eq(usuarioPadrao.getId()),
                 eq("USUARIO"),
                 eq(usuarioPadrao.getId().toString()),
-                eq("senha inválida")
+                eq("senha inválida (1/5)")
         );
     }
 
