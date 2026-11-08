@@ -1,15 +1,18 @@
 package com.grupo.tfc.conectapro.controller;
 
 import com.grupo.tfc.conectapro.config.UsuarioAutenticado;
+import com.grupo.tfc.conectapro.dto.auth.ConfirmarResetSenhaRequest;
 import com.grupo.tfc.conectapro.dto.auth.LoginRequest;
 import com.grupo.tfc.conectapro.dto.auth.LoginResponse;
 import com.grupo.tfc.conectapro.dto.auth.MensagemAutenticacaoResponse;
 import com.grupo.tfc.conectapro.dto.auth.RegisterRequest;
+import com.grupo.tfc.conectapro.dto.auth.SolicitarResetSenhaRequest;
 import com.grupo.tfc.conectapro.dto.auth.TotpAtivacaoRequest;
 import com.grupo.tfc.conectapro.dto.auth.TotpConfiguracaoResponse;
 import com.grupo.tfc.conectapro.dto.auth.TotpVerificacaoRequest;
 import com.grupo.tfc.conectapro.model.Usuario;
 import com.grupo.tfc.conectapro.service.AuthenticationService;
+import com.grupo.tfc.conectapro.service.ResetSenhaService;
 import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -27,9 +30,11 @@ import java.util.UUID;
 public class UsuarioController {
 
     private final AuthenticationService authService;
+    private final ResetSenhaService resetSenhaService;
 
-    public UsuarioController(AuthenticationService authService) {
+    public UsuarioController(AuthenticationService authService, ResetSenhaService resetSenhaService) {
         this.authService = authService;
+        this.resetSenhaService = resetSenhaService;
     }
 
     @PostMapping("/register")
@@ -85,6 +90,18 @@ public class UsuarioController {
                 usuario.isAdmin(),
                 usuario.getStatusConta()
         ));
+    }
+
+    @PostMapping("/password-reset/request")
+    public ResponseEntity<Map<String, String>> solicitarResetSenha(@Valid @RequestBody SolicitarResetSenhaRequest request) {
+        resetSenhaService.solicitarReset(request.email());
+        return ResponseEntity.ok(Map.of("message", "Se o e-mail estiver cadastrado, você receberá instruções para redefinir sua senha."));
+    }
+
+    @PostMapping("/password-reset/confirm")
+    public ResponseEntity<Map<String, String>> confirmarResetSenha(@Valid @RequestBody ConfirmarResetSenhaRequest request) {
+        resetSenhaService.confirmarReset(request.token(), request.novaSenha());
+        return ResponseEntity.ok(Map.of("message", "Senha redefinida com sucesso. Faça login com sua nova senha."));
     }
 
     @PostMapping("/logout")

@@ -202,7 +202,7 @@ export function LoginForm() {
             onChange={(event) => setField('rememberMe', event.target.checked)}
           />
           <Link
-            to="#"
+            to="/forgot-password"
             className="border-b border-paper-300 text-sm text-ink-700 transition-colors hover:border-ocre-400 hover:text-ink-900 dark:border-white/20 dark:text-zinc-400 dark:hover:border-ocre-400 dark:hover:text-white"
           >
             Esqueci minha senha
