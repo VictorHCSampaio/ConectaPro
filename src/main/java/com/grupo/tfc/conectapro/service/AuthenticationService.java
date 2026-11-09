@@ -1,5 +1,6 @@
 package com.grupo.tfc.conectapro.service;
 
+import com.grupo.tfc.conectapro.config.SecurityAuthenticationProperties;
 import com.grupo.tfc.conectapro.config.UsuarioAutenticado;
 import com.grupo.tfc.conectapro.dto.auth.LoginResponse;
 import com.grupo.tfc.conectapro.dto.auth.RegisterRequest;
@@ -15,6 +16,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.web.server.ResponseStatusException;
 
+import java.time.OffsetDateTime;
 import java.util.Objects;
 import java.util.UUID;
 
@@ -31,15 +33,17 @@ public class AuthenticationService {
     private final SenhaService senhaService;
     private final AuditoriaService auditoriaService;
     private final JwtService jwtService;
+    private final SecurityAuthenticationProperties authProperties;
 
     public AuthenticationService(UsuarioRepository usuarioRepository, TotpService totpService,
                                  SenhaService senhaService, AuditoriaService auditoriaService,
-                                 JwtService jwtService) {
+                                 JwtService jwtService, SecurityAuthenticationProperties authProperties) {
         this.usuarioRepository = usuarioRepository;
         this.totpService = totpService;
         this.senhaService = senhaService;
         this.auditoriaService = auditoriaService;
         this.jwtService = jwtService;
+        this.authProperties = authProperties;
     }
 
     public TotpConfiguracaoResponse register(RegisterRequest request) {
@@ -90,11 +94,14 @@ public class AuthenticationService {
                     return new ResponseStatusException(UNAUTHORIZED, "Credênciais inválidas");
                 });
 
+        verificarBloqueio(usuario);
+
         if (!senhaService.match(senha, usuario.getSenhaHash())) {
-            logger.warn("Falha ao realizar o login, senha inválida");
-            auditoriaService.registrar(AcaoAuditoria.LOGIN_FALHA, usuario.getId(), "USUARIO", usuario.getId().toString(), "senha inválida");
+            registrarFalhaLogin(usuario);
             throw new ResponseStatusException(UNAUTHORIZED, "Credênciais inválidas");
         }
+
+        resetarTentativas(usuario);
 
         if (usuario.isTotpAtivo()) {
             String preAuthToken = jwtService.gerarPreAuthToken(usuario.getId());
@@ -106,6 +113,47 @@ public class AuthenticationService {
         logger.info("Login realizado com sucesso");
         auditoriaService.registrar(AcaoAuditoria.LOGIN_SUCESSO, usuario.getId(), "USUARIO", usuario.getId().toString(), null);
         return LoginResponse.authenticated(token, usuario.getNomeCompleto(), usuario.getTipo(), usuario.isAdmin(), usuario.getStatusConta());
+    }
+
+    private void verificarBloqueio(Usuario usuario) {
+        if (usuario.getBloqueadoAte() == null) return;
+
+        if (OffsetDateTime.now().isBefore(usuario.getBloqueadoAte())) {
+            logger.warn("Login bloqueado temporariamente. usuarioId={}", usuario.getId());
+            auditoriaService.registrar(AcaoAuditoria.LOGIN_FALHA, usuario.getId(), "USUARIO", usuario.getId().toString(), "conta bloqueada temporariamente");
+            throw new ResponseStatusException(UNAUTHORIZED,
+                    "Conta bloqueada temporariamente. Tente novamente em " + authProperties.tempoDuracao() + " minutos.");
+        }
+
+        usuario.setTentativasLoginFalha(0);
+        usuario.setBloqueadoAte(null);
+        usuarioRepository.save(usuario);
+    }
+
+    private void registrarFalhaLogin(Usuario usuario) {
+        int tentativas = usuario.getTentativasLoginFalha() + 1;
+        usuario.setTentativasLoginFalha(tentativas);
+
+        if (tentativas >= authProperties.maxTentativas()) {
+            usuario.setBloqueadoAte(OffsetDateTime.now().plusMinutes(authProperties.tempoDuracao()));
+            logger.warn("Conta bloqueada após {} tentativas. usuarioId={}", tentativas, usuario.getId());
+            auditoriaService.registrar(AcaoAuditoria.LOGIN_FALHA, usuario.getId(), "USUARIO", usuario.getId().toString(),
+                    "conta bloqueada por " + authProperties.tempoDuracao() + " min após " + tentativas + " tentativas");
+        } else {
+            logger.warn("Falha no login ({}/{}). usuarioId={}", tentativas, authProperties.maxTentativas(), usuario.getId());
+            auditoriaService.registrar(AcaoAuditoria.LOGIN_FALHA, usuario.getId(), "USUARIO", usuario.getId().toString(),
+                    "senha inválida (" + tentativas + "/" + authProperties.maxTentativas() + ")");
+        }
+
+        usuarioRepository.save(usuario);
+    }
+
+    private void resetarTentativas(Usuario usuario) {
+        if (usuario.getTentativasLoginFalha() > 0) {
+            usuario.setTentativasLoginFalha(0);
+            usuario.setBloqueadoAte(null);
+            usuarioRepository.save(usuario);
+        }
     }
 
     public LoginResponse verificarTotp(int totpCode, String preAuthToken) {

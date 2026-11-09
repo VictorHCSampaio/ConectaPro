@@ -63,6 +63,19 @@ export async function getUsuarioAutenticado() {
   return data
 }
 
+export async function solicitarResetSenha(email: string) {
+  const { data } = await api.post<{ message: string }>('/auth/password-reset/request', { email })
+  return data
+}
+
+export async function confirmarResetSenha(token: string, novaSenha: string) {
+  const { data } = await api.post<{ message: string }>('/auth/password-reset/confirm', {
+    token,
+    novaSenha,
+  })
+  return data
+}
+
 export async function logoutUsuario() {
   await api.post('/auth/logout')
   setAccessToken(null)
