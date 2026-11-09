@@ -2,6 +2,7 @@ import { Navigate, Route, Routes } from 'react-router-dom'
 import { RequireAdmin } from '@/components/auth/RequireAdmin'
 import { RequireAuth } from '@/components/auth/RequireAuth'
 import { AdminMateriasPage } from '@/pages/AdminMateriasPage'
+import { AgendamentosPage } from '@/pages/AgendamentosPage'
 import { AuthPage } from '@/pages/AuthPage'
 import { LandingPage } from '@/pages/LandingPage'
 import { PagamentoPage } from '@/pages/PagamentoPage'
@@ -49,6 +50,14 @@ function App() {
         element={
           <RequireAuth>
             <ProfileViewPage />
+          </RequireAuth>
+        }
+      />
+      <Route
+        path="/aulas"
+        element={
+          <RequireAuth>
+            <AgendamentosPage />
           </RequireAuth>
         }
       />

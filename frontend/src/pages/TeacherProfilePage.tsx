@@ -2,6 +2,7 @@ import { ArrowLeft, BadgeCheck, BookOpen, CalendarDays, Clock, MapPin, Monitor }
 import { useEffect, useState } from 'react'
 import type { ReactNode } from 'react'
 import { Link, useParams } from 'react-router-dom'
+import { BookingDialog } from '@/components/booking/BookingDialog'
 import { SiteFooter } from '@/components/landing/SiteFooter'
 import { SiteHeader } from '@/components/landing/SiteHeader'
 import { Reveal } from '@/components/motion/Reveal'
@@ -128,6 +129,7 @@ export function TeacherProfilePage() {
   const [teacher, setTeacher] = useState<Teacher | null>(null)
   const [isLoading, setIsLoading] = useState(true)
   const [isError, setIsError] = useState(false)
+  const [isBookingOpen, setIsBookingOpen] = useState(false)
 
   const { user } = useAuth()
 
@@ -438,11 +440,11 @@ export function TeacherProfilePage() {
                 </dl>
 
                 <div className="mt-5">
-                  <Button variant="primary" fullWidth>
+                  <Button variant="primary" fullWidth onClick={() => setIsBookingOpen(true)}>
                     Agendar aula
                   </Button>
                   <p className="mt-2.5 text-center text-xs text-paper-500 dark:text-zinc-500">
-                    Sem cobrança antecipada, combine direto com o professor.
+                    Escolha um horário disponível e envie a solicitação ao professor.
                   </p>
                 </div>
               </div>
@@ -450,6 +452,15 @@ export function TeacherProfilePage() {
           </Reveal>
         </div>
       </main>
+
+      <BookingDialog
+        open={isBookingOpen}
+        onClose={() => setIsBookingOpen(false)}
+        teacherId={teacher.id}
+        teacherName={teacher.name}
+        modalities={teacher.modalities}
+        subjects={teacher.subjects}
+      />
 
       <SiteFooter />
     </div>
