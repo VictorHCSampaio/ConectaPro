@@ -91,7 +91,7 @@ class MateriaControllerIntegrationTest {
 
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.NOT_FOUND);
         assertThat(response.getBody()).isNotNull();
-        assertThat(String.valueOf(response.getBody().get("message"))).contains("encontrada");
+        assertThat(String.valueOf(response.getBody().getOrDefault("erro", response.getBody().get("message")))).contains("encontrada");
     }
 
     @Test

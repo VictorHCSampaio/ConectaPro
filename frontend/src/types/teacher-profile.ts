@@ -50,7 +50,7 @@ export type TeacherProfileFormData = {
   bio: string
   subjects: SubjectExperience[]
   teachingModel: TeachingModel
-  modality: TeachingModality
+  modalities: TeachingModality[]
   pricePerHour: string
   address: TeacherAddress
   availability: Set<string>
@@ -73,7 +73,7 @@ export type TeacherProfilePayload = {
   bio: string
   subjects: SubjectExperience[]
   teachingModel: ApiTeachingModel | null
-  modality: ApiModality
+  modalities: ApiModality[]
   pricePerHour: number
   address: {
     cep: string

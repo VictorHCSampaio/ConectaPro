@@ -134,7 +134,7 @@ class ProfessorControllerIntegrationTest {
                     { "name": "Matemática", "observation": null, "level": "BASICO" }
                   ],
                   "teachingModel": "PARTICULARES",
-                  "modality": "ONLINE",
+                  "modalities": ["ONLINE"],
                   "pricePerHour": 150.0,
                   "address": {
                     "cep": "01310100",

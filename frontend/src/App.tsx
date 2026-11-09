@@ -2,13 +2,16 @@ import { Navigate, Route, Routes } from 'react-router-dom'
 import { RequireAdmin } from '@/components/auth/RequireAdmin'
 import { RequireAuth } from '@/components/auth/RequireAuth'
 import { AdminMateriasPage } from '@/pages/AdminMateriasPage'
+import { AgendamentosPage } from '@/pages/AgendamentosPage'
 import { AuthPage } from '@/pages/AuthPage'
 import { Dashboard } from '@/pages/Dashboard'
+import { ForgotPasswordPage } from '@/pages/ForgotPasswordPage'
 import { LandingPage } from '@/pages/LandingPage'
 import { PagamentoPage } from '@/pages/PagamentoPage'
 import { PagamentoResultadoPage } from '@/pages/PagamentoResultadoPage'
 import { ProfilePage } from '@/pages/ProfilePage'
 import { ProfileViewPage } from '@/pages/ProfileViewPage'
+import { ResetPasswordPage } from '@/pages/ResetPasswordPage'
 import { SearchTeachersPage } from '@/pages/SearchTeachersPage'
 import { TeacherProfilePage } from '@/pages/TeacherProfilePage'
 
@@ -42,6 +45,8 @@ function App() {
       />
       <Route path="/login" element={<AuthPage />} />
       <Route path="/register" element={<AuthPage />} />
+      <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+      <Route path="/reset-password" element={<ResetPasswordPage />} />
       <Route
         path="/pagamento"
         element={
@@ -58,6 +63,14 @@ function App() {
         element={
           <RequireAuth>
             <ProfileViewPage />
+          </RequireAuth>
+        }
+      />
+      <Route
+        path="/aulas"
+        element={
+          <RequireAuth>
+            <AgendamentosPage />
           </RequireAuth>
         }
       />

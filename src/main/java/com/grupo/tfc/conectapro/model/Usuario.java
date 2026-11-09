@@ -54,4 +54,11 @@ public class Usuario {
     @Column(name = "status_conta")
     @Builder.Default
     private StatusConta statusConta = ATIVO;
+
+    @Column(name = "tentativas_login_falha")
+    @Builder.Default
+    private int tentativasLoginFalha = 0;
+
+    @Column(name = "bloqueado_ate")
+    private OffsetDateTime bloqueadoAte;
 }

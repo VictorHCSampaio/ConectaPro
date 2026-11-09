@@ -109,7 +109,14 @@ function TeacherProfileView() {
             <FormSection title="Ensino" description="O que, como e por quanto você ensina.">
               <div className="flex flex-col gap-5">
                 <div className="grid grid-cols-2 gap-4">
-                  <Campo rotulo="Modalidade" valor={MODALIDADES[perfil.modality] ?? '—'} />
+                  <Campo
+                    rotulo="Modalidade"
+                    valor={
+                      perfil.modalities && perfil.modalities.length > 0
+                        ? perfil.modalities.map((m) => MODALIDADES[m] ?? m).join(' e ')
+                        : '—'
+                    }
+                  />
                   <Campo
                     rotulo="Modelo"
                     valor={perfil.teachingModel ? (MODELOS[perfil.teachingModel] ?? '—') : '—'}

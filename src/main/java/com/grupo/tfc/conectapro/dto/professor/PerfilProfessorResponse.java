@@ -8,7 +8,7 @@ public record PerfilProfessorResponse(
         String bio,
         List<MateriaProfessorRequest> subjects,
         String teachingModel,
-        String modality,
+        List<String> modalities,
         Double pricePerHour,
         EnderecoProfessorRequest address,
         List<DisponibilidadeRequest> availability

@@ -23,6 +23,7 @@ public class JwtService {
 
     public static final String SCOPE_FULL_ACCESS = "FULL_ACCESS";
     public static final String SCOPE_PRE_AUTH = "PRE_AUTH";
+    public static final String SCOPE_PASSWORD_RESET = "PASSWORD_RESET";
 
     private final Algorithm algorithm;
     private final JwtProperties properties;
@@ -70,6 +71,36 @@ public class JwtService {
 
     public boolean extrairAdmin(DecodedJWT jwt) {
         return Boolean.TRUE.equals(jwt.getClaim("admin").asBoolean());
+    }
+
+    public String gerarPasswordResetToken(UUID userId, String senhaHash, long expiracaoMinutos) {
+        try {
+            Algorithm resetAlgorithm = Algorithm.HMAC256(properties.secret() + senhaHash);
+            return JWT.create()
+                    .withIssuer(ISSUER)
+                    .withSubject(userId.toString())
+                    .withClaim("scope", SCOPE_PASSWORD_RESET)
+                    .withIssuedAt(Instant.now())
+                    .withExpiresAt(gerarDataExpiracao(expiracaoMinutos))
+                    .sign(resetAlgorithm);
+        } catch (JWTCreationException e) {
+            throw new RuntimeException("Erro ao gerar token de reset de senha", e);
+        }
+    }
+
+    public DecodedJWT validarPasswordResetToken(String token, String senhaHash) {
+        try {
+            Algorithm resetAlgorithm = Algorithm.HMAC256(properties.secret() + senhaHash);
+            DecodedJWT jwt = JWT.require(resetAlgorithm)
+                    .withIssuer(ISSUER)
+                    .withClaim("scope", SCOPE_PASSWORD_RESET)
+                    .build()
+                    .verify(token);
+            return jwt;
+        } catch (JWTVerificationException e) {
+            logger.debug("Token de reset inválido. motivo={}", e.getMessage());
+            return null;
+        }
     }
 
     private String buildToken(UUID userId, String scope, String role, boolean admin, long expiracaoMinutos) {
