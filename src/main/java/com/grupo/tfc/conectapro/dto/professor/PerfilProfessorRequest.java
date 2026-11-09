@@ -27,8 +27,9 @@ public record PerfilProfessorRequest(
 
         String teachingModel,
 
-        @NotBlank(message = "Modalidade e obrigatoria")
-        String modality,
+        @NotNull
+        @Size(min = 1, message = "Selecione ao menos uma modalidade")
+        List<String> modalities,
 
         @NotNull
         @PositiveOrZero
