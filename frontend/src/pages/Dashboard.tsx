@@ -5,17 +5,16 @@ import {
   CalendarX,
   ChevronDown,
   Clock,
+  DollarSign,
   Download,
   GraduationCap,
-  Plus,
-  Star,
-  TrendingDown,
-  TrendingUp,
   UserPlus,
   Users,
 } from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
-import { useEffect, useState } from 'react'
+import html2canvas from 'html2canvas-pro'
+import { jsPDF } from 'jspdf'
+import { useEffect, useRef, useState } from 'react'
 import type { CSSProperties } from 'react'
 import {
   Bar,
@@ -42,7 +41,6 @@ import {
   CardHeader,
   CardTitle,
 } from '@/components/ui/card'
-import { StarRating } from '@/components/ui/StarRating'
 import {
   Table,
   TableBody,
@@ -53,101 +51,36 @@ import {
 } from '@/components/ui/table'
 import { useTheme } from '@/contexts/ThemeContext'
 import { obterResumoDashboard } from '@/lib/dashboardService'
-import type { DashboardResumo } from '@/lib/dashboardService'
-import { cn } from '@/lib/cn'
+import type { AtividadeRecente, AulaRecente, DashboardResumo } from '@/lib/dashboardService'
 
 type Metric = {
   label: string
   value: string
   icon: LucideIcon
-  trend: string
-  positive: boolean
 }
 
-type AulaStatus = 'Confirmada' | 'Em andamento' | 'Concluída' | 'Pendente' | 'Cancelada'
+const PERIODOS = [
+  { dias: 7, label: 'Últimos 7 dias' },
+  { dias: 30, label: 'Últimos 30 dias' },
+  { dias: 90, label: 'Últimos 90 dias' },
+]
 
-type AulaAgendada = {
-  professor: string
-  disciplina: string
-  avaliacao: number
-  status: AulaStatus
+const RESUMO_VAZIO: DashboardResumo = {
+  totalAlunos: 0,
+  totalProfessores: 0,
+  aulasConfirmadasNoMes: 0,
+  receitaAssinaturasMes: 0,
+  novosUsuarios: [],
+  professoresPorMateria: [],
+  ultimasAulas: [],
+  atividadesRecentes: [],
 }
 
-type Atividade = {
-  name: string
-  action: string
-  time: string
-  icon: LucideIcon
+const STATUS_VARIANT: Record<string, BadgeVariant> = {
+  Confirmado: 'success',
+  Solicitado: 'warning',
+  Cancelado: 'destructive',
 }
-
-const PERIODS = ['Últimos 7 dias', 'Últimos 30 dias', 'Últimos 90 dias']
-
-const mockAlunosAtivos = 1250
-const mockProfessoresCadastrados = 320
-const mockAulasRealizadas = 854
-const mockHorasDeAula = '1.200h'
-
-const mockAulasPorDisciplina = [
-  { disciplina: 'Matemática', aulas: 248 },
-  { disciplina: 'Física', aulas: 176 },
-  { disciplina: 'Inglês', aulas: 214 },
-  { disciplina: 'Programação', aulas: 216 },
-]
-
-const mockNovosUsuarios = [
-  { mes: 'Jun', alunos: 86, professores: 18 },
-  { mes: 'Jul', alunos: 104, professores: 21 },
-  { mes: 'Ago', alunos: 97, professores: 16 },
-  { mes: 'Set', alunos: 128, professores: 24 },
-  { mes: 'Out', alunos: 143, professores: 19 },
-  { mes: 'Nov', alunos: 161, professores: 27 },
-]
-
-const mockUltimasAulas: AulaAgendada[] = [
-  { professor: 'Ana Beatriz Lima', disciplina: 'Matemática', avaliacao: 4.9, status: 'Confirmada' },
-  {
-    professor: 'Carlos Eduardo Mendes',
-    disciplina: 'Física',
-    avaliacao: 4.6,
-    status: 'Em andamento',
-  },
-  { professor: 'Juliana Costa', disciplina: 'Inglês', avaliacao: 5, status: 'Concluída' },
-  { professor: 'Ricardo Alves', disciplina: 'Programação', avaliacao: 4.7, status: 'Pendente' },
-  { professor: 'Fernanda Rocha', disciplina: 'Química', avaliacao: 4.2, status: 'Cancelada' },
-  {
-    professor: 'Pedro Henrique Souza',
-    disciplina: 'Matemática',
-    avaliacao: 4.8,
-    status: 'Confirmada',
-  },
-]
-
-const STATUS_VARIANT: Record<AulaStatus, BadgeVariant> = {
-  Confirmada: 'success',
-  'Em andamento': 'info',
-  Concluída: 'secondary',
-  Pendente: 'warning',
-  Cancelada: 'destructive',
-}
-
-const mockAtividades: Atividade[] = [
-  { name: 'João', action: 'agendou uma aula de Física', time: 'há 5 min', icon: CalendarCheck },
-  { name: 'Maria', action: 'se cadastrou como aluna', time: 'há 18 min', icon: UserPlus },
-  {
-    name: 'Camila',
-    action: 'avaliou a aula de Inglês com 5 estrelas',
-    time: 'há 40 min',
-    icon: Star,
-  },
-  { name: 'Lucas', action: 'cancelou a aula de Química', time: 'há 1 h', icon: CalendarX },
-  { name: 'Juliana Costa', action: 'publicou novos horários', time: 'há 2 h', icon: Clock },
-  {
-    name: 'Pedro',
-    action: 'concluiu o cadastro de professor',
-    time: 'há 3 h',
-    icon: GraduationCap,
-  },
-]
 
 const AXIS_TICK = { fontSize: 12 }
 
@@ -158,23 +91,55 @@ function formatCount(value: number) {
   return value.toLocaleString('pt-BR')
 }
 
-function formatRating(value: number) {
-  return value.toLocaleString('pt-BR', { minimumFractionDigits: 1, maximumFractionDigits: 1 })
+function formatMoeda(valor: number) {
+  return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(valor)
+}
+
+function truncarDisciplina(nome: string) {
+  if (nome.length <= 12) return nome
+  return `${nome.slice(0, 12)}...`
+}
+
+function formatQuando(valor: string) {
+  const data = new Date(valor)
+  if (Number.isNaN(data.getTime())) return ''
+  return data.toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' })
+}
+
+function formatDataHorario(aula: AulaRecente) {
+  const agenda = [aula.diaSemana, aula.horario].filter(Boolean).join(' · ')
+  const quando = formatQuando(aula.criadoEm)
+  if (agenda && quando) return `${agenda} · ${quando}`
+  return agenda || quando || '—'
+}
+
+function iconeDaAtividade(acao: string): LucideIcon {
+  const texto = acao.toLowerCase()
+  if (texto.includes('cadastrou') || texto.includes('se cadastrou')) return UserPlus
+  if (texto.includes('cancel')) return CalendarX
+  if (texto.includes('agendamento') || texto.includes('aula')) return CalendarCheck
+  if (texto.includes('matéria') || texto.includes('materia')) return BookOpen
+  if (texto.includes('professor')) return GraduationCap
+  return Clock
 }
 
 type ResumoEstado = 'loading' | 'ready' | 'error'
 
 export function Dashboard() {
   const { theme } = useTheme()
-  const [period, setPeriod] = useState(PERIODS[1])
+  const painelRef = useRef<HTMLDivElement>(null)
+  const exportando = useRef(false)
+  const [dias, setDias] = useState(30)
   const [resumo, setResumo] = useState<DashboardResumo | null>(null)
   const [resumoEstado, setResumoEstado] = useState<ResumoEstado>('loading')
   const isDark = theme === 'dark'
+  const dados = resumo ?? RESUMO_VAZIO
 
   useEffect(() => {
     let ativo = true
+    setResumoEstado('loading')
 
-    obterResumoDashboard()
+    obterResumoDashboard(dias)
       .then((data) => {
         if (!ativo) return
         setResumo(data)
@@ -188,43 +153,49 @@ export function Dashboard() {
     return () => {
       ativo = false
     }
-  }, [])
+  }, [dias])
 
-  const alunosAtivos =
-    resumoEstado === 'loading' ? '…' : formatCount(resumo?.totalAlunos ?? mockAlunosAtivos)
-  const professoresCadastrados =
-    resumoEstado === 'loading'
-      ? '…'
-      : formatCount(resumo?.totalProfessores ?? mockProfessoresCadastrados)
+  async function handleExportPDF() {
+    const painel = painelRef.current
+    if (!painel || exportando.current) return
+    exportando.current = true
+    try {
+      const fundo = getComputedStyle(painel).backgroundColor
+      const canvas = await html2canvas(painel, {
+        scale: 2,
+        backgroundColor: fundo || (isDark ? '#09090b' : '#fafafa'),
+        useCORS: true,
+        logging: false,
+      })
+      const imagem = canvas.toDataURL('image/png')
+      const largura = canvas.width * 0.264583
+      const altura = canvas.height * 0.264583
+      const pdf = new jsPDF({
+        orientation: largura > altura ? 'landscape' : 'portrait',
+        unit: 'mm',
+        format: [largura, altura],
+      })
+      pdf.addImage(imagem, 'PNG', 0, 0, largura, altura)
+      pdf.save('dashboard-conectapro.pdf')
+    } finally {
+      exportando.current = false
+    }
+  }
+
+  const valor = (numero: number) => (resumoEstado === 'loading' ? '…' : formatCount(numero))
 
   const metrics: Metric[] = [
+    { label: 'Alunos Ativos', value: valor(dados.totalAlunos), icon: GraduationCap },
+    { label: 'Professores Ativos', value: valor(dados.totalProfessores), icon: Users },
     {
-      label: 'Alunos Ativos',
-      value: alunosAtivos,
-      icon: GraduationCap,
-      trend: '+12% em relação ao mês passado',
-      positive: true,
-    },
-    {
-      label: 'Professores Cadastrados',
-      value: professoresCadastrados,
-      icon: Users,
-      trend: '+4% em relação ao mês passado',
-      positive: true,
-    },
-    {
-      label: 'Aulas Realizadas no Mês',
-      value: formatCount(mockAulasRealizadas),
+      label: 'Aulas Confirmadas',
+      value: valor(dados.aulasConfirmadasNoMes),
       icon: BookOpen,
-      trend: '-3% em relação ao mês passado',
-      positive: false,
     },
     {
-      label: 'Horas de Aula',
-      value: mockHorasDeAula,
-      icon: Clock,
-      trend: '+8% em relação ao mês passado',
-      positive: true,
+      label: 'Receita',
+      value: resumoEstado === 'loading' ? '…' : formatMoeda(dados.receitaAssinaturasMes),
+      icon: DollarSign,
     },
   ]
 
@@ -244,7 +215,10 @@ export function Dashboard() {
   }
 
   return (
-    <div className="flex min-h-screen flex-col bg-zinc-50 text-zinc-950 transition-colors duration-300 dark:bg-zinc-950 dark:text-zinc-50">
+    <div
+      ref={painelRef}
+      className="flex min-h-screen flex-col bg-zinc-50 text-zinc-950 transition-colors duration-300 dark:bg-zinc-950 dark:text-zinc-50"
+    >
       <SiteHeader />
 
       <main className="mx-auto w-full max-w-6xl flex-1 px-4 py-10 sm:px-6">
@@ -258,52 +232,39 @@ export function Dashboard() {
             </div>
 
             <div className="flex flex-wrap items-center gap-2">
-              <label className="relative">
-                <CalendarDays
-                  className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-zinc-500"
-                  aria-hidden
-                />
+              <label className="relative inline-flex h-10 cursor-pointer items-center justify-between gap-3 rounded-md border border-zinc-200 bg-white px-3 text-sm font-medium text-zinc-700 dark:border-white/10 dark:bg-zinc-900 dark:text-zinc-200">
+                <span className="flex items-center gap-2">
+                  <CalendarDays className="size-4 text-zinc-500" aria-hidden />
+                  <span className="mt-[2px] leading-none">
+                    {PERIODOS.find((opcao) => opcao.dias === dias)?.label}
+                  </span>
+                </span>
+                <ChevronDown className="size-4 shrink-0 text-zinc-500" aria-hidden />
                 <select
                   aria-label="Período"
-                  value={period}
-                  onChange={(event) => setPeriod(event.target.value)}
-                  className={cn(CONTROL_CLASS, 'appearance-none pr-8 pl-9')}
+                  value={dias}
+                  onChange={(event) => setDias(Number(event.target.value))}
+                  className="absolute inset-0 cursor-pointer opacity-0"
                 >
-                  {PERIODS.map((option) => (
-                    <option key={option} value={option}>
-                      {option}
+                  {PERIODOS.map((opcao) => (
+                    <option key={opcao.dias} value={opcao.dias}>
+                      {opcao.label}
                     </option>
                   ))}
                 </select>
-                <ChevronDown
-                  className="pointer-events-none absolute top-1/2 right-2.5 size-4 -translate-y-1/2 text-zinc-500"
-                  aria-hidden
-                />
               </label>
 
-              <button type="button" className={CONTROL_CLASS}>
+              <button type="button" className={CONTROL_CLASS} onClick={handleExportPDF}>
                 <Download className="size-4" aria-hidden />
                 Exportar
               </button>
             </div>
           </div>
-
-          <div className="flex flex-wrap gap-2">
-            <button type="button" className={CONTROL_CLASS}>
-              <Plus className="size-4" aria-hidden />
-              Novo Professor
-            </button>
-            <button type="button" className={CONTROL_CLASS}>
-              <Plus className="size-4" aria-hidden />
-              Nova Disciplina
-            </button>
-          </div>
         </header>
 
         {resumoEstado === 'error' && (
           <p className="mb-4 text-sm text-red-500" role="status">
-            Não foi possível carregar os totais. Exibindo valores de referência para alunos e
-            professores.
+            Não foi possível carregar o dashboard.
           </p>
         )}
 
@@ -313,10 +274,9 @@ export function Dashboard() {
         >
           {metrics.map((metric) => {
             const Icon = metric.icon
-            const TrendIcon = metric.positive ? TrendingUp : TrendingDown
 
             return (
-              <Card key={metric.label} className="gap-4">
+              <Card key={metric.label}>
                 <CardHeader>
                   <CardDescription>{metric.label}</CardDescription>
                   <CardTitle className="tnum text-3xl">{metric.value}</CardTitle>
@@ -326,17 +286,6 @@ export function Dashboard() {
                     </span>
                   </CardAction>
                 </CardHeader>
-                <CardContent>
-                  <p
-                    className={cn(
-                      'flex items-start gap-1 text-xs font-medium leading-4',
-                      metric.positive ? 'text-emerald-500' : 'text-red-500',
-                    )}
-                  >
-                    <TrendIcon className="mt-0.5 size-3.5 shrink-0" aria-hidden />
-                    {metric.trend}
-                  </p>
-                </CardContent>
               </Card>
             )
           })}
@@ -345,99 +294,118 @@ export function Dashboard() {
         <section className="mt-4 grid gap-4 lg:grid-cols-2">
           <Card className="min-w-0">
             <CardHeader>
-              <CardTitle>Aulas por Disciplina</CardTitle>
-              <CardDescription>Volume de aulas realizadas neste mês</CardDescription>
+              <CardTitle>Professores por Disciplina</CardTitle>
+              <CardDescription>
+                Professores que entraram nos últimos {dias} dias, por disciplina
+              </CardDescription>
             </CardHeader>
             <CardContent className="h-72">
-              <ResponsiveContainer width="100%" height="100%">
-                <BarChart
-                  data={mockAulasPorDisciplina}
-                  margin={{ top: 8, right: 4, left: -12, bottom: 0 }}
-                >
-                  <CartesianGrid vertical={false} stroke={grid} />
-                  <XAxis
-                    dataKey="disciplina"
-                    tick={{ ...AXIS_TICK, fill: tick }}
-                    tickLine={false}
-                    axisLine={false}
-                  />
-                  <YAxis
-                    tick={{ ...AXIS_TICK, fill: tick }}
-                    tickLine={false}
-                    axisLine={false}
-                    width={40}
-                  />
-                  <Tooltip
-                    cursor={{ fill: cursor }}
-                    contentStyle={tooltipStyle}
-                    labelStyle={{ color: primary, fontWeight: 600 }}
-                  />
-                  <Bar
-                    dataKey="aulas"
-                    name="Aulas"
-                    fill={primary}
-                    radius={[6, 6, 0, 0]}
-                    maxBarSize={48}
-                  />
-                </BarChart>
-              </ResponsiveContainer>
+              {dados.professoresPorMateria.length === 0 ? (
+                <p className="flex h-full items-center text-sm text-zinc-500">
+                  Nenhuma disciplina com professor vinculado.
+                </p>
+              ) : (
+                <ResponsiveContainer width="100%" height="100%">
+                  <BarChart
+                    data={dados.professoresPorMateria}
+                    margin={{ top: 8, right: 4, left: -12, bottom: 16 }}
+                  >
+                    <CartesianGrid vertical={false} stroke={grid} />
+                    <XAxis
+                      dataKey="disciplina"
+                      interval={0}
+                      tickFormatter={truncarDisciplina}
+                      tick={{ ...AXIS_TICK, fill: tick }}
+                      tickLine={false}
+                      axisLine={false}
+                    />
+                    <YAxis
+                      tick={{ ...AXIS_TICK, fill: tick }}
+                      tickLine={false}
+                      axisLine={false}
+                      width={40}
+                      allowDecimals={false}
+                    />
+                    <Tooltip
+                      cursor={{ fill: cursor }}
+                      contentStyle={tooltipStyle}
+                      labelStyle={{ color: primary, fontWeight: 600 }}
+                    />
+                    <Bar
+                      dataKey="quantidade"
+                      name="Professores"
+                      fill={primary}
+                      radius={[6, 6, 0, 0]}
+                      maxBarSize={48}
+                    />
+                  </BarChart>
+                </ResponsiveContainer>
+              )}
             </CardContent>
           </Card>
 
           <Card className="min-w-0">
             <CardHeader>
               <CardTitle>Novos Usuários</CardTitle>
-              <CardDescription>Alunos e professores nos últimos 6 meses</CardDescription>
+              <CardDescription>Cadastros nos últimos {dias} dias</CardDescription>
             </CardHeader>
             <CardContent className="h-72">
-              <ResponsiveContainer width="100%" height="100%">
-                <LineChart
-                  data={mockNovosUsuarios}
-                  margin={{ top: 8, right: 4, left: -12, bottom: 0 }}
-                >
-                  <CartesianGrid vertical={false} stroke={grid} />
-                  <XAxis
-                    dataKey="mes"
-                    tick={{ ...AXIS_TICK, fill: tick }}
-                    tickLine={false}
-                    axisLine={false}
-                  />
-                  <YAxis
-                    tick={{ ...AXIS_TICK, fill: tick }}
-                    tickLine={false}
-                    axisLine={false}
-                    width={40}
-                  />
-                  <Tooltip
-                    cursor={{ stroke: grid }}
-                    contentStyle={tooltipStyle}
-                    labelStyle={{ color: primary, fontWeight: 600 }}
-                  />
-                  <Legend
-                    iconType="circle"
-                    iconSize={8}
-                    wrapperStyle={{ fontSize: 12, color: tick }}
-                  />
-                  <Line
-                    type="monotone"
-                    dataKey="alunos"
-                    name="Alunos"
-                    stroke={primary}
-                    strokeWidth={2}
-                    dot={false}
-                    activeDot={{ r: 4, fill: primary }}
-                  />
-                  <Line
-                    type="monotone"
-                    dataKey="professores"
-                    name="Professores"
-                    stroke={secondary}
-                    strokeWidth={2}
-                    dot={false}
-                    activeDot={{ r: 4, fill: secondary }}
-                  />
-                </LineChart>
-              </ResponsiveContainer>
+              {dados.novosUsuarios.length === 0 ? (
+                <p className="flex h-full items-center text-sm text-zinc-500">
+                  Sem histórico de cadastros no período.
+                </p>
+              ) : (
+                <ResponsiveContainer width="100%" height="100%">
+                  <LineChart
+                    data={dados.novosUsuarios}
+                    margin={{ top: 8, right: 4, left: -12, bottom: 0 }}
+                  >
+                    <CartesianGrid vertical={false} stroke={grid} />
+                    <XAxis
+                      dataKey="mes"
+                      minTickGap={24}
+                      tick={{ ...AXIS_TICK, fill: tick }}
+                      tickLine={false}
+                      axisLine={false}
+                    />
+                    <YAxis
+                      tick={{ ...AXIS_TICK, fill: tick }}
+                      tickLine={false}
+                      axisLine={false}
+                      width={40}
+                      allowDecimals={false}
+                    />
+                    <Tooltip
+                      cursor={{ stroke: grid }}
+                      contentStyle={tooltipStyle}
+                      labelStyle={{ color: primary, fontWeight: 600 }}
+                    />
+                    <Legend
+                      iconType="circle"
+                      iconSize={8}
+                      wrapperStyle={{ fontSize: 12, color: tick }}
+                    />
+                    <Line
+                      type="monotone"
+                      dataKey="alunos"
+                      name="Alunos"
+                      stroke={primary}
+                      strokeWidth={2}
+                      dot={false}
+                      activeDot={{ r: 4, fill: primary }}
+                    />
+                    <Line
+                      type="monotone"
+                      dataKey="professores"
+                      name="Professores"
+                      stroke={secondary}
+                      strokeWidth={2}
+                      dot={false}
+                      activeDot={{ r: 4, fill: secondary }}
+                    />
+                  </LineChart>
+                </ResponsiveContainer>
+              )}
             </CardContent>
           </Card>
         </section>
@@ -446,38 +414,47 @@ export function Dashboard() {
           <Card className="min-w-0 gap-4 lg:col-span-2">
             <CardHeader>
               <CardTitle>Últimas Aulas Agendadas</CardTitle>
-              <CardDescription>Aulas mais recentes na plataforma</CardDescription>
+              <CardDescription>Agendamentos mais recentes na plataforma</CardDescription>
             </CardHeader>
             <CardContent className="px-0">
               <Table>
                 <TableHeader>
                   <TableRow className="hover:bg-transparent">
                     <TableHead className="pl-6">Professor</TableHead>
-                    <TableHead>Disciplina</TableHead>
-                    <TableHead>Avaliação</TableHead>
+                    <TableHead>Aluno</TableHead>
+                    <TableHead>Matéria</TableHead>
+                    <TableHead>Data/Horário</TableHead>
                     <TableHead className="pr-6">Status</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {mockUltimasAulas.map((aula) => (
-                    <TableRow key={`${aula.professor}-${aula.disciplina}`}>
-                      <TableCell className="pl-6 font-medium">{aula.professor}</TableCell>
-                      <TableCell className="text-zinc-600 dark:text-zinc-300">
-                        {aula.disciplina}
-                      </TableCell>
-                      <TableCell>
-                        <div className="flex items-center gap-2">
-                          <StarRating rating={aula.avaliacao} />
-                          <span className="tnum text-xs text-zinc-500">
-                            {formatRating(aula.avaliacao)}
-                          </span>
-                        </div>
-                      </TableCell>
-                      <TableCell className="pr-6">
-                        <Badge variant={STATUS_VARIANT[aula.status]}>{aula.status}</Badge>
+                  {dados.ultimasAulas.length === 0 ? (
+                    <TableRow>
+                      <TableCell colSpan={5} className="pl-6 text-zinc-500">
+                        Nenhum agendamento registrado.
                       </TableCell>
                     </TableRow>
-                  ))}
+                  ) : (
+                    dados.ultimasAulas.map((aula) => (
+                      <TableRow key={`${aula.professor}-${aula.aluno}-${aula.criadoEm}`}>
+                        <TableCell className="pl-6 font-medium">{aula.professor}</TableCell>
+                        <TableCell className="text-zinc-600 dark:text-zinc-300">
+                          {aula.aluno}
+                        </TableCell>
+                        <TableCell className="text-zinc-600 dark:text-zinc-300">
+                          {aula.materia}
+                        </TableCell>
+                        <TableCell className="text-zinc-600 dark:text-zinc-300">
+                          {formatDataHorario(aula)}
+                        </TableCell>
+                        <TableCell className="pr-6">
+                          <Badge variant={STATUS_VARIANT[aula.status] ?? 'secondary'}>
+                            {aula.status}
+                          </Badge>
+                        </TableCell>
+                      </TableRow>
+                    ))
+                  )}
                 </TableBody>
               </Table>
             </CardContent>
@@ -489,28 +466,34 @@ export function Dashboard() {
               <CardDescription>Últimos eventos da plataforma</CardDescription>
             </CardHeader>
             <CardContent>
-              <ul className="flex flex-col gap-4">
-                {mockAtividades.map((item) => {
-                  const Icon = item.icon
+              {dados.atividadesRecentes.length === 0 ? (
+                <p className="text-sm text-zinc-500">Nenhuma atividade recente.</p>
+              ) : (
+                <ul className="flex flex-col gap-4">
+                  {dados.atividadesRecentes.map((item: AtividadeRecente) => {
+                    const Icon = iconeDaAtividade(item.acao)
 
-                  return (
-                    <li key={`${item.name}-${item.time}`} className="flex gap-3">
-                      <span className="mt-0.5 flex size-8 shrink-0 items-center justify-center rounded-full border border-zinc-200 bg-zinc-50 text-zinc-500 dark:border-white/10 dark:bg-zinc-950 dark:text-zinc-400">
-                        <Icon className="size-3.5" aria-hidden />
-                      </span>
-                      <div className="min-w-0">
-                        <p className="text-sm leading-5 text-zinc-600 dark:text-zinc-300">
-                          <span className="font-medium text-zinc-950 dark:text-zinc-50">
-                            {item.name}
-                          </span>{' '}
-                          {item.action}
-                        </p>
-                        <p className="mt-0.5 text-xs text-zinc-500">{item.time}</p>
-                      </div>
-                    </li>
-                  )
-                })}
-              </ul>
+                    return (
+                      <li key={`${item.nome}-${item.quando}-${item.acao}`} className="flex gap-3">
+                        <span className="mt-0.5 flex size-8 shrink-0 items-center justify-center rounded-full border border-zinc-200 bg-zinc-50 text-zinc-500 dark:border-white/10 dark:bg-zinc-950 dark:text-zinc-400">
+                          <Icon className="size-3.5" aria-hidden />
+                        </span>
+                        <div className="min-w-0">
+                          <p className="text-sm leading-5 text-zinc-600 dark:text-zinc-300">
+                            <span className="font-medium text-zinc-950 dark:text-zinc-50">
+                              {item.nome}
+                            </span>{' '}
+                            {item.acao}
+                          </p>
+                          <p className="mt-0.5 text-xs text-zinc-500">
+                            {formatQuando(item.quando)}
+                          </p>
+                        </div>
+                      </li>
+                    )
+                  })}
+                </ul>
+              )}
             </CardContent>
           </Card>
         </section>

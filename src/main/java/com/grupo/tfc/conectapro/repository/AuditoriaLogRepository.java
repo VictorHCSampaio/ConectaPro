@@ -6,6 +6,8 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 
+import java.time.OffsetDateTime;
+import java.util.List;
 import java.util.UUID;
 
 public interface AuditoriaLogRepository extends JpaRepository<AuditoriaLog, UUID> {
@@ -15,4 +17,8 @@ public interface AuditoriaLogRepository extends JpaRepository<AuditoriaLog, UUID
     Page<AuditoriaLog> findByAcao(AcaoAuditoria acao, Pageable pageable);
 
     Page<AuditoriaLog> findByUsuarioIdAndAcao(UUID usuarioId, AcaoAuditoria acao, Pageable pageable);
+
+    List<AuditoriaLog> findTop5ByOrderByCriadoEmDesc();
+
+    List<AuditoriaLog> findByAcaoAndCriadoEmGreaterThanEqual(AcaoAuditoria acao, OffsetDateTime desde);
 }

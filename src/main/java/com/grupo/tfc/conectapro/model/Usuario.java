@@ -61,4 +61,11 @@ public class Usuario {
 
     @Column(name = "bloqueado_ate")
     private OffsetDateTime bloqueadoAte;
+
+    @PrePersist
+    void preencherCriadoEm() {
+        if (criadoEm == null) {
+            criadoEm = OffsetDateTime.now();
+        }
+    }
 }

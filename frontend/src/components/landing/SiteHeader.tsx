@@ -1,5 +1,14 @@
-import { BookOpen, LayoutDashboard, LogOut, Menu, Moon, Sun, UserRound, X } from 'lucide-react'
-import { BookOpen, CalendarDays, LogOut, Menu, Moon, Sun, UserRound, X } from 'lucide-react'
+import {
+  BookOpen,
+  CalendarDays,
+  LayoutDashboard,
+  LogOut,
+  Menu,
+  Moon,
+  Sun,
+  UserRound,
+  X,
+} from 'lucide-react'
 import { useState } from 'react'
 import { Link, NavLink, useNavigate } from 'react-router-dom'
 import { Brand } from '@/components/Brand'
