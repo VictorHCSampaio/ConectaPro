@@ -1,4 +1,4 @@
-import { BookOpen, LogOut, Menu, Moon, Sun, UserRound, X } from 'lucide-react'
+import { BookOpen, LayoutDashboard, LogOut, Menu, Moon, Sun, UserRound, X } from 'lucide-react'
 import { useState } from 'react'
 import { Link, NavLink, useNavigate } from 'react-router-dom'
 import { Brand } from '@/components/Brand'
@@ -58,6 +58,15 @@ export function SiteHeader() {
         </nav>
 
         <div className="hidden items-center gap-4 md:flex">
+          {user?.isAdmin && (
+            <Link
+              to="/dashboard"
+              className="inline-flex items-center gap-1.5 text-sm text-ink-600 transition-colors hover:text-ink-900 dark:text-zinc-400 dark:hover:text-white"
+            >
+              <LayoutDashboard className="size-4" />
+              Dashboard
+            </Link>
+          )}
           <button
             type="button"
             onClick={toggleTheme}
@@ -154,6 +163,16 @@ export function SiteHeader() {
           <div className="mt-2 flex flex-col gap-2 border-t border-paper-200 pt-3 dark:border-white/10">
             {isAuthenticated ? (
               <>
+                {user?.isAdmin && (
+                  <Link
+                    to="/dashboard"
+                    onClick={closeMenu}
+                    className="flex items-center justify-center gap-2 rounded-md border border-paper-300 bg-white px-3 py-2.5 text-center text-ink-800 dark:border-white/10 dark:bg-night-700 dark:text-zinc-100"
+                  >
+                    <LayoutDashboard className="size-4" />
+                    Dashboard
+                  </Link>
+                )}
                 {user?.isAdmin && (
                   <Link
                     to="/admin/materias"

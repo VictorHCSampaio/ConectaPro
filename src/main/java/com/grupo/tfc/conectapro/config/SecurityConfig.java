@@ -55,6 +55,7 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.GET, "/materias", "/materias/{id}").permitAll()
                         .requestMatchers(HttpMethod.GET, "/enderecos/{cep}").permitAll()
                         .requestMatchers("/pagamentos/webhook/mercadopago").permitAll()
+                        .requestMatchers("/dashboard", "/dashboard/**").hasRole("ADMIN")
                         .anyRequest().authenticated()
                 )
                 .exceptionHandling(ex -> ex

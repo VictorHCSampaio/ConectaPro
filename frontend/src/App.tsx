@@ -3,6 +3,7 @@ import { RequireAdmin } from '@/components/auth/RequireAdmin'
 import { RequireAuth } from '@/components/auth/RequireAuth'
 import { AdminMateriasPage } from '@/pages/AdminMateriasPage'
 import { AuthPage } from '@/pages/AuthPage'
+import { Dashboard } from '@/pages/Dashboard'
 import { LandingPage } from '@/pages/LandingPage'
 import { PagamentoPage } from '@/pages/PagamentoPage'
 import { PagamentoResultadoPage } from '@/pages/PagamentoResultadoPage'
@@ -15,6 +16,14 @@ function App() {
   return (
     <Routes>
       <Route path="/" element={<LandingPage />} />
+      <Route
+        path="/dashboard"
+        element={
+          <RequireAdmin>
+            <Dashboard />
+          </RequireAdmin>
+        }
+      />
       <Route
         path="/professores"
         element={

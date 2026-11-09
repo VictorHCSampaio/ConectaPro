@@ -81,6 +81,60 @@ class SecurityIntegrationTest {
         assertThat(response.getBody()).isNotNull();
     }
 
+    @Test
+    void dashboard_comUsuarioComum_deveRetornar403() {
+        long ts = System.nanoTime();
+        String token = registrarUsuarioComumELogar("comum.dash" + ts + "@test.com", "senha12345");
+
+        ResponseEntity<Void> response = client.get().uri("/dashboard")
+                .header("Authorization", "Bearer " + token)
+                .retrieve()
+                .toBodilessEntity();
+
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.FORBIDDEN);
+    }
+
+    @Test
+    void dashboardResumo_comUsuarioComum_deveRetornar403() {
+        long ts = System.nanoTime();
+        String token = registrarUsuarioComumELogar("comum.resumo" + ts + "@test.com", "senha12345");
+
+        ResponseEntity<Void> response = client.get().uri("/dashboard/resumo")
+                .header("Authorization", "Bearer " + token)
+                .retrieve()
+                .toBodilessEntity();
+
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.FORBIDDEN);
+    }
+
+    @Test
+    void dashboardResumo_comAdmin_deveRetornarContagens() {
+        long ts = System.nanoTime();
+        String token = registrarAdminELogar("admin.resumo" + ts + "@test.com", "senha12345");
+
+        ResponseEntity<String> response = client.get().uri("/dashboard/resumo")
+                .header("Authorization", "Bearer " + token)
+                .retrieve()
+                .toEntity(String.class);
+
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
+        assertThat(response.getBody()).contains("\"totalAlunos\"");
+        assertThat(response.getBody()).contains("\"totalProfessores\"");
+    }
+
+    @Test
+    void dashboard_comAdmin_deveRetornar200() {
+        long ts = System.nanoTime();
+        String token = registrarAdminELogar("admin.dash" + ts + "@test.com", "senha12345");
+
+        ResponseEntity<Void> response = client.get().uri("/dashboard")
+                .header("Authorization", "Bearer " + token)
+                .retrieve()
+                .toBodilessEntity();
+
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
+    }
+
     // --- (e) Token com assinatura adulterada → 401 ---
 
     @Test
