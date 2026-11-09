@@ -19,6 +19,7 @@ import { AvailabilityGrid } from '@/components/teacher-config/AvailabilityGrid'
 import { FormSection } from '@/components/teacher-config/FormSection'
 import { SubjectExperienceInput } from '@/components/teacher-config/SubjectExperienceInput'
 import { Button } from '@/components/ui/Button'
+import { Checkbox } from '@/components/ui/Checkbox'
 import { Input } from '@/components/ui/Input'
 import { Radio } from '@/components/ui/Radio'
 import { SiteFooter } from '@/components/landing/SiteFooter'
@@ -132,7 +133,7 @@ function buildPayload(data: TeacherProfileFormData): TeacherProfilePayload {
     bio: data.bio.trim(),
     subjects: data.subjects,
     teachingModel: data.teachingModel ? TEACHING_MODEL_MAP[data.teachingModel] : null,
-    modality: MODALITY_MAP[data.modality],
+    modalities: data.modalities.map((modality) => MODALITY_MAP[modality]),
     pricePerHour: parseCurrencyToFloat(data.pricePerHour),
     address: {
       cep: data.address.cep.replace(/\D/g, ''),
@@ -166,7 +167,7 @@ const INITIAL_FORM: TeacherProfileFormData = {
   bio: '',
   subjects: [],
   teachingModel: '',
-  modality: 'online',
+  modalities: ['online'],
   pricePerHour: '',
   address: INITIAL_ADDRESS,
   availability: new Set(),
@@ -186,7 +187,12 @@ function buildFormFromPayload(payload: TeacherProfilePayload): TeacherProfileFor
     bio: payload.bio ?? '',
     subjects: payload.subjects ?? [],
     teachingModel: payload.teachingModel ? TEACHING_MODEL_FROM_API[payload.teachingModel] : '',
-    modality: payload.modality === 'PRESENCIAL' ? 'presencial' : 'online',
+    modalities:
+      payload.modalities && payload.modalities.length > 0
+        ? payload.modalities.map((modality) =>
+            modality === 'PRESENCIAL' ? 'presencial' : 'online',
+          )
+        : ['online'],
     pricePerHour: payload.pricePerHour ? formatCurrencyFromFloat(payload.pricePerHour) : '',
     address: {
       cep: maskCep(payload.address?.cep ?? ''),
@@ -334,7 +340,9 @@ function SecuritySection() {
       setActivateSuccess(true)
       setTotpCode('')
     } catch (error) {
-      setActivateError(extractErrorMessage(error, 'Não foi possível ativar o 2FA. Tente novamente.'))
+      setActivateError(
+        extractErrorMessage(error, 'Não foi possível ativar o 2FA. Tente novamente.'),
+      )
     } finally {
       setActivating(false)
     }
@@ -758,6 +766,9 @@ export function TeacherProfileConfigPage() {
                       <span className="label-mono text-paper-600 dark:text-zinc-400">
                         Modalidade de Ensino
                       </span>
+                      <p className="text-xs text-paper-500 dark:text-zinc-500">
+                        Marque uma ou as duas. O aluno escolhe no agendamento.
+                      </p>
                       <div className="flex flex-wrap gap-4">
                         {(
                           [
@@ -765,18 +776,23 @@ export function TeacherProfileConfigPage() {
                             { value: 'presencial', label: 'Presencial' },
                           ] as const
                         ).map(({ value, label }) => (
-                          <Radio
+                          <Checkbox
                             key={value}
-                            name="modality"
+                            name="modalities"
                             value={value}
                             label={label}
-                            checked={form.modality === value}
+                            checked={form.modalities.includes(value)}
                             onChange={() => {
-                              setForm((prev) => ({
-                                ...prev,
-                                modality: value,
-                                availability: new Set(),
-                              }))
+                              setForm((prev) => {
+                                const marcada = prev.modalities.includes(value)
+                                if (marcada && prev.modalities.length === 1) return prev
+                                return {
+                                  ...prev,
+                                  modalities: marcada
+                                    ? prev.modalities.filter((item) => item !== value)
+                                    : [...prev.modalities, value],
+                                }
+                              })
                             }}
                           />
                         ))}
@@ -897,11 +913,7 @@ export function TeacherProfileConfigPage() {
             title="Disponibilidade"
             description="Selecione os dias e turnos em que você costuma dar aulas."
           >
-            <AvailabilityGrid
-              selected={form.availability}
-              onToggle={toggleAvailability}
-              modality={form.modality}
-            />
+            <AvailabilityGrid selected={form.availability} onToggle={toggleAvailability} />
           </FormSection>
 
           <SecuritySection />
