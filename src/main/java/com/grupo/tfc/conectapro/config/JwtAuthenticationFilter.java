@@ -1,6 +1,5 @@
 package com.grupo.tfc.conectapro.config;
 
-import com.auth0.jwt.interfaces.DecodedJWT;
 import com.grupo.tfc.conectapro.service.JwtService;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
@@ -47,7 +46,9 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
     private String recuperarToken(HttpServletRequest request) {
         var authHeader = request.getHeader("Authorization");
-        if (authHeader == null) return null;
+        if (authHeader == null) {
+            return null;
+        }
         return authHeader.replace("Bearer ", "");
     }
 }
