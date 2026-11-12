@@ -10,7 +10,7 @@ permissions:
 jobs:
 
   testes-unitarios:
-    name: Testes Unitários
+    name: Testes unitários
     runs-on: ubuntu-latest
     timeout-minutes: 10
 
@@ -28,7 +28,7 @@ jobs:
         run: mvn -B verify -Dtest='!*IntegrationTest' -DfailIfNoTests=false
 
   testes-integracao:
-    name: Testes de Integração
+    name: Testes de integração
     runs-on: ubuntu-latest
     timeout-minutes: 15
 
@@ -44,3 +44,21 @@ jobs:
 
       - name: Executar testes de integração
         run: mvn -B verify -Dtest='*IntegrationTest' -DfailIfNoTests=false
+
+  linter:
+    name: Linter
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Configurar JDK 21
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+          cache: maven
+
+      - name: Executar Checkstyle
+        run: mvn -B checkstyle:check
