@@ -1,16 +1,19 @@
-import { ArrowLeft, BadgeCheck, BookOpen, CalendarDays, Clock, MapPin, Monitor } from 'lucide-react'
-import { useEffect, useState } from 'react'
+import { ArrowLeft, BadgeCheck, BookOpen, CalendarDays, Clock, Flag, MapPin, Monitor } from 'lucide-react'
+import { useCallback, useEffect, useState } from 'react'
 import type { ReactNode } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import { BookingDialog } from '@/components/booking/BookingDialog'
+import { DenunciaDialog } from '@/components/denuncia/DenunciaDialog'
 import { SiteFooter } from '@/components/landing/SiteFooter'
 import { SiteHeader } from '@/components/landing/SiteHeader'
 import { Reveal } from '@/components/motion/Reveal'
 import { Button } from '@/components/ui/Button'
 import { StarRating } from '@/components/ui/StarRating'
+import { Toast } from '@/components/ui/Toast'
 import { useAuth } from '@/hooks/useAuth'
 import { cn } from '@/lib/cn'
 import { buscarProfessor } from '@/lib/professorService'
+import { idUsuarioLogado } from '@/lib/session'
 import { formatDistance, formatModalities, formatRating } from '@/lib/formatTeacher'
 import type { Teacher } from '@/types/teacher'
 
@@ -130,8 +133,14 @@ export function TeacherProfilePage() {
   const [isLoading, setIsLoading] = useState(true)
   const [isError, setIsError] = useState(false)
   const [isBookingOpen, setIsBookingOpen] = useState(false)
+  const [denunciaAberta, setDenunciaAberta] = useState(false)
+  const [toast, setToast] = useState<{ message: string; variant: 'success' | 'error' } | null>(null)
+  const fecharToast = useCallback(() => setToast(null), [])
+  const fecharDenuncia = useCallback(() => setDenunciaAberta(false), [])
 
   const { user } = useAuth()
+  const meuId = idUsuarioLogado()
+  const perfilProprio = Boolean(teacher && meuId && teacher.usuarioId === meuId)
 
   useEffect(() => {
     if (!id) return
@@ -443,6 +452,16 @@ export function TeacherProfilePage() {
                   <Button variant="primary" fullWidth onClick={() => setIsBookingOpen(true)}>
                     Agendar aula
                   </Button>
+                  {!perfilProprio && (
+                    <button
+                      type="button"
+                      onClick={() => setDenunciaAberta(true)}
+                      className="mx-auto mt-3 inline-flex items-center gap-1.5 text-xs font-medium text-paper-500 transition-colors hover:text-ink-700 dark:text-zinc-500 dark:hover:text-zinc-200"
+                    >
+                      <Flag className="size-3.5" />
+                      Denunciar
+                    </button>
+                  )}
                   <p className="mt-2.5 text-center text-xs text-paper-500 dark:text-zinc-500">
                     Escolha um horário disponível e envie a solicitação ao professor.
                   </p>
@@ -461,6 +480,22 @@ export function TeacherProfilePage() {
         modalities={teacher.modalities}
         subjects={teacher.subjects}
       />
+
+      <DenunciaDialog
+        open={denunciaAberta}
+        onClose={fecharDenuncia}
+        professorId={teacher.id}
+        professorNome={teacher.name}
+        onSuccess={() =>
+          setToast({
+            variant: 'success',
+            message: 'Denúncia registrada e enviada para análise',
+          })
+        }
+        onError={(mensagem) => setToast({ variant: 'error', message: mensagem })}
+      />
+
+      {toast && <Toast message={toast.message} variant={toast.variant} onDismiss={fecharToast} />}
 
       <SiteFooter />
     </div>

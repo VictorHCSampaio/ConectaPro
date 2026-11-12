@@ -177,11 +177,11 @@ class ProfessorServiceTest {
         Professor profJoao = criarProfessor("João");
         Professor profAna = criarProfessor("Ana Paula Silva");
 
-        when(professorRepository.findAll()).thenReturn(List.of(profA, profJoao, profAna));
+        when(professorRepository.findAtivosComUsuario()).thenReturn(List.of(profA, profJoao, profAna));
         when(enderecoRepository.findByUsuarioIdIn(any())).thenReturn(List.of());
         when(localizacaoService.buscarCoordenada(nullable(String.class))).thenReturn(Optional.empty());
-        when(professorMateriaRepository.findByProfessorId(any())).thenReturn(List.of());
-        when(disponibilidadeRepository.findByProfessorId(any())).thenReturn(List.of());
+        when(professorMateriaRepository.findByProfessorIdIn(any())).thenReturn(List.of());
+        when(disponibilidadeRepository.findByProfessorIdIn(any())).thenReturn(List.of());
 
         // Act
         List<ProfessorResumoResponse> resultado = professorService.listarProfessores(null);
