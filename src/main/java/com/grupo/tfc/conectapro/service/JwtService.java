@@ -11,8 +11,6 @@ import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 
 import java.time.Instant;
-import java.time.LocalDateTime;
-import java.time.ZoneOffset;
 import java.util.UUID;
 
 @Service
@@ -76,12 +74,13 @@ public class JwtService {
     public String gerarPasswordResetToken(UUID userId, String senhaHash, long expiracaoMinutos) {
         try {
             Algorithm resetAlgorithm = Algorithm.HMAC256(properties.secret() + senhaHash);
+            Instant agora = Instant.now();
             return JWT.create()
                     .withIssuer(ISSUER)
                     .withSubject(userId.toString())
                     .withClaim("scope", SCOPE_PASSWORD_RESET)
-                    .withIssuedAt(Instant.now())
-                    .withExpiresAt(gerarDataExpiracao(expiracaoMinutos))
+                    .withIssuedAt(agora)
+                    .withExpiresAt(gerarDataExpiracao(agora, expiracaoMinutos))
                     .sign(resetAlgorithm);
         } catch (JWTCreationException e) {
             throw new RuntimeException("Erro ao gerar token de reset de senha", e);
@@ -105,12 +104,13 @@ public class JwtService {
 
     private String buildToken(UUID userId, String scope, String role, boolean admin, long expiracaoMinutos) {
         try {
+            Instant agora = Instant.now();
             var builder = JWT.create()
                     .withIssuer(ISSUER)
                     .withSubject(userId.toString())
                     .withClaim("scope", scope)
-                    .withIssuedAt(Instant.now())
-                    .withExpiresAt(gerarDataExpiracao(expiracaoMinutos));
+                    .withIssuedAt(agora)
+                    .withExpiresAt(gerarDataExpiracao(agora, expiracaoMinutos));
 
             if (role != null) {
                 builder.withClaim("role", role);
@@ -125,7 +125,7 @@ public class JwtService {
         }
     }
 
-    private Instant gerarDataExpiracao(long minutos) {
-        return LocalDateTime.now().plusMinutes(minutos).toInstant(ZoneOffset.of("-03:00"));
+    private Instant gerarDataExpiracao(Instant base, long minutos) {
+        return base.plusSeconds(minutos * 60);
     }
 }
