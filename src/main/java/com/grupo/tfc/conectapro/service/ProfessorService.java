@@ -246,7 +246,8 @@ public class ProfessorService {
                 resumo.weekDays(),
                 resumo.neighborhood(),
                 resumo.city(),
-                resumo.distanceKm());
+                resumo.distanceKm(),
+                resumo.usuarioId());
     }
 
     private Usuario buscarUsuario(UUID usuarioId) {
@@ -292,7 +293,8 @@ public class ProfessorService {
                         .toList(),
                 endereco == null ? null : endereco.getBairro(),
                 endereco == null ? null : endereco.getCidade(),
-                distanciaAte(professor, endereco, origem)
+                distanciaAte(professor, endereco, origem),
+                professor.getUsuario().getId().toString()
         );
     }
 

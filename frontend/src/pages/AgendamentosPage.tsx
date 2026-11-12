@@ -1,5 +1,6 @@
-import { BookOpen, CalendarDays, Check, Clock, Loader2, Monitor, X } from 'lucide-react'
+import { BookOpen, CalendarDays, Check, Clock, Loader2, MessageCircle, Monitor, X } from 'lucide-react'
 import { useEffect, useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { SiteFooter } from '@/components/landing/SiteFooter'
 import { SiteHeader } from '@/components/landing/SiteHeader'
 import { Button } from '@/components/ui/Button'
@@ -31,6 +32,31 @@ const STATUS_CHIP: Record<AgendamentoStatus, string> = {
     'border-sage-600/20 bg-sage-50 text-sage-600 dark:border-emerald-800/50 dark:bg-emerald-900/30 dark:text-emerald-400',
   CANCELADO:
     'border-red-600/20 bg-red-50 text-red-600 dark:border-red-400/20 dark:bg-red-400/10 dark:text-red-400',
+}
+
+function ChatDaAula({ agendamento, nome }: { agendamento: Agendamento; nome: string }) {
+  const { user } = useAuth()
+  const navigate = useNavigate()
+  const alvoId = user?.role === 'PROFESSOR' ? agendamento.alunoUsuarioId : agendamento.professorUsuarioId
+
+  if (!alvoId) return null
+
+  return (
+    <Button
+      type="button"
+      variant="ghost"
+      fullWidth={false}
+      className="px-3 py-1.5 text-xs"
+      icon={<MessageCircle className="size-4" />}
+      onClick={() =>
+        navigate(`/chat/${alvoId}`, {
+          state: { nome, voltarPara: '/aulas' },
+        })
+      }
+    >
+      Chat
+    </Button>
+  )
 }
 
 function StatusChip({ status }: { status: AgendamentoStatus }) {
@@ -158,20 +184,24 @@ function StudentBookingsView() {
         ) : (
           <ul className="flex flex-col gap-3">
             {agendamentos.map((agendamento) => (
-              <li key={agendamento.id}>
+              <li
+                key={agendamento.id}
+                className="flex flex-col gap-3 rounded-lg border border-paper-200 bg-white px-4 py-3.5 dark:border-white/10 dark:bg-night-700 sm:flex-row sm:items-center sm:justify-between"
+              >
                 <button
                   type="button"
                   onClick={() => setDetalhe(agendamento)}
-                  className="flex w-full flex-col gap-2 rounded-lg border border-paper-200 bg-white px-4 py-3.5 text-left transition-colors hover:border-paper-300 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ocre-500 dark:border-white/10 dark:bg-night-700 dark:hover:border-white/20 sm:flex-row sm:items-center sm:justify-between"
+                  className="flex min-w-0 flex-1 flex-col gap-1 text-left focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ocre-500"
                 >
-                  <div className="flex flex-col gap-1">
-                    <span className="font-medium text-ink-900 dark:text-white">
-                      {agendamento.professorName}
-                    </span>
-                    <SlotInfo agendamento={agendamento} />
-                  </div>
-                  <StatusChip status={agendamento.status} />
+                  <span className="font-medium text-ink-900 dark:text-white">
+                    {agendamento.professorName}
+                  </span>
+                  <SlotInfo agendamento={agendamento} />
                 </button>
+                <div className="flex items-center gap-2">
+                  <StatusChip status={agendamento.status} />
+                  <ChatDaAula agendamento={agendamento} nome={agendamento.professorName} />
+                </div>
               </li>
             ))}
           </ul>
@@ -262,7 +292,7 @@ function TeacherBookingsView() {
                 </div>
 
                 {agendamento.status === 'SOLICITADO' ? (
-                  <div className="flex items-center gap-2">
+                  <div className="flex flex-wrap items-center gap-2">
                     <Button
                       variant="secondary"
                       fullWidth={false}
@@ -282,9 +312,13 @@ function TeacherBookingsView() {
                     >
                       Aprovar
                     </Button>
+                    <ChatDaAula agendamento={agendamento} nome={agendamento.studentName} />
                   </div>
                 ) : (
-                  <StatusChip status={agendamento.status} />
+                  <div className="flex items-center gap-2">
+                    <StatusChip status={agendamento.status} />
+                    <ChatDaAula agendamento={agendamento} nome={agendamento.studentName} />
+                  </div>
                 )}
               </li>
             ))}

@@ -15,6 +15,8 @@ public record AgendamentoResponse(
         String modality,
         String subject,
         StatusAgendamento status,
-        OffsetDateTime createdAt
+        OffsetDateTime createdAt,
+        UUID alunoUsuarioId,
+        UUID professorUsuarioId
 ) {
 }

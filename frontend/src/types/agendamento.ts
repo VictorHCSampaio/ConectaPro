@@ -17,4 +17,6 @@ export type Agendamento = {
   subject: string
   status: AgendamentoStatus
   createdAt: string
+  alunoUsuarioId: string
+  professorUsuarioId: string
 }

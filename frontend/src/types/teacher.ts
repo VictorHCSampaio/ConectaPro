@@ -17,6 +17,7 @@ export type Teacher = {
   neighborhood?: string | null
   city?: string | null
   distanceKm?: number | null
+  usuarioId: string
 }
 
 export type TeacherStats = {

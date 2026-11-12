@@ -4,6 +4,7 @@ import { RequireAuth } from '@/components/auth/RequireAuth'
 import { AdminMateriasPage } from '@/pages/AdminMateriasPage'
 import { AgendamentosPage } from '@/pages/AgendamentosPage'
 import { AuthPage } from '@/pages/AuthPage'
+import { ChatPage } from '@/pages/chat/ChatPage'
 import { Dashboard } from '@/pages/Dashboard'
 import { ForgotPasswordPage } from '@/pages/ForgotPasswordPage'
 import { LandingPage } from '@/pages/LandingPage'
@@ -40,6 +41,14 @@ function App() {
         element={
           <RequireAuth>
             <TeacherProfilePage />
+          </RequireAuth>
+        }
+      />
+      <Route
+        path="/chat/:usuarioId"
+        element={
+          <RequireAuth>
+            <ChatPage />
           </RequireAuth>
         }
       />

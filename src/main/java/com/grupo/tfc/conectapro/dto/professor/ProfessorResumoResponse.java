@@ -17,6 +17,7 @@ public record ProfessorResumoResponse(
         List<String> weekDays,
         String neighborhood,
         String city,
-        Double distanceKm
+        Double distanceKm,
+        String usuarioId
 ) {
 }

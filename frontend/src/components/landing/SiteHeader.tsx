@@ -12,7 +12,9 @@ import {
 import { useState } from 'react'
 import { Link, NavLink, useNavigate } from 'react-router-dom'
 import { Brand } from '@/components/Brand'
+import { SininhoNotificacoes } from '@/components/notificacoes/SininhoNotificacoes'
 import { useAuth } from '@/hooks/useAuth'
+import { useNotificacoes } from '@/hooks/useNotificacoes'
 import { useTheme } from '@/contexts/ThemeContext'
 import { cn } from '@/lib/cn'
 
@@ -27,6 +29,7 @@ const PRIMARY_BUTTON_CLASS =
 export function SiteHeader() {
   const [isMenuOpen, setIsMenuOpen] = useState(false)
   const { user, isAuthenticated, signOut } = useAuth()
+  const { notificacoes, marcarComoLida } = useNotificacoes(isAuthenticated)
   const navigate = useNavigate()
   const { theme, toggleTheme } = useTheme()
 
@@ -103,6 +106,7 @@ export function SiteHeader() {
                 <CalendarDays className="size-4" />
                 {user?.role === 'PROFESSOR' ? 'Aulas recebidas' : 'Minhas aulas'}
               </Link>
+              <SininhoNotificacoes notificacoes={notificacoes} marcarComoLida={marcarComoLida} />
               {isAuthenticated && (
                 <Link
                   to="/perfil"
@@ -137,6 +141,9 @@ export function SiteHeader() {
         </div>
 
         <div className="flex items-center gap-1 md:hidden">
+          {isAuthenticated && (
+            <SininhoNotificacoes notificacoes={notificacoes} marcarComoLida={marcarComoLida} />
+          )}
           <button
             type="button"
             onClick={toggleTheme}
