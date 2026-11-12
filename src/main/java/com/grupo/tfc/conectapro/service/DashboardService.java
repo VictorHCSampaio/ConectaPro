@@ -267,6 +267,8 @@ public class DashboardService {
             case AGENDAMENTO_CANCELADO -> "cancelou um agendamento";
             case RESET_SENHA_SOLICITADO -> "solicitou redefinição de senha";
             case RESET_SENHA_CONFIRMADO -> "redefiniu a senha";
+            case MENSAGEM_ENVIADA -> "enviou uma mensagem";
+            case DENUNCIA_REGISTRADA -> "registrou uma denúncia";
         };
     }
 }

@@ -190,14 +190,20 @@ public class ProfessorService {
 
     @Transactional(readOnly = true)
     public List<ProfessorResumoResponse> listarProfessores(UUID usuarioId) {
-        List<Professor> professores = professorRepository.findAll().stream()
-                .filter(p -> p.getUsuario().getStatusConta() == StatusConta.ATIVO)
-                .toList();
+        List<Professor> professores = professorRepository.findAtivosComUsuario();
+        List<UUID> professorIds = professores.stream().map(Professor::getId).toList();
+        Map<UUID, List<String>> materiasPorProfessor = carregarMaterias(professorIds);
+        Map<UUID, List<ProfessorDisponibilidade>> horariosPorProfessor = carregarHorarios(professorIds);
         Map<UUID, Endereco> enderecos = buscarEnderecos(professores);
         Coordenada origem = localizacaoService.buscarCoordenada(cepDeOrigem(usuarioId)).orElse(null);
 
         List<ProfessorResumoResponse> resumos = professores.stream()
-                .map(professor -> paraResumo(professor, enderecos.get(professor.getUsuario().getId()), origem))
+                .map(professor -> paraResumo(
+                        professor,
+                        enderecos.get(professor.getUsuario().getId()),
+                        origem,
+                        materiasPorProfessor.getOrDefault(professor.getId(), List.of()),
+                        horariosPorProfessor.getOrDefault(professor.getId(), List.of())))
                 .sorted(Comparator.comparing(ProfessorResumoResponse::name, String.CASE_INSENSITIVE_ORDER))
                 .toList();
 
@@ -219,13 +225,16 @@ public class ProfessorService {
         }
 
         Endereco endereco = enderecoRepository.findFirstByUsuarioId(professor.getUsuario().getId()).orElse(null);
+        List<UUID> professorIds = List.of(professor.getId());
+        List<String> materias = carregarMaterias(professorIds).getOrDefault(professor.getId(), List.of());
+        List<ProfessorDisponibilidade> slots = carregarHorarios(professorIds).getOrDefault(professor.getId(), List.of());
 
         if (professor.getUsuario().getId().equals(usuarioId)) {
-            return paraResumo(professor, endereco, null);
+            return paraResumo(professor, endereco, null, materias, slots);
         }
 
         Coordenada origem = localizacaoService.buscarCoordenada(cepDeOrigem(usuarioId)).orElse(null);
-        ProfessorResumoResponse resumo = paraResumo(professor, endereco, origem);
+        ProfessorResumoResponse resumo = paraResumo(professor, endereco, origem, materias, slots);
 
         return usuarioId == null ? redigirParaVisitante(resumo) : resumo;
     }
@@ -246,7 +255,8 @@ public class ProfessorService {
                 resumo.weekDays(),
                 resumo.neighborhood(),
                 resumo.city(),
-                resumo.distanceKm());
+                resumo.distanceKm(),
+                resumo.usuarioId());
     }
 
     private Usuario buscarUsuario(UUID usuarioId) {
@@ -254,15 +264,32 @@ public class ProfessorService {
                 .orElseThrow(() -> new ResponseStatusException(NOT_FOUND, "Usuário não encontrado"));
     }
 
-    private ProfessorResumoResponse paraResumo(Professor professor, Endereco endereco, Coordenada origem) {
+    private Map<UUID, List<String>> carregarMaterias(List<UUID> professorIds) {
+        if (professorIds.isEmpty()) {
+            return Map.of();
+        }
+
+        return professorMateriaRepository.findByProfessorIdIn(professorIds).stream()
+                .collect(Collectors.groupingBy(
+                        vinculo -> vinculo.getProfessor().getId(),
+                        Collectors.mapping(vinculo -> vinculo.getMateria().getNome(), Collectors.toList())));
+    }
+
+    private Map<UUID, List<ProfessorDisponibilidade>> carregarHorarios(List<UUID> professorIds) {
+        if (professorIds.isEmpty()) {
+            return Map.of();
+        }
+
+        return disponibilidadeRepository.findByProfessorIdIn(professorIds).stream()
+                .collect(Collectors.groupingBy(slot -> slot.getProfessor().getId()));
+    }
+
+    private ProfessorResumoResponse paraResumo(Professor professor,
+                                                Endereco endereco,
+                                                Coordenada origem,
+                                                List<String> materias,
+                                                List<ProfessorDisponibilidade> slots) {
         String nome = professor.getUsuario().getNomeCompleto();
-
-        List<String> materias = professorMateriaRepository.findByProfessorId(professor.getId())
-                .stream()
-                .map(vinculo -> vinculo.getMateria().getNome())
-                .toList();
-
-        List<ProfessorDisponibilidade> slots = disponibilidadeRepository.findByProfessorId(professor.getId());
 
         List<String> modalidades = new ArrayList<>();
         if (Boolean.TRUE.equals(professor.getAtendeOnline())) {
@@ -292,7 +319,8 @@ public class ProfessorService {
                         .toList(),
                 endereco == null ? null : endereco.getBairro(),
                 endereco == null ? null : endereco.getCidade(),
-                distanciaAte(professor, endereco, origem)
+                distanciaAte(professor, endereco, origem),
+                professor.getUsuario().getId().toString()
         );
     }
 
