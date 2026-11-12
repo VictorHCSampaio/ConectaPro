@@ -8,6 +8,8 @@ import {
   MapPin,
   Phone,
   Search,
+  Shield,
+  ShieldCheck,
   User,
 } from 'lucide-react'
 import { Link } from 'react-router-dom'
@@ -17,12 +19,14 @@ import { AvailabilityGrid } from '@/components/teacher-config/AvailabilityGrid'
 import { FormSection } from '@/components/teacher-config/FormSection'
 import { SubjectExperienceInput } from '@/components/teacher-config/SubjectExperienceInput'
 import { Button } from '@/components/ui/Button'
+import { Checkbox } from '@/components/ui/Checkbox'
 import { Input } from '@/components/ui/Input'
 import { Radio } from '@/components/ui/Radio'
 import { SiteFooter } from '@/components/landing/SiteFooter'
 import { SiteHeader } from '@/components/landing/SiteHeader'
 import { useAuth } from '@/hooks/useAuth'
 import { extractErrorMessage } from '@/lib/api'
+import { ativarTotp, obterConfigTotp, obterStatusTotp } from '@/lib/authService'
 import { buscarEnderecoPorCep } from '@/lib/enderecoService'
 import { cn } from '@/lib/cn'
 import { maskCep } from '@/lib/masks'
@@ -129,7 +133,7 @@ function buildPayload(data: TeacherProfileFormData): TeacherProfilePayload {
     bio: data.bio.trim(),
     subjects: data.subjects,
     teachingModel: data.teachingModel ? TEACHING_MODEL_MAP[data.teachingModel] : null,
-    modality: MODALITY_MAP[data.modality],
+    modalities: data.modalities.map((modality) => MODALITY_MAP[modality]),
     pricePerHour: parseCurrencyToFloat(data.pricePerHour),
     address: {
       cep: data.address.cep.replace(/\D/g, ''),
@@ -163,7 +167,7 @@ const INITIAL_FORM: TeacherProfileFormData = {
   bio: '',
   subjects: [],
   teachingModel: '',
-  modality: 'online',
+  modalities: ['online'],
   pricePerHour: '',
   address: INITIAL_ADDRESS,
   availability: new Set(),
@@ -183,7 +187,12 @@ function buildFormFromPayload(payload: TeacherProfilePayload): TeacherProfileFor
     bio: payload.bio ?? '',
     subjects: payload.subjects ?? [],
     teachingModel: payload.teachingModel ? TEACHING_MODEL_FROM_API[payload.teachingModel] : '',
-    modality: payload.modality === 'PRESENCIAL' ? 'presencial' : 'online',
+    modalities:
+      payload.modalities && payload.modalities.length > 0
+        ? payload.modalities.map((modality) =>
+            modality === 'PRESENCIAL' ? 'presencial' : 'online',
+          )
+        : ['online'],
     pricePerHour: payload.pricePerHour ? formatCurrencyFromFloat(payload.pricePerHour) : '',
     address: {
       cep: maskCep(payload.address?.cep ?? ''),
@@ -297,6 +306,136 @@ function SuccessToast({ onDismiss }: { onDismiss: () => void }) {
         ✕
       </button>
     </motion.div>
+  )
+}
+
+function SecuritySection() {
+  const [totpAtivo, setTotpAtivo] = useState<boolean | null>(null)
+  const [qrUri, setQrUri] = useState<string | null>(null)
+  const [totpCode, setTotpCode] = useState('')
+  const [activating, setActivating] = useState(false)
+  const [activateError, setActivateError] = useState<string | null>(null)
+  const [activateSuccess, setActivateSuccess] = useState(false)
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    Promise.all([obterStatusTotp(), obterConfigTotp()])
+      .then(([status, config]) => {
+        setTotpAtivo(status.totpAtivo)
+        setQrUri(config.qrUri)
+      })
+      .catch(() => undefined)
+      .finally(() => setLoading(false))
+  }, [])
+
+  async function handleActivate(event: React.FormEvent) {
+    event.preventDefault()
+    if (totpCode.length !== 6) return
+
+    setActivateError(null)
+    setActivating(true)
+    try {
+      await ativarTotp({ totpCode: parseInt(totpCode, 10) })
+      setTotpAtivo(true)
+      setActivateSuccess(true)
+      setTotpCode('')
+    } catch (error) {
+      setActivateError(
+        extractErrorMessage(error, 'Não foi possível ativar o 2FA. Tente novamente.'),
+      )
+    } finally {
+      setActivating(false)
+    }
+  }
+
+  if (loading) {
+    return (
+      <FormSection title="Segurança" description="Proteção adicional para sua conta.">
+        <p className="inline-flex items-center gap-2 text-sm text-paper-500 dark:text-zinc-500">
+          <Loader2 className="size-4 animate-spin" />
+          Carregando…
+        </p>
+      </FormSection>
+    )
+  }
+
+  if (totpAtivo) {
+    return (
+      <FormSection title="Segurança" description="Proteção adicional para sua conta.">
+        <div className="flex items-center gap-3 rounded-lg border border-sage-600/20 bg-sage-50 dark:bg-emerald-900/20 p-4">
+          <ShieldCheck className="size-5 shrink-0 text-sage-600 dark:text-emerald-400" />
+          <p className="text-sm font-medium text-sage-600 dark:text-emerald-400">
+            Autenticação em duas etapas ativada
+          </p>
+        </div>
+      </FormSection>
+    )
+  }
+
+  return (
+    <FormSection title="Segurança" description="Proteção adicional para sua conta.">
+      <div className="flex flex-col gap-4">
+        <div className="flex items-start gap-3 rounded-lg border border-ocre-400/20 bg-ocre-50/50 dark:bg-ocre-900/10 p-4">
+          <Shield className="mt-0.5 size-5 shrink-0 text-ocre-600 dark:text-ocre-400" />
+          <div className="flex flex-col gap-1">
+            <p className="text-sm font-medium text-ink-800 dark:text-white">
+              Ative a verificação em duas etapas (2FA)
+            </p>
+            <p className="text-xs text-ink-600 dark:text-zinc-400">
+              Escaneie o QR Code abaixo com seu app autenticador (Google Authenticator, Authy, etc.)
+              e digite o código de 6 dígitos para confirmar.
+            </p>
+          </div>
+        </div>
+
+        {qrUri && (
+          <div className="flex justify-center rounded-lg border border-paper-200 bg-white p-4 dark:border-white/10 dark:bg-night-800">
+            <img
+              src={`https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(qrUri)}`}
+              alt="QR Code para configurar autenticador"
+              className="size-48"
+              width={192}
+              height={192}
+            />
+          </div>
+        )}
+
+        {activateSuccess && (
+          <div className="flex items-center gap-2 rounded-lg border border-sage-600/20 bg-sage-50 dark:bg-emerald-900/20 p-3">
+            <CheckCircle2 className="size-4 shrink-0 text-sage-600 dark:text-emerald-400" />
+            <p className="text-sm text-sage-600 dark:text-emerald-400">2FA ativado com sucesso!</p>
+          </div>
+        )}
+
+        {activateError && (
+          <p className="text-xs font-medium text-alert-600 dark:text-alert-200">{activateError}</p>
+        )}
+
+        <form onSubmit={handleActivate} className="flex items-end gap-3">
+          <div className="flex-1">
+            <Input
+              label="Código do Autenticador"
+              type="text"
+              inputMode="numeric"
+              placeholder="000000"
+              value={totpCode}
+              onChange={(e) => setTotpCode(e.target.value.replace(/\D/g, '').slice(0, 6))}
+              maxLength={6}
+              autoComplete="one-time-code"
+            />
+          </div>
+          <Button
+            type="submit"
+            isLoading={activating}
+            disabled={totpCode.length !== 6}
+            fullWidth={false}
+            className="min-w-[120px] shrink-0"
+          >
+            Ativar 2FA
+          </Button>
+        </form>
+      </div>
+    </FormSection>
   )
 }
 
@@ -627,6 +766,9 @@ export function TeacherProfileConfigPage() {
                       <span className="label-mono text-paper-600 dark:text-zinc-400">
                         Modalidade de Ensino
                       </span>
+                      <p className="text-xs text-paper-500 dark:text-zinc-500">
+                        Marque uma ou as duas. O aluno escolhe no agendamento.
+                      </p>
                       <div className="flex flex-wrap gap-4">
                         {(
                           [
@@ -634,18 +776,23 @@ export function TeacherProfileConfigPage() {
                             { value: 'presencial', label: 'Presencial' },
                           ] as const
                         ).map(({ value, label }) => (
-                          <Radio
+                          <Checkbox
                             key={value}
-                            name="modality"
+                            name="modalities"
                             value={value}
                             label={label}
-                            checked={form.modality === value}
+                            checked={form.modalities.includes(value)}
                             onChange={() => {
-                              setForm((prev) => ({
-                                ...prev,
-                                modality: value,
-                                availability: new Set(),
-                              }))
+                              setForm((prev) => {
+                                const marcada = prev.modalities.includes(value)
+                                if (marcada && prev.modalities.length === 1) return prev
+                                return {
+                                  ...prev,
+                                  modalities: marcada
+                                    ? prev.modalities.filter((item) => item !== value)
+                                    : [...prev.modalities, value],
+                                }
+                              })
                             }}
                           />
                         ))}
@@ -766,12 +913,10 @@ export function TeacherProfileConfigPage() {
             title="Disponibilidade"
             description="Selecione os dias e turnos em que você costuma dar aulas."
           >
-            <AvailabilityGrid
-              selected={form.availability}
-              onToggle={toggleAvailability}
-              modality={form.modality}
-            />
+            <AvailabilityGrid selected={form.availability} onToggle={toggleAvailability} />
           </FormSection>
+
+          <SecuritySection />
 
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             {submitted && Object.keys(errors).length > 0 && (

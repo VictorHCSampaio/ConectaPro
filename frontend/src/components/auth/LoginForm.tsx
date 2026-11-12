@@ -1,5 +1,5 @@
 import { Mail } from 'lucide-react'
-import { useState } from 'react'
+import { useRef, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { FormFeedback } from '@/components/auth/FormFeedback'
 import { Button } from '@/components/ui/Button'
@@ -9,7 +9,7 @@ import { PasswordInput } from '@/components/ui/PasswordInput'
 import { useAuth } from '@/hooks/useAuth'
 import { useForm } from '@/hooks/useForm'
 import { extractErrorMessage } from '@/lib/api'
-import { loginUsuario } from '@/lib/authService'
+import { loginUsuario, verificarTotp } from '@/lib/authService'
 import { validateLoginForm } from '@/lib/validation'
 import type { LoginFormValues } from '@/types/auth'
 
@@ -29,25 +29,133 @@ export function LoginForm() {
     validateLoginForm,
   )
 
+  const [totpStep, setTotpStep] = useState(false)
+  const [totpCode, setTotpCode] = useState('')
+  const [totpError, setTotpError] = useState<string | null>(null)
+  const [totpSubmitting, setTotpSubmitting] = useState(false)
+  const totpInputRef = useRef<HTMLInputElement>(null)
+
   const onSubmit = handleSubmit(async (formValues) => {
     setSubmitError(null)
     try {
-      const usuario = await loginUsuario({ email: formValues.email, senha: formValues.password })
+      const response = await loginUsuario({ email: formValues.email, senha: formValues.password })
 
-      const role = usuario.tipo
+      if (response.status === 'TOTP_REQUIRED') {
+        setTotpStep(true)
+        setTotpCode('')
+        setTotpError(null)
+        setTimeout(() => totpInputRef.current?.focus(), 100)
+        return
+      }
+
       signIn({
-        name: usuario.nomeCompleto,
+        name: response.nomeCompleto!,
         email: formValues.email.trim(),
-        role,
-        isAdmin: usuario.isAdmin,
+        role: response.tipo!,
+        isAdmin: response.isAdmin!,
+        statusConta: response.statusConta,
       })
 
       setWasSubmitted(true)
-      setTimeout(() => navigate(role === 'PROFESSOR' ? '/profile/edit' : '/'), 900)
+      const destino =
+        response.statusConta === 'PENDENTE_PAGAMENTO'
+          ? '/pagamento'
+          : response.tipo === 'PROFESSOR'
+            ? '/profile/edit'
+            : '/'
+      setTimeout(() => navigate(destino), 900)
     } catch (error) {
       setSubmitError(extractErrorMessage(error, 'Não foi possível entrar. Tente novamente.'))
     }
   })
+
+  async function handleTotpSubmit(event: React.FormEvent) {
+    event.preventDefault()
+    if (totpCode.length !== 6) return
+
+    setTotpError(null)
+    setTotpSubmitting(true)
+    try {
+      const response = await verificarTotp({
+        code: parseInt(totpCode, 10),
+      })
+
+      signIn({
+        name: response.nomeCompleto!,
+        email: values.email.trim(),
+        role: response.tipo!,
+        isAdmin: response.isAdmin!,
+        statusConta: response.statusConta,
+      })
+
+      setWasSubmitted(true)
+      const destino =
+        response.statusConta === 'PENDENTE_PAGAMENTO'
+          ? '/pagamento'
+          : response.tipo === 'PROFESSOR'
+            ? '/profile/edit'
+            : '/'
+      setTimeout(() => navigate(destino), 900)
+    } catch (error) {
+      setTotpError(extractErrorMessage(error, 'Código inválido. Tente novamente.'))
+    } finally {
+      setTotpSubmitting(false)
+    }
+  }
+
+  function handleTotpCodeChange(value: string) {
+    const digits = value.replace(/\D/g, '').slice(0, 6)
+    setTotpCode(digits)
+  }
+
+  if (totpStep) {
+    return (
+      <div className="flex h-full flex-col justify-center gap-6 px-8 py-10 sm:px-10 md:px-12">
+        <div className="flex flex-col gap-1.5">
+          <h2 className="text-2xl font-semibold tracking-tight text-ink-900 dark:text-white">
+            Verificação em duas etapas
+          </h2>
+          <p className="text-sm text-ink-600 dark:text-zinc-400">
+            Digite o código de 6 dígitos do seu app autenticador.
+          </p>
+        </div>
+
+        {wasSubmitted && <FormFeedback message="Login realizado. Redirecionando." />}
+
+        {totpError && <FormFeedback variant="error" message={totpError} />}
+
+        <form onSubmit={handleTotpSubmit} noValidate className="flex flex-col gap-5">
+          <Input
+            ref={totpInputRef}
+            label="Código TOTP"
+            type="text"
+            inputMode="numeric"
+            placeholder="000000"
+            value={totpCode}
+            onChange={(e) => handleTotpCodeChange(e.target.value)}
+            autoComplete="one-time-code"
+            maxLength={6}
+          />
+
+          <Button type="submit" isLoading={totpSubmitting} disabled={totpCode.length !== 6}>
+            Verificar
+          </Button>
+
+          <button
+            type="button"
+            onClick={() => {
+              setTotpStep(false)
+              setTotpCode('')
+              setTotpError(null)
+            }}
+            className="text-sm text-ink-600 transition-colors hover:text-ink-900 dark:text-zinc-400 dark:hover:text-white"
+          >
+            Voltar ao login
+          </button>
+        </form>
+      </div>
+    )
+  }
 
   return (
     <div className="flex h-full flex-col justify-center gap-6 px-8 py-10 sm:px-10 md:px-12">
@@ -94,7 +202,7 @@ export function LoginForm() {
             onChange={(event) => setField('rememberMe', event.target.checked)}
           />
           <Link
-            to="#"
+            to="/forgot-password"
             className="border-b border-paper-300 text-sm text-ink-700 transition-colors hover:border-ocre-400 hover:text-ink-900 dark:border-white/20 dark:text-zinc-400 dark:hover:border-ocre-400 dark:hover:text-white"
           >
             Esqueci minha senha

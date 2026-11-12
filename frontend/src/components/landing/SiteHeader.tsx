@@ -1,4 +1,14 @@
-import { BookOpen, LogOut, Menu, Moon, Sun, UserRound, X } from 'lucide-react'
+import {
+  BookOpen,
+  CalendarDays,
+  LayoutDashboard,
+  LogOut,
+  Menu,
+  Moon,
+  Sun,
+  UserRound,
+  X,
+} from 'lucide-react'
 import { useState } from 'react'
 import { Link, NavLink, useNavigate } from 'react-router-dom'
 import { Brand } from '@/components/Brand'
@@ -58,6 +68,15 @@ export function SiteHeader() {
         </nav>
 
         <div className="hidden items-center gap-4 md:flex">
+          {user?.isAdmin && (
+            <Link
+              to="/dashboard"
+              className="inline-flex items-center gap-1.5 text-sm text-ink-600 transition-colors hover:text-ink-900 dark:text-zinc-400 dark:hover:text-white"
+            >
+              <LayoutDashboard className="size-4" />
+              Dashboard
+            </Link>
+          )}
           <button
             type="button"
             onClick={toggleTheme}
@@ -77,6 +96,13 @@ export function SiteHeader() {
                   Matérias
                 </Link>
               )}
+              <Link
+                to="/aulas"
+                className="inline-flex items-center gap-1.5 text-sm text-ink-600 transition-colors hover:text-ink-900 dark:text-zinc-400 dark:hover:text-white"
+              >
+                <CalendarDays className="size-4" />
+                {user?.role === 'PROFESSOR' ? 'Aulas recebidas' : 'Minhas aulas'}
+              </Link>
               {isAuthenticated && (
                 <Link
                   to="/perfil"
@@ -156,6 +182,16 @@ export function SiteHeader() {
               <>
                 {user?.isAdmin && (
                   <Link
+                    to="/dashboard"
+                    onClick={closeMenu}
+                    className="flex items-center justify-center gap-2 rounded-md border border-paper-300 bg-white px-3 py-2.5 text-center text-ink-800 dark:border-white/10 dark:bg-night-700 dark:text-zinc-100"
+                  >
+                    <LayoutDashboard className="size-4" />
+                    Dashboard
+                  </Link>
+                )}
+                {user?.isAdmin && (
+                  <Link
                     to="/admin/materias"
                     onClick={closeMenu}
                     className="flex items-center justify-center gap-2 rounded-md border border-paper-300 bg-white dark:border-white/10 dark:bg-night-700 px-3 py-2.5 text-center text-ink-800 dark:text-zinc-100"
@@ -164,6 +200,14 @@ export function SiteHeader() {
                     Matérias
                   </Link>
                 )}
+                <Link
+                  to="/aulas"
+                  onClick={closeMenu}
+                  className="flex items-center justify-center gap-2 rounded-md border border-paper-300 bg-white dark:border-white/10 dark:bg-night-700 px-3 py-2.5 text-center text-ink-800 dark:text-zinc-100"
+                >
+                  <CalendarDays className="size-4" />
+                  {user?.role === 'PROFESSOR' ? 'Aulas recebidas' : 'Minhas aulas'}
+                </Link>
                 {isAuthenticated && (
                   <Link
                     to="/perfil"

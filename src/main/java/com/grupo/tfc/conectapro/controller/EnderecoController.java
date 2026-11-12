@@ -1,12 +1,11 @@
 package com.grupo.tfc.conectapro.controller;
 
-import com.grupo.tfc.conectapro.config.SessaoUsuario;
+import com.grupo.tfc.conectapro.config.UsuarioAutenticado;
 import com.grupo.tfc.conectapro.dto.EnderecoCepResponse;
 import com.grupo.tfc.conectapro.dto.EnderecoRequest;
 import com.grupo.tfc.conectapro.model.Endereco;
 import com.grupo.tfc.conectapro.service.EnderecoService;
 import com.grupo.tfc.conectapro.service.LocalizacaoService;
-import jakarta.servlet.http.HttpSession;
 import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -34,8 +33,8 @@ public class EnderecoController {
     }
 
     @GetMapping("/me")
-    public ResponseEntity<EnderecoCepResponse> meuEndereco(HttpSession session) {
-        UUID usuarioId = SessaoUsuario.exigirUsuarioId(session);
+    public ResponseEntity<EnderecoCepResponse> meuEndereco() {
+        UUID usuarioId = UsuarioAutenticado.exigirUsuarioId();
 
         Endereco endereco = enderecoService.buscarPorUsuario(usuarioId)
                 .orElseThrow(() -> new ResponseStatusException(NOT_FOUND, "Endereço ainda não cadastrado"));
@@ -44,9 +43,8 @@ public class EnderecoController {
     }
 
     @PutMapping("/me")
-    public ResponseEntity<EnderecoCepResponse> salvarMeuEndereco(@Valid @RequestBody EnderecoRequest request,
-                                                                 HttpSession session) {
-        UUID usuarioId = SessaoUsuario.exigirUsuarioId(session);
+    public ResponseEntity<EnderecoCepResponse> salvarMeuEndereco(@Valid @RequestBody EnderecoRequest request) {
+        UUID usuarioId = UsuarioAutenticado.exigirUsuarioId();
 
         return ResponseEntity.ok(paraResposta(enderecoService.salvar(usuarioId, request)));
     }

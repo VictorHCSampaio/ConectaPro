@@ -13,6 +13,7 @@ import com.grupo.tfc.conectapro.model.Materia;
 import com.grupo.tfc.conectapro.model.Professor;
 import com.grupo.tfc.conectapro.model.ProfessorDisponibilidade;
 import com.grupo.tfc.conectapro.model.ProfessorMateria;
+import com.grupo.tfc.conectapro.model.StatusConta;
 import com.grupo.tfc.conectapro.model.TipoUsuario;
 import com.grupo.tfc.conectapro.model.Usuario;
 import com.grupo.tfc.conectapro.repository.EnderecoRepository;
@@ -102,6 +103,9 @@ public class ProfessorService {
             auditoriaService.registrar(AcaoAuditoria.ACESSO_NEGADO, usuarioId, "PROFESSOR", null, "configuração de perfil por usuário que não é professor");
             throw new ResponseStatusException(FORBIDDEN, "Apenas professores podem configurar este perfil");
         }
+        if (usuario.getStatusConta() == StatusConta.PENDENTE_PAGAMENTO) {
+            throw new ResponseStatusException(FORBIDDEN, "Efetue o pagamento para editar seu perfil");
+        }
         usuario.setNomeCompleto(request.fullName().trim());
         usuarioRepository.save(usuario);
 
@@ -114,14 +118,15 @@ public class ProfessorService {
                     return novo;
                 });
 
-        boolean online = MODALIDADE_ONLINE.equalsIgnoreCase(request.modality());
+        boolean online = contemModalidade(request.modalities(), MODALIDADE_ONLINE);
+        boolean presencial = contemModalidade(request.modalities(), MODALIDADE_PRESENCIAL);
         boolean paraInstituicoes = MODELO_INSTITUICOES.equalsIgnoreCase(request.teachingModel());
         BigDecimal preco = BigDecimal.valueOf(request.pricePerHour());
 
         professor.setBiografia(request.bio().trim());
         professor.setTelefone(request.phone());
         professor.setAtendeOnline(online);
-        professor.setAtendePresencial(!online);
+        professor.setAtendePresencial(presencial);
         professor.setPrecoHoraParticular(paraInstituicoes ? null : preco);
         professor.setPrecoHoraEscola(paraInstituicoes ? preco : null);
         professor.setCep(request.address().cep());
@@ -176,7 +181,7 @@ public class ProfessorService {
                 professor.getBiografia(),
                 materias,
                 atendeInstituicoes(professor) ? MODELO_INSTITUICOES : MODELO_PARTICULARES,
-                Boolean.TRUE.equals(professor.getAtendeOnline()) ? MODALIDADE_ONLINE : MODALIDADE_PRESENCIAL,
+                modalidadesDoProfessor(professor),
                 preco == null ? null : preco.doubleValue(),
                 endereco,
                 disponibilidade
@@ -185,7 +190,9 @@ public class ProfessorService {
 
     @Transactional(readOnly = true)
     public List<ProfessorResumoResponse> listarProfessores(UUID usuarioId) {
-        List<Professor> professores = professorRepository.findAll();
+        List<Professor> professores = professorRepository.findAll().stream()
+                .filter(p -> p.getUsuario().getStatusConta() == StatusConta.ATIVO)
+                .toList();
         Map<UUID, Endereco> enderecos = buscarEnderecos(professores);
         Coordenada origem = localizacaoService.buscarCoordenada(cepDeOrigem(usuarioId)).orElse(null);
 
@@ -205,6 +212,12 @@ public class ProfessorService {
     public ProfessorResumoResponse buscarProfessor(UUID professorId, UUID usuarioId) {
         Professor professor = professorRepository.findById(professorId)
                 .orElseThrow(() -> new ResponseStatusException(NOT_FOUND, "Professor não encontrado"));
+
+        if (professor.getUsuario().getStatusConta() == StatusConta.PENDENTE_PAGAMENTO
+                && !professor.getUsuario().getId().equals(usuarioId)) {
+            throw new ResponseStatusException(NOT_FOUND, "Professor não encontrado");
+        }
+
         Endereco endereco = enderecoRepository.findFirstByUsuarioId(professor.getUsuario().getId()).orElse(null);
 
         if (professor.getUsuario().getId().equals(usuarioId)) {
@@ -328,6 +341,21 @@ public class ProfessorService {
 
     private boolean atendeInstituicoes(Professor professor) {
         return professor.getPrecoHoraEscola() != null;
+    }
+
+    private boolean contemModalidade(List<String> modalidades, String alvo) {
+        return modalidades != null && modalidades.stream().anyMatch(alvo::equalsIgnoreCase);
+    }
+
+    private List<String> modalidadesDoProfessor(Professor professor) {
+        List<String> modalidades = new ArrayList<>();
+        if (Boolean.TRUE.equals(professor.getAtendeOnline())) {
+            modalidades.add(MODALIDADE_ONLINE);
+        }
+        if (Boolean.TRUE.equals(professor.getAtendePresencial())) {
+            modalidades.add(MODALIDADE_PRESENCIAL);
+        }
+        return modalidades;
     }
 
     private BigDecimal precoHora(Professor professor) {

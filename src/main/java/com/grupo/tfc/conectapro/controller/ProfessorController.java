@@ -1,11 +1,10 @@
 package com.grupo.tfc.conectapro.controller;
 
-import com.grupo.tfc.conectapro.config.SessaoUsuario;
+import com.grupo.tfc.conectapro.config.UsuarioAutenticado;
 import com.grupo.tfc.conectapro.dto.professor.PerfilProfessorRequest;
 import com.grupo.tfc.conectapro.dto.professor.PerfilProfessorResponse;
 import com.grupo.tfc.conectapro.dto.professor.ProfessorResumoResponse;
 import com.grupo.tfc.conectapro.service.ProfessorService;
-import jakarta.servlet.http.HttpSession;
 import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -29,27 +28,26 @@ public class ProfessorController {
   }
 
   @GetMapping
-  public ResponseEntity<List<ProfessorResumoResponse>> listar(HttpSession session) {
-    UUID usuarioId = SessaoUsuario.buscarUsuarioId(session).orElse(null);
+  public ResponseEntity<List<ProfessorResumoResponse>> listar() {
+    UUID usuarioId = UsuarioAutenticado.buscarUsuarioId().orElse(null);
     return ResponseEntity.ok(professorService.listarProfessores(usuarioId));
   }
 
   @GetMapping("/me")
-  public ResponseEntity<PerfilProfessorResponse> meuPerfil(HttpSession session) {
-    UUID usuarioId = SessaoUsuario.exigirUsuarioId(session);
+  public ResponseEntity<PerfilProfessorResponse> meuPerfil() {
+    UUID usuarioId = UsuarioAutenticado.exigirUsuarioId();
     return ResponseEntity.ok(professorService.buscarPerfil(usuarioId));
   }
 
   @GetMapping("/{id}")
-  public ResponseEntity<ProfessorResumoResponse> detalhe(@PathVariable UUID id, HttpSession session) {
-    UUID usuarioId = SessaoUsuario.buscarUsuarioId(session).orElse(null);
+  public ResponseEntity<ProfessorResumoResponse> detalhe(@PathVariable UUID id) {
+    UUID usuarioId = UsuarioAutenticado.buscarUsuarioId().orElse(null);
     return ResponseEntity.ok(professorService.buscarProfessor(id, usuarioId));
   }
 
   @PutMapping("/me")
-  public ResponseEntity<PerfilProfessorResponse> salvarMeuPerfil(@Valid @RequestBody PerfilProfessorRequest request,
-                                                                 HttpSession session) {
-    UUID usuarioId = SessaoUsuario.exigirUsuarioId(session);
+  public ResponseEntity<PerfilProfessorResponse> salvarMeuPerfil(@Valid @RequestBody PerfilProfessorRequest request) {
+    UUID usuarioId = UsuarioAutenticado.exigirUsuarioId();
     return ResponseEntity.ok(professorService.salvarPerfil(usuarioId, request));
   }
 }

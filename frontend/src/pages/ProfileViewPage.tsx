@@ -1,6 +1,6 @@
 import { Loader2, Pencil } from 'lucide-react'
 import { useEffect, useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { Navigate, useNavigate } from 'react-router-dom'
 import { SiteFooter } from '@/components/landing/SiteFooter'
 import { SiteHeader } from '@/components/landing/SiteHeader'
 import { FormSection } from '@/components/teacher-config/FormSection'
@@ -109,7 +109,14 @@ function TeacherProfileView() {
             <FormSection title="Ensino" description="O que, como e por quanto você ensina.">
               <div className="flex flex-col gap-5">
                 <div className="grid grid-cols-2 gap-4">
-                  <Campo rotulo="Modalidade" valor={MODALIDADES[perfil.modality] ?? '—'} />
+                  <Campo
+                    rotulo="Modalidade"
+                    valor={
+                      perfil.modalities && perfil.modalities.length > 0
+                        ? perfil.modalities.map((m) => MODALIDADES[m] ?? m).join(' e ')
+                        : '—'
+                    }
+                  />
                   <Campo
                     rotulo="Modelo"
                     valor={perfil.teachingModel ? (MODELOS[perfil.teachingModel] ?? '—') : '—'}
@@ -160,6 +167,10 @@ function TeacherProfileView() {
 
 export function ProfileViewPage() {
   const { user } = useAuth()
+
+  if (user?.role === 'PROFESSOR' && user.statusConta === 'PENDENTE_PAGAMENTO') {
+    return <Navigate to="/pagamento" replace />
+  }
 
   return user?.role === 'PROFESSOR' ? <TeacherProfileView /> : <StudentProfilePage />
 }

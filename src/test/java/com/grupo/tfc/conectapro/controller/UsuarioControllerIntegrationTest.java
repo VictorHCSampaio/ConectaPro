@@ -1,17 +1,15 @@
 package com.grupo.tfc.conectapro.controller;
 
 import com.grupo.tfc.conectapro.dto.auth.LoginRequest;
-import com.grupo.tfc.conectapro.dto.auth.MensagemAutenticacaoResponse;
+import com.grupo.tfc.conectapro.dto.auth.LoginResponse;
 import com.grupo.tfc.conectapro.dto.auth.RegisterRequest;
-import com.grupo.tfc.conectapro.dto.auth.TotpSetupResponse;
-import com.grupo.tfc.conectapro.model.Usuario;
+import com.grupo.tfc.conectapro.dto.auth.TotpConfiguracaoResponse;
 import com.grupo.tfc.conectapro.repository.UsuarioRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.web.server.LocalServerPort;
-import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
@@ -22,6 +20,7 @@ import org.springframework.web.client.RestClient;
 import org.springframework.web.context.WebApplicationContext;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.springframework.security.test.web.servlet.setup.SecurityMockMvcConfigurers.springSecurity;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -50,6 +49,7 @@ class UsuarioControllerIntegrationTest {
     void setUp() {
         mockMvc = MockMvcBuilders
                 .webAppContextSetup(webApplicationContext)
+                .apply(springSecurity())
                 .build();
 
         restClient = RestClient.builder()
@@ -84,8 +84,8 @@ class UsuarioControllerIntegrationTest {
     }
 
     @Test
-    void deveRetornarErroQuandoEmailInvalidoOuDuplicado() throws Exception {
-        String payloadEmailEmBranco = """
+    void deveRetornarErroQuandoEmailVazio() throws Exception {
+        String payload = """
                 {
                   "nome": "Usuário Inválido",
                   "email": "",
@@ -95,7 +95,7 @@ class UsuarioControllerIntegrationTest {
 
         mockMvc.perform(post("/auth/register")
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content(payloadEmailEmBranco))
+                        .content(payload))
                 .andExpect(status().isBadRequest());
     }
 
@@ -117,8 +117,7 @@ class UsuarioControllerIntegrationTest {
         mockMvc.perform(post("/auth/register")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(payload))
-                .andExpect(status().isBadRequest())
-                .andExpect(status().reason("Email ja cadastrado"));
+                .andExpect(status().isBadRequest());
     }
 
     @Test
@@ -131,12 +130,12 @@ class UsuarioControllerIntegrationTest {
                 null
         );
 
-        ResponseEntity<TotpSetupResponse> resposta = restClient.post()
+        ResponseEntity<TotpConfiguracaoResponse> resposta = restClient.post()
                 .uri("/auth/register")
                 .contentType(MediaType.APPLICATION_JSON)
                 .body(payload)
                 .retrieve()
-                .toEntity(TotpSetupResponse.class);
+                .toEntity(TotpConfiguracaoResponse.class);
 
         assertThat(resposta.getStatusCode()).isEqualTo(HttpStatus.OK);
         assertThat(resposta.getBody()).isNotNull();
@@ -146,82 +145,44 @@ class UsuarioControllerIntegrationTest {
     }
 
     @Test
-    void login_comCredenciaisValidas_deveRetornar200EHeaderSetCookie() {
+    void login_comCredenciaisValidas_deveRetornarTokenJwt() {
         String email = "teste" + System.nanoTime() + "@email.com";
         String senha = "senha@123";
         registrarUsuarioParaTeste(email, senha);
         LoginRequest payload = new LoginRequest(email, senha);
 
-        ResponseEntity<MensagemAutenticacaoResponse> resposta = restClient.post()
+        ResponseEntity<LoginResponse> resposta = restClient.post()
                 .uri("/auth/login")
                 .contentType(MediaType.APPLICATION_JSON)
                 .body(payload)
                 .retrieve()
-                .toEntity(MensagemAutenticacaoResponse.class);
+                .toEntity(LoginResponse.class);
 
-        Usuario usuario = usuarioRepository.findByEmail(email).orElseThrow();
         assertThat(resposta.getStatusCode()).isEqualTo(HttpStatus.OK);
         assertThat(resposta.getBody()).isNotNull();
-        assertThat(resposta.getBody().nomeCompleto()).isEqualTo(usuario.getNomeCompleto());
-        assertThat(resposta.getBody().tipo()).isEqualTo(usuario.getTipo());
-        assertThat(resposta.getBody().isAdmin()).isEqualTo(usuario.isAdmin());
-        assertThat(resposta.getBody().message()).isEqualTo("Senha validada");
-        assertThat(resposta.getHeaders().get(HttpHeaders.SET_COOKIE))
-                .isNotNull()
-                .isNotEmpty()
-                .anyMatch(cookie -> cookie.contains("JSESSIONID"));
+        assertThat(resposta.getBody().status()).isEqualTo("AUTHENTICATED");
+        assertThat(resposta.getBody().token()).isNotNull();
+        assertThat(resposta.getBody().nomeCompleto()).isEqualTo("Usuario de Integracao");
     }
 
     @Test
-    void sessao_aposLogin_deveRetornar200() {
-        String email = "teste" + System.nanoTime() + "@email.com";
-        String senha = "senha@123";
-        registrarUsuarioParaTeste(email, senha);
-
-        ResponseEntity<MensagemAutenticacaoResponse> login = restClient.post()
-                .uri("/auth/login")
-                .contentType(MediaType.APPLICATION_JSON)
-                .body(new LoginRequest(email, senha))
-                .retrieve()
-                .toEntity(MensagemAutenticacaoResponse.class);
-        String cookieValue = login.getHeaders().get(HttpHeaders.SET_COOKIE).getFirst();
-
-        ResponseEntity<MensagemAutenticacaoResponse> resposta = restClient.get()
-                .uri("/auth/sessao")
-                .header(HttpHeaders.COOKIE, cookieValue)
-                .retrieve()
-                .toEntity(MensagemAutenticacaoResponse.class);
-
-        Usuario usuario = usuarioRepository.findByEmail(email).orElseThrow();
-        assertThat(resposta.getStatusCode()).isEqualTo(HttpStatus.OK);
-        assertThat(resposta.getBody()).isNotNull();
-        assertThat(resposta.getBody().nomeCompleto()).isEqualTo(usuario.getNomeCompleto());
-        assertThat(resposta.getBody().tipo()).isEqualTo(usuario.getTipo());
-        assertThat(resposta.getBody().isAdmin()).isEqualTo(usuario.isAdmin());
-        assertThat(resposta.getBody().message()).isEqualTo("Sessão ativa");
-    }
-
-    @Test
-    void logout_aposLogin_deveRetornar204() {
-        String email = "teste" + System.nanoTime() + "@email.com";
-        String senha = "senha@123";
-        registrarUsuarioParaTeste(email, senha);
-
-        ResponseEntity<MensagemAutenticacaoResponse> login = restClient.post()
-                .uri("/auth/login")
-                .contentType(MediaType.APPLICATION_JSON)
-                .body(new LoginRequest(email, senha))
-                .retrieve()
-                .toEntity(MensagemAutenticacaoResponse.class);
-        String cookieValue = login.getHeaders().get(HttpHeaders.SET_COOKIE).getFirst();
-
-        ResponseEntity<Void> resposta = restClient.post()
-                .uri("/auth/logout")
-                .header(HttpHeaders.COOKIE, cookieValue)
+    void me_semToken_deveRetornar401() {
+        ResponseEntity<Void> resposta = restClient.get()
+                .uri("/auth/me")
                 .retrieve()
                 .toEntity(Void.class);
 
-        assertThat(resposta.getStatusCode()).isEqualTo(HttpStatus.NO_CONTENT);
+        assertThat(resposta.getStatusCode()).isEqualTo(HttpStatus.UNAUTHORIZED);
+    }
+
+    @Test
+    void logout_semToken_deveRetornar401() {
+        ResponseEntity<Void> resposta = restClient.post()
+                .uri("/auth/logout")
+                .retrieve()
+                .toEntity(Void.class);
+
+        assertThat(resposta.getStatusCode()).isEqualTo(HttpStatus.UNAUTHORIZED);
     }
 
     private void registrarUsuarioParaTeste(String email, String senha) {
@@ -232,12 +193,12 @@ class UsuarioControllerIntegrationTest {
                 null
         );
 
-        ResponseEntity<TotpSetupResponse> resposta = restClient.post()
+        ResponseEntity<TotpConfiguracaoResponse> resposta = restClient.post()
                 .uri("/auth/register")
                 .contentType(MediaType.APPLICATION_JSON)
                 .body(payload)
                 .retrieve()
-                .toEntity(TotpSetupResponse.class);
+                .toEntity(TotpConfiguracaoResponse.class);
 
         assertThat(resposta.getStatusCode()).isEqualTo(HttpStatus.OK);
     }

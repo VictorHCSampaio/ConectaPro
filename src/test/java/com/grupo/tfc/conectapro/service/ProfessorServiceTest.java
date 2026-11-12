@@ -220,7 +220,7 @@ class ProfessorServiceTest {
                 "Biografia de teste com mais de cinquenta caracteres obrigatórios para a validação.",
                 List.of(new MateriaProfessorRequest("Matemática", null, "BASICO")),
                 teachingModel,
-                modality,
+                List.of(modality),
                 pricePerHour,
                 address,
                 List.of(new DisponibilidadeRequest("seg", "08:00"))
