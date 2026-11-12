@@ -59,7 +59,9 @@ public class EmailService {
 
     private String mascararEmail(String email) {
         int at = email.indexOf('@');
-        if (at <= 2) return "***" + email.substring(at);
+        if (at <= 2) {
+            return "***" + email.substring(at);
+        }
         return email.substring(0, 2) + "***" + email.substring(at);
     }
 }

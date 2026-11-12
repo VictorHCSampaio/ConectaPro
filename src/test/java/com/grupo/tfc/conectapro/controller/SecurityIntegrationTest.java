@@ -261,7 +261,9 @@ class SecurityIntegrationTest {
         String busca = "\"" + claim + "\":";
         int inicio = payloadJson.indexOf(busca) + busca.length();
         int fim = payloadJson.indexOf(",", inicio);
-        if (fim == -1) fim = payloadJson.indexOf("}", inicio);
+        if (fim == -1) {
+            fim = payloadJson.indexOf("}", inicio);
+        }
         return Long.parseLong(payloadJson.substring(inicio, fim).trim());
     }
 }

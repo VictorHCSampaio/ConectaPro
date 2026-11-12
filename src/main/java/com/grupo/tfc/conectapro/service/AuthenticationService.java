@@ -117,7 +117,9 @@ public class AuthenticationService {
     }
 
     private void verificarBloqueio(Usuario usuario) {
-        if (usuario.getBloqueadoAte() == null) return;
+        if (usuario.getBloqueadoAte() == null) {
+            return;
+        }
 
         if (OffsetDateTime.now().isBefore(usuario.getBloqueadoAte())) {
             logger.warn("Login bloqueado temporariamente. usuarioId={}", usuario.getId());
