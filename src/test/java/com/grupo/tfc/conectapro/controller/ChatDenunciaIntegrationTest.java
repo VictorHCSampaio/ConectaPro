@@ -21,6 +21,7 @@ import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.security.test.web.servlet.setup.SecurityMockMvcConfigurers.springSecurity;
+import static org.hamcrest.Matchers.hasItem;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
@@ -210,6 +211,46 @@ class ChatDenunciaIntegrationTest {
                                 """.formatted(UUID.randomUUID())))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.erro").value("Dados inválidos"));
+    }
+
+    @Test
+    void denuncia_listagemSomenteAdmin() throws Exception {
+        Usuario aluno = salvarUsuario("Aluno Lista", TipoUsuario.ALUNO);
+        Usuario professorUsuario = salvarUsuario("Professor Lista", TipoUsuario.PROFESSOR);
+        Professor professor = new Professor();
+        professor.setUsuario(professorUsuario);
+        professor = professorRepository.save(professor);
+
+        String tokenAluno = jwtService.gerarToken(aluno.getId(), aluno.getTipo().name(), false);
+        mockMvc.perform(post("/denuncias")
+                        .header("Authorization", "Bearer " + tokenAluno)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "professorId":"%s",
+                                  "motivo":"FRAUDE",
+                                  "descricao":"Cobrança fora da plataforma combinada."
+                                }
+                                """.formatted(professor.getId())))
+                .andExpect(status().isCreated());
+
+        mockMvc.perform(get("/denuncias").header("Authorization", "Bearer " + tokenAluno))
+                .andExpect(status().isForbidden());
+
+        Usuario admin = usuarioRepository.save(Usuario.builder()
+                .nomeCompleto("Admin Lista")
+                .email("admin." + UUID.randomUUID() + "@conectapro.test")
+                .tipo(TipoUsuario.ALUNO)
+                .admin(true)
+                .build());
+        String tokenAdmin = jwtService.gerarToken(admin.getId(), admin.getTipo().name(), true);
+
+        mockMvc.perform(get("/denuncias").header("Authorization", "Bearer " + tokenAdmin))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$[*].professorNome", hasItem("Professor Lista")))
+                .andExpect(jsonPath("$[*].denunciante.nome", hasItem("Aluno Lista")))
+                .andExpect(jsonPath("$[*].motivo", hasItem("FRAUDE")))
+                .andExpect(jsonPath("$[*].status", hasItem("PENDENTE")));
     }
 
     private Usuario salvarUsuario(String nome, TipoUsuario tipo) {

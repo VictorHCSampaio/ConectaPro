@@ -1,5 +1,6 @@
 package com.grupo.tfc.conectapro.service;
 
+import com.grupo.tfc.conectapro.config.EmailProperties;
 import com.grupo.tfc.conectapro.config.UsuarioAutenticado;
 import com.grupo.tfc.conectapro.dto.chat.ParticipanteChatResponse;
 import com.grupo.tfc.conectapro.dto.denuncia.DenunciaResponse;
@@ -18,10 +19,12 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
 import static org.springframework.http.HttpStatus.BAD_REQUEST;
+import static org.springframework.http.HttpStatus.FORBIDDEN;
 import static org.springframework.http.HttpStatus.NOT_FOUND;
 
 @Service
@@ -33,15 +36,21 @@ public class DenunciaService {
     private final UsuarioRepository usuarioRepository;
     private final ProfessorRepository professorRepository;
     private final AuditoriaService auditoriaService;
+    private final EmailService emailService;
+    private final EmailProperties emailProperties;
 
     public DenunciaService(DenunciaRepository denunciaRepository,
                            UsuarioRepository usuarioRepository,
                            ProfessorRepository professorRepository,
-                           AuditoriaService auditoriaService) {
+                           AuditoriaService auditoriaService,
+                           EmailService emailService,
+                           EmailProperties emailProperties) {
         this.denunciaRepository = denunciaRepository;
         this.usuarioRepository = usuarioRepository;
         this.professorRepository = professorRepository;
         this.auditoriaService = auditoriaService;
+        this.emailService = emailService;
+        this.emailProperties = emailProperties;
     }
 
     @Transactional
@@ -67,6 +76,7 @@ public class DenunciaService {
                 .build();
 
         Denuncia salva = denunciaRepository.save(denuncia);
+        emailService.enviarAlertaDenuncia(salva, emailProperties.adminAddress());
         // so id de rastreio. texto da denuncia nao vai pro log
         logger.info("Denuncia registrada. denunciaId={} denuncianteId={} professorId={}",
                 salva.getId(), idUsuarioLogado, denunciado.getId());
@@ -74,6 +84,20 @@ public class DenunciaService {
                 salva.getId().toString(), "professorId=" + denunciado.getId());
 
         return paraResponse(salva);
+    }
+
+    @Transactional(readOnly = true)
+    public List<DenunciaResponse> listar() {
+        UUID idUsuarioLogado = UsuarioAutenticado.exigirUsuarioId();
+        Usuario solicitante = usuarioRepository.findById(idUsuarioLogado)
+                .orElseThrow(() -> new ResponseStatusException(NOT_FOUND, "Usuário não encontrado"));
+        if (!solicitante.isAdmin()) {
+            throw new ResponseStatusException(FORBIDDEN, "Apenas administradores podem consultar denúncias");
+        }
+
+        return denunciaRepository.findAllByOrderByDataCriacaoDesc().stream()
+                .map(this::paraResponse)
+                .toList();
     }
 
     // LGPD: filtra os dados sensiveis no DTO

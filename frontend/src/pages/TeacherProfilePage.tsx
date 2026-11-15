@@ -464,9 +464,9 @@ export function TeacherProfilePage() {
                     <button
                       type="button"
                       onClick={() => setDenunciaAberta(true)}
-                      className="mx-auto mt-3 inline-flex items-center gap-1.5 text-xs font-medium text-paper-500 transition-colors hover:text-ink-700 dark:text-zinc-500 dark:hover:text-zinc-200"
+                      className="mx-auto mt-3 inline-flex items-center gap-1.5 rounded-md px-2.5 py-1 text-xs font-medium text-red-600 transition-colors hover:bg-red-50 hover:text-red-700 dark:text-red-400 dark:hover:bg-red-950/40 dark:hover:text-red-300"
                     >
-                      <Flag className="size-3.5" />
+                      <Flag className="size-3.5 text-current" />
                       Denunciar
                     </button>
                   )}
