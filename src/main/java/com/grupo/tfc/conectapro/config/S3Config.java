@@ -2,10 +2,12 @@ package com.grupo.tfc.conectapro.config;
 
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import software.amazon.awssdk.auth.credentials.AnonymousCredentialsProvider;
 import software.amazon.awssdk.auth.credentials.AwsBasicCredentials;
 import software.amazon.awssdk.auth.credentials.StaticCredentialsProvider;
 import software.amazon.awssdk.regions.Region;
 import software.amazon.awssdk.services.s3.S3Client;
+import software.amazon.awssdk.services.s3.S3ClientBuilder;
 
 @Configuration
 public class S3Config {
@@ -18,10 +20,21 @@ public class S3Config {
 
     @Bean
     public S3Client s3Client() {
-        return S3Client.builder()
-                .region(Region.of(properties.region()))
-                .credentialsProvider(StaticCredentialsProvider.create(
-                        AwsBasicCredentials.create(properties.accessKey(), properties.secretKey())))
-                .build();
+        S3ClientBuilder builder = S3Client.builder()
+                .region(Region.of(properties.region()));
+
+        if (credenciaisConfiguradas()) {
+            builder.credentialsProvider(StaticCredentialsProvider.create(
+                    AwsBasicCredentials.create(properties.accessKey(), properties.secretKey())));
+        } else {
+            builder.credentialsProvider(AnonymousCredentialsProvider.create());
+        }
+
+        return builder.build();
+    }
+
+    private boolean credenciaisConfiguradas() {
+        return properties.accessKey() != null && !properties.accessKey().isBlank()
+                && properties.secretKey() != null && !properties.secretKey().isBlank();
     }
 }

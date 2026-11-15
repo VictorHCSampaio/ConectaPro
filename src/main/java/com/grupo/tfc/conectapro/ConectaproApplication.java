@@ -12,7 +12,13 @@ import org.springframework.scheduling.annotation.EnableAsync;
 
 @SpringBootApplication
 @EnableAsync
-@EnableConfigurationProperties({SecurityAuthenticationProperties.class, JwtProperties.class, MercadoPagoProperties.class, EmailProperties.class, AwsS3Properties.class})
+@EnableConfigurationProperties({
+		SecurityAuthenticationProperties.class,
+		JwtProperties.class,
+		MercadoPagoProperties.class,
+		EmailProperties.class,
+		AwsS3Properties.class
+})
 public class ConectaproApplication {
 
 	public static void main(String[] args) {
