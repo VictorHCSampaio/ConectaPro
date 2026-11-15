@@ -112,7 +112,9 @@ public class MercadoPagoClient {
     }
 
     private StatusPagamento mapearStatus(String status) {
-        if (status == null) return StatusPagamento.DESCONHECIDO;
+        if (status == null) {
+            return StatusPagamento.DESCONHECIDO;
+        }
         return switch (status.toLowerCase()) {
             case "approved" -> StatusPagamento.APROVADO;
             case "pending", "in_process", "in_mediation", "authorized" -> StatusPagamento.EM_PROCESSAMENTO;

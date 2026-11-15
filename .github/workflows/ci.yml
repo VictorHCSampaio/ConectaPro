@@ -1,0 +1,64 @@
+name: CI – Testes
+
+on:
+  pull_request:
+    branches: [ main ]
+
+permissions:
+  contents: read
+
+jobs:
+
+  testes-unitarios:
+    name: Testes unitários
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Configurar JDK 21
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+          cache: maven
+
+      - name: Executar testes unitários
+        run: mvn -B verify -Dtest='!*IntegrationTest' -DfailIfNoTests=false
+
+  testes-integracao:
+    name: Testes de integração
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Configurar JDK 21
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+          cache: maven
+
+      - name: Executar testes de integração
+        run: mvn -B verify -Dtest='*IntegrationTest' -DfailIfNoTests=false
+
+  linter:
+    name: Linter
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Configurar JDK 21
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+          cache: maven
+
+      - name: Executar Checkstyle
+        run: mvn -B checkstyle:check
