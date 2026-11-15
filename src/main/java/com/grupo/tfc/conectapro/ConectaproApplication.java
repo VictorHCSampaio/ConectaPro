@@ -9,20 +9,22 @@ import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.scheduling.annotation.EnableAsync;
+import org.springframework.scheduling.annotation.EnableScheduling;
 
 @SpringBootApplication
 @EnableAsync
 @EnableConfigurationProperties({
-		SecurityAuthenticationProperties.class,
-		JwtProperties.class,
-		MercadoPagoProperties.class,
-		EmailProperties.class,
-		AwsS3Properties.class
+        SecurityAuthenticationProperties.class,
+        JwtProperties.class,
+        MercadoPagoProperties.class,
+        EmailProperties.class,
+        AwsS3Properties.class
 })
+@EnableScheduling
 public class ConectaproApplication {
 
-	public static void main(String[] args) {
-		SpringApplication.run(ConectaproApplication.class, args);
-	}
+    public static void main(String[] args) {
+        SpringApplication.run(ConectaproApplication.class, args);
+    }
 
 }

@@ -57,6 +57,9 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.GET, "/enderecos/{cep}").permitAll()
                         .requestMatchers("/pagamentos/webhook/mercadopago").permitAll()
                         .requestMatchers("/dashboard", "/dashboard/**").hasRole("ADMIN")
+                        // context-path é /api, aqui o filtro ve /chat, /denuncias e /notificacoes. sem token, 401
+                        .requestMatchers("/chat/**", "/denuncias/**", "/notificacoes/**",
+                                "/api/chat/**", "/api/denuncias/**", "/api/notificacoes/**").authenticated()
                         .anyRequest().authenticated()
                 )
                 .exceptionHandling(ex -> ex

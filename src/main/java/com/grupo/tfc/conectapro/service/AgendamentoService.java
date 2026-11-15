@@ -9,6 +9,7 @@ import com.grupo.tfc.conectapro.model.Professor;
 import com.grupo.tfc.conectapro.model.ProfessorMateria;
 import com.grupo.tfc.conectapro.model.StatusAgendamento;
 import com.grupo.tfc.conectapro.model.StatusConta;
+import com.grupo.tfc.conectapro.model.TipoNotificacao;
 import com.grupo.tfc.conectapro.model.Usuario;
 import com.grupo.tfc.conectapro.repository.AgendamentoRepository;
 import com.grupo.tfc.conectapro.repository.ProfessorDisponibilidadeRepository;
@@ -49,19 +50,22 @@ public class AgendamentoService {
     private final ProfessorDisponibilidadeRepository disponibilidadeRepository;
     private final ProfessorMateriaRepository professorMateriaRepository;
     private final AuditoriaService auditoriaService;
+    private final NotificacaoService notificacaoService;
 
     public AgendamentoService(AgendamentoRepository agendamentoRepository,
                               ProfessorRepository professorRepository,
                               UsuarioRepository usuarioRepository,
                               ProfessorDisponibilidadeRepository disponibilidadeRepository,
                               ProfessorMateriaRepository professorMateriaRepository,
-                              AuditoriaService auditoriaService) {
+                              AuditoriaService auditoriaService,
+                              NotificacaoService notificacaoService) {
         this.agendamentoRepository = agendamentoRepository;
         this.professorRepository = professorRepository;
         this.usuarioRepository = usuarioRepository;
         this.disponibilidadeRepository = disponibilidadeRepository;
         this.professorMateriaRepository = professorMateriaRepository;
         this.auditoriaService = auditoriaService;
+        this.notificacaoService = notificacaoService;
     }
 
     @Transactional
@@ -119,6 +123,11 @@ public class AgendamentoService {
                 salvo.getId(), alunoId, professor.getId());
         auditoriaService.registrar(AcaoAuditoria.AGENDAMENTO_CRIADO, alunoId, "AGENDAMENTO", salvo.getId().toString(),
                 dia + " " + horario);
+        notificacaoService.criarNotificacao(
+                professor.getUsuario(),
+                "Nova aula",
+                aluno.getNomeCompleto() + " solicitou uma aula de " + materia + ".",
+                TipoNotificacao.AULA_NOVA);
 
         return paraResponse(salvo);
     }
@@ -136,6 +145,11 @@ public class AgendamentoService {
 
         logger.info("Agendamento aprovado. agendamentoId={} professorUsuarioId={}", agendamentoId, usuarioId);
         auditoriaService.registrar(AcaoAuditoria.AGENDAMENTO_CONFIRMADO, usuarioId, "AGENDAMENTO", agendamentoId.toString(), null);
+        notificacaoService.criarNotificacao(
+                agendamento.getAluno(),
+                "Aula confirmada",
+                "Sua aula de " + agendamento.getMateria() + " foi confirmada.",
+                TipoNotificacao.AULA_NOVA);
 
         return paraResponse(agendamento);
     }
@@ -248,7 +262,9 @@ public class AgendamentoService {
                 agendamento.getModalidade(),
                 agendamento.getMateria(),
                 agendamento.getStatus(),
-                agendamento.getCriadoEm()
+                agendamento.getCriadoEm(),
+                agendamento.getAluno().getId(),
+                agendamento.getProfessor().getUsuario().getId()
         );
     }
 }
