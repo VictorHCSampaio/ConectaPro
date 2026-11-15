@@ -71,6 +71,7 @@ export type TeacherProfilePayload = {
   fullName: string
   phone: string
   bio: string
+  avatarUrl?: string | null
   subjects: SubjectExperience[]
   teachingModel: ApiTeachingModel | null
   modalities: ApiModality[]

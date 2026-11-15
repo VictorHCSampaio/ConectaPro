@@ -1,6 +1,7 @@
 package com.grupo.tfc.conectapro.service;
 
 import com.grupo.tfc.conectapro.dto.EnderecoRequest;
+import com.grupo.tfc.conectapro.dto.professor.AvatarResponse;
 import com.grupo.tfc.conectapro.dto.professor.DisponibilidadeRequest;
 import com.grupo.tfc.conectapro.dto.professor.EnderecoProfessorRequest;
 import com.grupo.tfc.conectapro.dto.professor.MateriaProfessorRequest;
@@ -27,6 +28,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.server.ResponseStatusException;
 
 import java.math.BigDecimal;
@@ -75,6 +77,7 @@ public class ProfessorService {
     private final LocalizacaoService localizacaoService;
     private final EnderecoService enderecoService;
     private final AuditoriaService auditoriaService;
+    private final ArmazenamentoS3Service armazenamentoS3Service;
 
     public ProfessorService(UsuarioRepository usuarioRepository,
                             ProfessorRepository professorRepository,
@@ -84,7 +87,8 @@ public class ProfessorService {
                             EnderecoRepository enderecoRepository,
                             LocalizacaoService localizacaoService,
                             EnderecoService enderecoService,
-                            AuditoriaService auditoriaService) {
+                            AuditoriaService auditoriaService,
+                            ArmazenamentoS3Service armazenamentoS3Service) {
         this.usuarioRepository = usuarioRepository;
         this.professorRepository = professorRepository;
         this.materiaRepository = materiaRepository;
@@ -94,6 +98,7 @@ public class ProfessorService {
         this.localizacaoService = localizacaoService;
         this.enderecoService = enderecoService;
         this.auditoriaService = auditoriaService;
+        this.armazenamentoS3Service = armazenamentoS3Service;
     }
 
     @Transactional
@@ -145,6 +150,41 @@ public class ProfessorService {
         return buscarPerfil(usuarioId);
     }
 
+    @Transactional
+    public AvatarResponse enviarAvatar(UUID usuarioId, MultipartFile arquivo) {
+        Usuario usuario = buscarUsuario(usuarioId);
+        if (usuario.getTipo() != TipoUsuario.PROFESSOR) {
+            auditoriaService.registrar(AcaoAuditoria.ACESSO_NEGADO, usuarioId, "PROFESSOR", null, "envio de foto por usuario que nao e professor");
+            throw new ResponseStatusException(FORBIDDEN, "Apenas professores podem enviar foto de perfil");
+        }
+
+        Professor professor = professorRepository.findByUsuarioId(usuarioId)
+                .orElseThrow(() -> new ResponseStatusException(NOT_FOUND, "Configure e salve seu perfil antes de enviar a foto"));
+
+        String url = armazenamentoS3Service.enviarAvatar(professor.getId(), arquivo);
+        professor.setAvatarUrl(url);
+        professor.setAtualizadoEm(OffsetDateTime.now());
+        professorRepository.save(professor);
+
+        logger.info("Foto de perfil atualizada. usuarioId={} professorId={}", usuarioId, professor.getId());
+        return new AvatarResponse(url);
+    }
+
+    @Transactional
+    public void removerAvatar(UUID usuarioId) {
+        Professor professor = professorRepository.findByUsuarioId(usuarioId).orElse(null);
+        if (professor == null || professor.getAvatarUrl() == null) {
+            return;
+        }
+
+        armazenamentoS3Service.removerAvatar(professor.getId());
+        professor.setAvatarUrl(null);
+        professor.setAtualizadoEm(OffsetDateTime.now());
+        professorRepository.save(professor);
+
+        logger.info("Foto de perfil removida. usuarioId={} professorId={}", usuarioId, professor.getId());
+    }
+
     @Transactional(readOnly = true)
     public PerfilProfessorResponse buscarPerfil(UUID usuarioId) {
         Usuario usuario = buscarUsuario(usuarioId);
@@ -179,6 +219,7 @@ public class ProfessorService {
                 usuario.getNomeCompleto(),
                 professor.getTelefone(),
                 professor.getBiografia(),
+                professor.getAvatarUrl(),
                 materias,
                 atendeInstituicoes(professor) ? MODELO_INSTITUICOES : MODELO_PARTICULARES,
                 modalidadesDoProfessor(professor),
@@ -244,6 +285,7 @@ public class ProfessorService {
                 resumo.id(),
                 "",
                 resumo.initials(),
+                resumo.avatarUrl(),
                 resumo.subjects(),
                 resumo.rating(),
                 resumo.reviewCount(),
@@ -305,6 +347,7 @@ public class ProfessorService {
                 professor.getId().toString(),
                 nome,
                 gerarIniciais(nome),
+                professor.getAvatarUrl(),
                 materias,
                 0,
                 0,

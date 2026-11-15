@@ -8,7 +8,7 @@ type AvatarUploadProps = {
   onRemove: () => void
 }
 
-const ACCEPTED_TYPES = ['image/jpeg', 'image/png', 'image/webp', 'image/gif']
+const ACCEPTED_TYPES = ['image/png', 'image/jpeg', 'image/webp']
 const MAX_SIZE_MB = 5
 
 export function AvatarUpload({ previewUrl, onFileSelect, onRemove }: AvatarUploadProps) {

@@ -6,6 +6,7 @@ public record ProfessorResumoResponse(
         String id,
         String name,
         String initials,
+        String avatarUrl,
         List<String> subjects,
         double rating,
         int reviewCount,
