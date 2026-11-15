@@ -34,3 +34,6 @@ build/
 .env
 
 design/
+
+# Ignorar scripts SQL de banco de dados
+src/main/resources/db/*.sql
