@@ -9,9 +9,13 @@ import org.springframework.web.server.ResponseStatusException;
 import software.amazon.awssdk.core.sync.RequestBody;
 import software.amazon.awssdk.services.s3.S3Client;
 import software.amazon.awssdk.services.s3.model.DeleteObjectRequest;
+import software.amazon.awssdk.services.s3.model.GetObjectRequest;
 import software.amazon.awssdk.services.s3.model.PutObjectRequest;
+import software.amazon.awssdk.services.s3.presigner.S3Presigner;
+import software.amazon.awssdk.services.s3.presigner.model.GetObjectPresignRequest;
 
 import java.io.IOException;
+import java.time.Duration;
 import java.util.UUID;
 
 import static org.springframework.http.HttpStatus.BAD_REQUEST;
@@ -24,19 +28,23 @@ public class ArmazenamentoS3Service {
 
     private static final long TAMANHO_MAXIMO_BYTES = 5L * 1024 * 1024;
     private static final String PREFIXO_AVATAR = "avatars/";
+    private static final String PREFIXO_CERTIFICADO = "certificados/";
+    private static final Duration VALIDADE_LINK_CERTIFICADO = Duration.ofMinutes(15);
 
     private final S3Client s3Client;
+    private final S3Presigner s3Presigner;
     private final AwsS3Properties properties;
 
-    public ArmazenamentoS3Service(S3Client s3Client, AwsS3Properties properties) {
+    public ArmazenamentoS3Service(S3Client s3Client, S3Presigner s3Presigner, AwsS3Properties properties) {
         this.s3Client = s3Client;
+        this.s3Presigner = s3Presigner;
         this.properties = properties;
     }
 
     public String enviarAvatar(UUID professorId, MultipartFile arquivo) {
         byte[] conteudo = lerConteudo(arquivo);
-        String contentType = detectarContentType(conteudo);
-        String chave = chaveAvatar(professorId);
+        String contentType = detectarImagem(conteudo, true);
+        String chave = PREFIXO_AVATAR + professorId;
 
         s3Client.putObject(
                 PutObjectRequest.builder()
@@ -51,12 +59,41 @@ public class ArmazenamentoS3Service {
     }
 
     public void removerAvatar(UUID professorId) {
-        String chave = chaveAvatar(professorId);
         s3Client.deleteObject(DeleteObjectRequest.builder()
                 .bucket(properties.bucket())
-                .key(chave)
+                .key(PREFIXO_AVATAR + professorId)
                 .build());
-        logger.info("Avatar removido do S3. professorId={} chave={}", professorId, chave);
+        logger.info("Avatar removido do S3. professorId={}", professorId);
+    }
+
+    public void enviarCertificado(UUID professorId, MultipartFile arquivo) {
+        byte[] conteudo = lerConteudo(arquivo);
+        String contentType = detectarImagem(conteudo, false);
+        String chave = PREFIXO_CERTIFICADO + professorId;
+
+        s3Client.putObject(
+                PutObjectRequest.builder()
+                        .bucket(properties.bucketCertificados())
+                        .key(chave)
+                        .contentType(contentType)
+                        .build(),
+                RequestBody.fromBytes(conteudo));
+
+        logger.info("Certificado enviado para o S3. professorId={} tipo={}", professorId, contentType);
+    }
+
+    public String gerarUrlCertificado(UUID professorId) {
+        GetObjectRequest getObjectRequest = GetObjectRequest.builder()
+                .bucket(properties.bucketCertificados())
+                .key(PREFIXO_CERTIFICADO + professorId)
+                .build();
+
+        GetObjectPresignRequest presignRequest = GetObjectPresignRequest.builder()
+                .signatureDuration(VALIDADE_LINK_CERTIFICADO)
+                .getObjectRequest(getObjectRequest)
+                .build();
+
+        return s3Presigner.presignGetObject(presignRequest).url().toString();
     }
 
     private byte[] lerConteudo(MultipartFile arquivo) {
@@ -64,27 +101,28 @@ public class ArmazenamentoS3Service {
             throw new ResponseStatusException(BAD_REQUEST, "Nenhum arquivo enviado");
         }
         if (arquivo.getSize() > TAMANHO_MAXIMO_BYTES) {
-            throw new ResponseStatusException(BAD_REQUEST, "A foto deve ter no maximo 5 MB");
+            throw new ResponseStatusException(BAD_REQUEST, "O arquivo deve ter no maximo 5 MB");
         }
         try {
             return arquivo.getBytes();
         } catch (IOException e) {
-            logger.error("Falha ao ler o arquivo de avatar.", e);
-            throw new ResponseStatusException(INTERNAL_SERVER_ERROR, "Nao foi possivel ler a imagem");
+            logger.error("Falha ao ler o arquivo enviado.", e);
+            throw new ResponseStatusException(INTERNAL_SERVER_ERROR, "Nao foi possivel ler o arquivo");
         }
     }
 
-    private String detectarContentType(byte[] b) {
+    private String detectarImagem(byte[] b, boolean permitirWebp) {
         if (ehPng(b)) {
             return "image/png";
         }
         if (ehJpeg(b)) {
             return "image/jpeg";
         }
-        if (ehWebp(b)) {
+        if (permitirWebp && ehWebp(b)) {
             return "image/webp";
         }
-        throw new ResponseStatusException(BAD_REQUEST, "Envie uma imagem nos formatos PNG, JPG ou WEBP");
+        String formatos = permitirWebp ? "PNG, JPG ou WEBP" : "PNG ou JPG";
+        throw new ResponseStatusException(BAD_REQUEST, "Envie uma imagem nos formatos " + formatos);
     }
 
     private boolean ehPng(byte[] b) {
@@ -106,10 +144,6 @@ public class ArmazenamentoS3Service {
                 && (b[2] & 0xFF) == 0x46 && (b[3] & 0xFF) == 0x46
                 && (b[8] & 0xFF) == 0x57 && (b[9] & 0xFF) == 0x45
                 && (b[10] & 0xFF) == 0x42 && (b[11] & 0xFF) == 0x50;
-    }
-
-    private String chaveAvatar(UUID professorId) {
-        return PREFIXO_AVATAR + professorId;
     }
 
     private String urlPublica(String chave) {

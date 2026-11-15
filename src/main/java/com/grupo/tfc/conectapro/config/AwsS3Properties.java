@@ -8,5 +8,6 @@ public record AwsS3Properties(
         String secretKey,
         String region,
         String bucket,
+        String bucketCertificados,
         String publicBaseUrl
 ) {}

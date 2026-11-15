@@ -62,6 +62,9 @@ public class Usuario {
     @Column(name = "bloqueado_ate")
     private OffsetDateTime bloqueadoAte;
 
+    @Column(name = "motivo_rejeicao", columnDefinition = "text")
+    private String motivoRejeicao;
+
     @PrePersist
     void preencherCriadoEm() {
         if (criadoEm == null) {

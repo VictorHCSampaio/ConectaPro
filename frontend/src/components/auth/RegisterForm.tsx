@@ -27,7 +27,9 @@ const INITIAL_VALUES: RegisterFormValues = {
 }
 
 export function RegisterForm() {
-  const [totpSetup, setTotpSetup] = useState<(TotpSetupResponse & { email: string; password: string }) | null>(null)
+  const [totpSetup, setTotpSetup] = useState<
+    (TotpSetupResponse & { email: string; password: string }) | null
+  >(null)
   const [submitError, setSubmitError] = useState<string | null>(null)
   const [legalDocument, setLegalDocument] = useState<LegalDocumentType | null>(null)
   const { values, setField, touchField, fieldError, handleSubmit, isSubmitting } = useForm(

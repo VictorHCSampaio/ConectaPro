@@ -2,9 +2,11 @@ package com.grupo.tfc.conectapro.controller;
 
 import com.grupo.tfc.conectapro.config.UsuarioAutenticado;
 import com.grupo.tfc.conectapro.dto.professor.AvatarResponse;
+import com.grupo.tfc.conectapro.dto.professor.JustificativaRequest;
 import com.grupo.tfc.conectapro.dto.professor.PerfilProfessorRequest;
 import com.grupo.tfc.conectapro.dto.professor.PerfilProfessorResponse;
 import com.grupo.tfc.conectapro.dto.professor.ProfessorResumoResponse;
+import com.grupo.tfc.conectapro.dto.professor.StatusCadastroResponse;
 import com.grupo.tfc.conectapro.service.ProfessorService;
 import jakarta.validation.Valid;
 import org.springframework.http.MediaType;
@@ -67,6 +69,33 @@ public class ProfessorController {
   public ResponseEntity<Void> removerAvatar() {
     UUID usuarioId = UsuarioAutenticado.exigirUsuarioId();
     professorService.removerAvatar(usuarioId);
+    return ResponseEntity.noContent().build();
+  }
+
+  @GetMapping("/me/status")
+  public ResponseEntity<StatusCadastroResponse> statusCadastro() {
+    UUID usuarioId = UsuarioAutenticado.exigirUsuarioId();
+    return ResponseEntity.ok(professorService.statusCadastro(usuarioId));
+  }
+
+  @PostMapping(value = "/me/certificado", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+  public ResponseEntity<Void> enviarCertificado(@RequestParam("file") MultipartFile file) {
+    UUID usuarioId = UsuarioAutenticado.exigirUsuarioId();
+    professorService.enviarCertificado(usuarioId, file);
+    return ResponseEntity.noContent().build();
+  }
+
+  @PostMapping("/me/justificativa")
+  public ResponseEntity<Void> enviarJustificativa(@Valid @RequestBody JustificativaRequest request) {
+    UUID usuarioId = UsuarioAutenticado.exigirUsuarioId();
+    professorService.enviarJustificativa(usuarioId, request.justificativa());
+    return ResponseEntity.noContent().build();
+  }
+
+  @PostMapping("/me/reenviar-analise")
+  public ResponseEntity<Void> reenviarParaAnalise() {
+    UUID usuarioId = UsuarioAutenticado.exigirUsuarioId();
+    professorService.reenviarParaAnalise(usuarioId);
     return ResponseEntity.noContent().build();
   }
 }

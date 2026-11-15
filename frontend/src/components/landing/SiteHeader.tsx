@@ -5,6 +5,7 @@ import {
   LogOut,
   Menu,
   Moon,
+  ShieldCheck,
   Sun,
   UserRound,
   X,
@@ -97,6 +98,15 @@ export function SiteHeader() {
                 >
                   <BookOpen className="size-4" />
                   Matérias
+                </Link>
+              )}
+              {user?.isAdmin && (
+                <Link
+                  to="/admin/professores"
+                  className="inline-flex items-center gap-1.5 text-sm text-ink-600 transition-colors hover:text-ink-900 dark:text-zinc-400 dark:hover:text-white"
+                >
+                  <ShieldCheck className="size-4" />
+                  Aprovações
                 </Link>
               )}
               <Link
@@ -205,6 +215,16 @@ export function SiteHeader() {
                   >
                     <BookOpen className="size-4" />
                     Matérias
+                  </Link>
+                )}
+                {user?.isAdmin && (
+                  <Link
+                    to="/admin/professores"
+                    onClick={closeMenu}
+                    className="flex items-center justify-center gap-2 rounded-md border border-paper-300 bg-white dark:border-white/10 dark:bg-night-700 px-3 py-2.5 text-center text-ink-800 dark:text-zinc-100"
+                  >
+                    <ShieldCheck className="size-4" />
+                    Aprovações
                   </Link>
                 )}
                 <Link

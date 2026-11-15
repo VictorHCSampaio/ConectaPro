@@ -265,6 +265,9 @@ public class DashboardService {
             case AGENDAMENTO_CRIADO -> "solicitou um agendamento";
             case AGENDAMENTO_CONFIRMADO -> "confirmou um agendamento";
             case AGENDAMENTO_CANCELADO -> "cancelou um agendamento";
+            case CERTIFICADO_ENVIADO -> "enviou um certificado";
+            case CADASTRO_APROVADO -> "teve o cadastro aprovado";
+            case CADASTRO_REJEITADO -> "teve o cadastro rejeitado";
             case RESET_SENHA_SOLICITADO -> "solicitou redefinição de senha";
             case RESET_SENHA_CONFIRMADO -> "redefiniu a senha";
             case MENSAGEM_ENVIADA -> "enviou uma mensagem";

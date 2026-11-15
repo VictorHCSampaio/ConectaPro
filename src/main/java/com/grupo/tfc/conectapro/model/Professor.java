@@ -66,4 +66,10 @@ public class Professor {
 
     @Column
     private Boolean verificado;
+
+    @Column(name = "certificado_nome")
+    private String certificadoNome;
+
+    @Column(name = "justificativa_sem_certificado", columnDefinition = "text")
+    private String justificativaSemCertificado;
 }

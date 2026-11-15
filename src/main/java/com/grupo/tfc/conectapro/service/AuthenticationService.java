@@ -61,7 +61,7 @@ public class AuthenticationService {
                 .senhaHash(senhaService.senhaHash(request.password()))
                 .tipo(tipo)
                 .segredoTotp(secret)
-                .statusConta(tipo == TipoUsuario.PROFESSOR ? StatusConta.PENDENTE_PAGAMENTO : StatusConta.ATIVO)
+                .statusConta(tipo == TipoUsuario.PROFESSOR ? StatusConta.EM_ANALISE : StatusConta.ATIVO)
                 .criadoEm(OffsetDateTime.now())
                 .build();
         Usuario savedUsuario = Objects.requireNonNull(usuarioRepository.save(usuario));

@@ -2,6 +2,8 @@ import { Navigate, Route, Routes } from 'react-router-dom'
 import { RequireAdmin } from '@/components/auth/RequireAdmin'
 import { RequireAuth } from '@/components/auth/RequireAuth'
 import { AdminMateriasPage } from '@/pages/AdminMateriasPage'
+import { AdminProfessoresPage } from '@/pages/AdminProfessoresPage'
+import { CadastroStatusPage } from '@/pages/CadastroStatusPage'
 import { AgendamentosPage } from '@/pages/AgendamentosPage'
 import { AuthPage } from '@/pages/AuthPage'
 import { ChatPage } from '@/pages/chat/ChatPage'
@@ -97,6 +99,22 @@ function App() {
           <RequireAdmin>
             <AdminMateriasPage />
           </RequireAdmin>
+        }
+      />
+      <Route
+        path="/admin/professores"
+        element={
+          <RequireAdmin>
+            <AdminProfessoresPage />
+          </RequireAdmin>
+        }
+      />
+      <Route
+        path="/cadastro-status"
+        element={
+          <RequireAuth>
+            <CadastroStatusPage />
+          </RequireAuth>
         }
       />
       <Route path="*" element={<Navigate to="/" replace />} />
