@@ -15,11 +15,11 @@ import org.springframework.scheduling.annotation.EnableScheduling;
 @EnableAsync
 @EnableScheduling
 @EnableConfigurationProperties({
-	SecurityAuthenticationProperties.class,
-	JwtProperties.class,
-	MercadoPagoProperties.class,
-	EmailProperties.class,
-	AwsS3Properties.class
+		SecurityAuthenticationProperties.class,
+		JwtProperties.class,
+		MercadoPagoProperties.class,
+		EmailProperties.class,
+		AwsS3Properties.class
 })
 public class ConectaproApplication {
 
