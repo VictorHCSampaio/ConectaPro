@@ -22,13 +22,17 @@ public class TotpSegredoConverter implements AttributeConverter<String, String> 
 
     @Override
     public String convertToDatabaseColumn(String plaintext) {
-        if (plaintext == null) return null;
+        if (plaintext == null) {
+            return null;
+        }
         return encryptor().encrypt(plaintext);
     }
 
     @Override
     public String convertToEntityAttribute(String dbData) {
-        if (dbData == null) return null;
+        if (dbData == null) {
+            return null;
+        }
         try {
             return encryptor().decrypt(dbData);
         } catch (Exception e) {

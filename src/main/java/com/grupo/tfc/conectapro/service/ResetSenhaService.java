@@ -27,7 +27,9 @@ public class ResetSenhaService {
     private final AuditoriaService auditoriaService;
     private final EmailProperties emailProperties;
 
-    public ResetSenhaService(UsuarioRepository usuarioRepository, JwtService jwtService, SenhaService senhaService, EmailService emailService, AuditoriaService auditoriaService, EmailProperties emailProperties) {
+    public ResetSenhaService(UsuarioRepository usuarioRepository, JwtService jwtService,
+                             SenhaService senhaService, EmailService emailService,
+                             AuditoriaService auditoriaService, EmailProperties emailProperties) {
         this.usuarioRepository = usuarioRepository;
         this.jwtService = jwtService;
         this.senhaService = senhaService;
