@@ -54,6 +54,7 @@ class ProfessorServiceTest {
     @Mock private LocalizacaoService localizacaoService;
     @Mock private EnderecoService enderecoService;
     @Mock private AuditoriaService auditoriaService;
+    @Mock private ArmazenamentoS3Service armazenamentoS3Service;
 
     @InjectMocks
     private ProfessorService professorService;

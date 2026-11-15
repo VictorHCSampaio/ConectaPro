@@ -15,9 +15,17 @@ export function TeacherResultCard({ teacher }: TeacherResultCardProps) {
   return (
     <article className="card flex flex-col gap-4 rounded-lg p-5 transition-all duration-300 dark:border-white/10 dark:bg-white/[0.03] dark:backdrop-blur-md dark:shadow-[0_0_0_1px_rgba(255,255,255,0.04)] dark:hover:bg-white/[0.06] sm:flex-row sm:items-center sm:justify-between sm:gap-6">
       <div className="flex items-start gap-4">
-        <span className="flex size-12 shrink-0 items-center justify-center rounded-sm bg-ink-800 text-sm font-semibold text-paper-50 raised-ink">
-          {teacher.initials}
-        </span>
+        {teacher.avatarUrl ? (
+          <img
+            src={teacher.avatarUrl}
+            alt={`Foto de ${teacher.name}`}
+            className="size-12 shrink-0 rounded-sm object-cover raised-ink"
+          />
+        ) : (
+          <span className="flex size-12 shrink-0 items-center justify-center rounded-sm bg-ink-800 text-sm font-semibold text-paper-50 raised-ink">
+            {teacher.initials}
+          </span>
+        )}
 
         <div className="flex flex-col gap-1">
           <div className="flex flex-wrap items-center gap-2">

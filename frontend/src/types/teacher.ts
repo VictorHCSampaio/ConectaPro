@@ -5,6 +5,7 @@ export type Teacher = {
   id: string
   name: string
   initials: string
+  avatarUrl?: string | null
   subjects: string[]
   rating: number
   reviewCount: number
