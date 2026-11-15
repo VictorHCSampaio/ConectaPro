@@ -1,4 +1,5 @@
 import { Navigate, Route, Routes } from 'react-router-dom'
+import { ChatbotFaq } from '@/components/chatbot/ChatbotFaq'
 import { RequireAdmin } from '@/components/auth/RequireAdmin'
 import { RequireAuth } from '@/components/auth/RequireAuth'
 import { AdminMateriasPage } from '@/pages/AdminMateriasPage'
@@ -20,7 +21,8 @@ import { TeacherProfilePage } from '@/pages/TeacherProfilePage'
 
 function App() {
   return (
-    <Routes>
+    <>
+      <Routes>
       <Route path="/" element={<LandingPage />} />
       <Route
         path="/dashboard"
@@ -118,7 +120,9 @@ function App() {
         }
       />
       <Route path="*" element={<Navigate to="/" replace />} />
-    </Routes>
+      </Routes>
+      <ChatbotFaq />
+    </>
   )
 }
 

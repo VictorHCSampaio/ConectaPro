@@ -137,7 +137,7 @@ export function AdminProfessoresPage() {
                   ) : professor.justificativaSemCertificado ? (
                     <span className="inline-flex items-center gap-1 text-ocre-600 dark:text-ocre-300">
                       <MessageSquareText className="size-3.5" />
-                      Sem certificado — justificativa enviada
+                      Sem certificado, justificativa enviada
                     </span>
                   ) : (
                     'Sem certificado e sem justificativa'

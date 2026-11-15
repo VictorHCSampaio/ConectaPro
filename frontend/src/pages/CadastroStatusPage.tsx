@@ -181,7 +181,7 @@ export function CadastroStatusPage() {
 
                 <p className="text-xs text-ink-600 dark:text-zinc-400">
                   O envio do certificado é obrigatório. Caso não possua um, marque a opção
-                  abaixo e explique o motivo — o administrador também analisará sua justificativa.
+                  abaixo e explique o motivo. O administrador também analisará sua justificativa.
                 </p>
 
                 <label className="inline-flex items-center gap-2 text-sm text-ink-700 dark:text-zinc-300">
