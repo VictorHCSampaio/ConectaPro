@@ -60,6 +60,7 @@ export function RegisterForm() {
         email: formValues.email,
         password: formValues.password,
         role: formValues.role ?? 'ALUNO',
+        acceptTerms: formValues.acceptTerms,
       })
 
       setTotpSetup({ ...data, email: formValues.email, password: formValues.password })

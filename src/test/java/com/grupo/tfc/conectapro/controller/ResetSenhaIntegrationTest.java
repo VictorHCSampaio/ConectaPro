@@ -158,7 +158,7 @@ class ResetSenhaIntegrationTest {
     private void registrar(String email) {
         client.post().uri("/auth/register")
                 .contentType(MediaType.APPLICATION_JSON)
-                .body(Map.of("nome", "Reset User", "email", email, "password", "Senh@12345"))
+                .body(Map.of("nome", "Reset User", "email", email, "password", "Senh@12345", "acceptTerms", true))
                 .retrieve().toBodilessEntity();
     }
 }

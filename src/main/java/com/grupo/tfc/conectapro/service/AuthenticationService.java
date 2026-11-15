@@ -63,6 +63,8 @@ public class AuthenticationService {
                 .segredoTotp(secret)
                 .statusConta(tipo == TipoUsuario.PROFESSOR ? StatusConta.EM_ANALISE : StatusConta.ATIVO)
                 .criadoEm(OffsetDateTime.now())
+                .aceitouTermos(true)
+                .termosAceitosEm(OffsetDateTime.now())
                 .build();
         Usuario savedUsuario = Objects.requireNonNull(usuarioRepository.save(usuario));
         logger.info("Usuário registrado com sucesso. usuarioId={}", savedUsuario.getId());

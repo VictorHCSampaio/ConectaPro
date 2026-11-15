@@ -20,6 +20,7 @@ export type RegisterRequestPayload = {
   email: string
   password: string
   role: UserRole
+  acceptTerms: boolean
 }
 
 export type TotpSetupResponse = {

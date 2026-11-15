@@ -65,6 +65,13 @@ public class Usuario {
     @Column(name = "motivo_rejeicao", columnDefinition = "text")
     private String motivoRejeicao;
 
+    @Column(name = "aceitou_termos")
+    @Builder.Default
+    private boolean aceitouTermos = false;
+
+    @Column(name = "termos_aceitos_em")
+    private OffsetDateTime termosAceitosEm;
+
     @PrePersist
     void preencherCriadoEm() {
         if (criadoEm == null) {
