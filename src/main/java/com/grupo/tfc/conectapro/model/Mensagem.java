@@ -5,10 +5,12 @@ import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
+import jakarta.persistence.Index;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.PrePersist;
 import jakarta.persistence.Table;
+import jakarta.persistence.UniqueConstraint;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
@@ -19,7 +21,17 @@ import java.time.OffsetDateTime;
 import java.util.UUID;
 
 @Entity
-@Table(name = "mensagens")
+@Table(
+        name = "mensagens",
+        uniqueConstraints = @UniqueConstraint(
+                name = "ux_mensagens_idempotency_key",
+                columnNames = "idempotency_key"
+        ),
+        indexes = @Index(
+                name = "idx_mensagens_remetente_destinatario_data",
+                columnList = "remetente_id, destinatario_id, data_envio"
+        )
+)
 @Getter
 @Setter
 @NoArgsConstructor
@@ -46,10 +58,15 @@ public class Mensagem {
     @Builder.Default
     private boolean lida = false;
 
+    /** Chegou na caixa do destinatário. A leitura continua em {@code lida}. */
+    @Column(nullable = false)
+    @Builder.Default
+    private boolean entregue = false;
+
     @Column(name = "data_envio", nullable = false, columnDefinition = "timestamp with time zone")
     private OffsetDateTime dataEnvio;
 
-    @Column(name = "idempotency_key", unique = true)
+    @Column(name = "idempotency_key")
     private String idempotencyKey;
 
     @PrePersist

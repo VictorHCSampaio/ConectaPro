@@ -1,5 +1,6 @@
 package com.grupo.tfc.conectapro.service;
 
+import com.grupo.tfc.conectapro.dto.chat.ConversaResumoResponse;
 import com.grupo.tfc.conectapro.dto.chat.EnviarMensagemRequest;
 import com.grupo.tfc.conectapro.dto.chat.MensagemResponse;
 import com.grupo.tfc.conectapro.model.AcaoAuditoria;
@@ -21,6 +22,7 @@ import org.springframework.security.authentication.UsernamePasswordAuthenticatio
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.server.ResponseStatusException;
 
+import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -97,7 +99,8 @@ class ChatServiceTest {
                 eq(destinatario),
                 eq("Nova mensagem"),
                 eq("Você recebeu uma nova mensagem de Ana Aluna."),
-                eq(TipoNotificacao.CHAT));
+                eq(TipoNotificacao.CHAT),
+                eq(idUsuarioLogado));
     }
 
     @Test
@@ -158,6 +161,36 @@ class ChatServiceTest {
     void obterHistoricoSeguro_ignoraMensagemDeTerceiro() {
         when(usuarioRepository.findById(idUsuarioLogado)).thenReturn(Optional.of(remetente));
         when(usuarioRepository.findById(destinatarioId)).thenReturn(Optional.of(destinatario));
+        Mensagem daConversa = Mensagem.builder()
+                .id(UUID.randomUUID())
+                .remetente(destinatario)
+                .destinatario(remetente)
+                .conteudo("Pode ser amanhã")
+                .lida(false)
+                .build();
+        when(mensagemRepository.buscarNaoLidasRecebidas(idUsuarioLogado, destinatarioId))
+                .thenReturn(List.of(daConversa));
+        when(mensagemRepository.buscarConversaDoUsuario(idUsuarioLogado, destinatarioId))
+                .thenReturn(List.of(daConversa));
+
+        List<MensagemResponse> historico = chatService.obterHistoricoSeguro(destinatarioId);
+
+        assertThat(daConversa.isLida()).isTrue();
+        assertThat(daConversa.isEntregue()).isTrue();
+        assertThat(historico).hasSize(1);
+        assertThat(historico.getFirst().lida()).isTrue();
+        assertThat(historico.getFirst().entregue()).isTrue();
+        assertThat(historico.getFirst().conteudo()).isEqualTo("Pode ser amanhã");
+        assertThat(historico.getFirst().remetente().id()).isEqualTo(destinatarioId);
+        assertThat(historico.getFirst().toString()).doesNotContain("paulo@prof.com");
+        verify(mensagemRepository).buscarNaoLidasRecebidas(idUsuarioLogado, destinatarioId);
+        verify(mensagemRepository).buscarConversaDoUsuario(idUsuarioLogado, destinatarioId);
+    }
+
+    @Test
+    void obterHistoricoSeguro_mensagemDeTerceiro_deveRetornar403() {
+        when(usuarioRepository.findById(idUsuarioLogado)).thenReturn(Optional.of(remetente));
+        when(usuarioRepository.findById(destinatarioId)).thenReturn(Optional.of(destinatario));
         Usuario terceiro = Usuario.builder().id(UUID.randomUUID()).nomeCompleto("Outra Pessoa").email("outra@x.com").build();
         Mensagem daConversa = Mensagem.builder()
                 .id(UUID.randomUUID())
@@ -176,13 +209,78 @@ class ChatServiceTest {
         when(mensagemRepository.buscarConversaDoUsuario(idUsuarioLogado, destinatarioId))
                 .thenReturn(List.of(daConversa, alheia));
 
-        List<MensagemResponse> historico = chatService.obterHistoricoSeguro(destinatarioId);
+        ResponseStatusException excecao = assertThrows(ResponseStatusException.class,
+                () -> chatService.obterHistoricoSeguro(destinatarioId));
 
-        assertThat(historico).hasSize(1);
-        assertThat(historico.getFirst().conteudo()).isEqualTo("Pode ser amanhã");
-        assertThat(historico.getFirst().remetente().id()).isEqualTo(destinatarioId);
-        assertThat(historico.getFirst().toString()).doesNotContain("paulo@prof.com");
-        verify(mensagemRepository).buscarConversaDoUsuario(idUsuarioLogado, destinatarioId);
+        assertThat(excecao.getStatusCode().value()).isEqualTo(403);
+        assertThat(excecao.getReason()).isEqualTo("Acesso negado a esta conversa");
+        verify(auditoriaService).registrar(eq(AcaoAuditoria.ACESSO_NEGADO), eq(idUsuarioLogado), eq("MENSAGEM"),
+                eq(alheia.getId().toString()), any());
+    }
+
+    @Test
+    void enviarMensagem_chaveDeOutroRemetente_deveRetornar403() {
+        Usuario terceiro = Usuario.builder().id(UUID.randomUUID()).nomeCompleto("Terceiro").email("terceiro@x.com").build();
+        Usuario quarto = Usuario.builder().id(UUID.randomUUID()).nomeCompleto("Quarto").email("quarto@x.com").build();
+        Mensagem alheia = Mensagem.builder()
+                .id(UUID.randomUUID())
+                .remetente(terceiro)
+                .destinatario(quarto)
+                .conteudo("segredo alheio")
+                .lida(false)
+                .idempotencyKey("chave-alheia")
+                .build();
+        when(mensagemRepository.findByIdempotencyKey("chave-alheia")).thenReturn(Optional.of(alheia));
+
+        ResponseStatusException excecao = assertThrows(ResponseStatusException.class,
+                () -> chatService.enviarMensagem(new EnviarMensagemRequest(destinatarioId, "oi", "chave-alheia")));
+
+        assertThat(excecao.getStatusCode().value()).isEqualTo(403);
+        verify(mensagemRepository, never()).save(any());
+    }
+
+    @Test
+    void listarConversas_agrupaPeloOutroParticipanteEMantemAMaisRecente() {
+        OffsetDateTime antiga = OffsetDateTime.parse("2026-11-10T10:00:00Z");
+        OffsetDateTime recente = OffsetDateTime.parse("2026-11-15T18:00:00Z");
+        Mensagem minhaNaoLida = Mensagem.builder()
+                .id(UUID.randomUUID())
+                .remetente(remetente)
+                .destinatario(destinatario)
+                .conteudo("ainda não lida por ele")
+                .lida(false)
+                .entregue(false)
+                .dataEnvio(antiga.minusHours(1))
+                .build();
+        Mensagem primeira = Mensagem.builder()
+                .id(UUID.randomUUID())
+                .remetente(remetente)
+                .destinatario(destinatario)
+                .conteudo("mensagem antiga")
+                .lida(true)
+                .dataEnvio(antiga)
+                .build();
+        Mensagem naoLida = Mensagem.builder()
+                .id(UUID.randomUUID())
+                .remetente(destinatario)
+                .destinatario(remetente)
+                .conteudo("pode ser amanhã")
+                .lida(false)
+                .dataEnvio(recente)
+                .build();
+        when(mensagemRepository.buscarMensagensDoUsuario(idUsuarioLogado))
+                .thenReturn(List.of(naoLida, primeira, minhaNaoLida));
+
+        List<ConversaResumoResponse> conversas = chatService.listarConversas();
+
+        assertThat(conversas).hasSize(1);
+        assertThat(conversas.getFirst().participante().id()).isEqualTo(destinatarioId);
+        assertThat(conversas.getFirst().participante().nome()).isEqualTo("Paulo Professor");
+        assertThat(conversas.getFirst().ultimaMensagem()).isEqualTo("pode ser amanhã");
+        assertThat(conversas.getFirst().enviadaPorMim()).isFalse();
+        assertThat(conversas.getFirst().naoLidas()).isEqualTo(1);
+        assertThat(conversas.getFirst().toString()).doesNotContain("paulo@prof.com");
+        verify(mensagemRepository).buscarNaoEntregues(idUsuarioLogado);
     }
 
     private void autenticar(UUID usuarioId) {

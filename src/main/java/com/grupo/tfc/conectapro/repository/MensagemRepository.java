@@ -22,4 +22,29 @@ public interface MensagemRepository extends JpaRepository<Mensagem, UUID> {
                                            @Param("idOutroUsuario") UUID idOutroUsuario);
 
     Optional<Mensagem> findByIdempotencyKey(String idempotencyKey);
+
+    @Query("""
+            select m from Mensagem m
+            join fetch m.remetente
+            join fetch m.destinatario
+            where m.remetente.id = :idUsuarioLogado or m.destinatario.id = :idUsuarioLogado
+            order by m.dataEnvio desc
+            """)
+    List<Mensagem> buscarMensagensDoUsuario(@Param("idUsuarioLogado") UUID idUsuarioLogado);
+
+    @Query("""
+            select m from Mensagem m
+            where m.destinatario.id = :idUsuarioLogado
+              and m.entregue = false
+            """)
+    List<Mensagem> buscarNaoEntregues(@Param("idUsuarioLogado") UUID idUsuarioLogado);
+
+    @Query("""
+            select m from Mensagem m
+            where m.destinatario.id = :idUsuarioLogado
+              and m.remetente.id = :idOutroUsuario
+              and m.lida = false
+            """)
+    List<Mensagem> buscarNaoLidasRecebidas(@Param("idUsuarioLogado") UUID idUsuarioLogado,
+                                           @Param("idOutroUsuario") UUID idOutroUsuario);
 }

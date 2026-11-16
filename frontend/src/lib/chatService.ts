@@ -18,7 +18,21 @@ export type MensagemChat = {
   destinatario: ParticipanteChat
   conteudo: string
   lida: boolean
+  entregue: boolean
   dataEnvio: string
+}
+
+export type ConversaResumo = {
+  participante: ParticipanteChat
+  ultimaMensagem: string
+  dataEnvio: string
+  enviadaPorMim: boolean
+  naoLidas: number
+}
+
+export async function listarConversas(): Promise<ConversaResumo[]> {
+  const { data } = await api.get<ConversaResumo[]>('/chat/conversas')
+  return data
 }
 
 export async function listarConversa(outroUsuarioId: string): Promise<MensagemChat[]> {

@@ -1,4 +1,4 @@
-import { ArrowLeft, Send } from 'lucide-react'
+import { ArrowLeft, Check, CheckCheck, Send } from 'lucide-react'
 import { useCallback, useEffect, useRef, useState } from 'react'
 import type { FormEvent } from 'react'
 import { Link, useLocation, useParams } from 'react-router-dom'
@@ -29,6 +29,39 @@ function iniciais(nome: string) {
   return `${partes[0][0]}${partes[partes.length - 1][0]}`.toUpperCase()
 }
 
+function Recibo({ lida, entregue, minha }: { lida: boolean; entregue: boolean; minha: boolean }) {
+  if (lida) {
+    return (
+      <CheckCheck
+        className={cn('size-3.5', minha ? 'text-green-400' : 'text-green-600 dark:text-green-400')}
+        aria-label="Visualizada"
+      />
+    )
+  }
+  if (entregue) {
+    return (
+      <CheckCheck
+        className={cn('size-3.5', minha ? 'text-zinc-300' : 'text-zinc-500 dark:text-zinc-400')}
+        aria-label="Entregue"
+      />
+    )
+  }
+  return (
+    <Check
+      className={cn('size-3.5', minha ? 'text-zinc-300' : 'text-zinc-500 dark:text-zinc-400')}
+      aria-label="Enviada"
+    />
+  )
+}
+
+function copiarMensagem(mensagem: MensagemChat): MensagemChat {
+  return {
+    ...mensagem,
+    remetente: { ...mensagem.remetente },
+    destinatario: { ...mensagem.destinatario },
+  }
+}
+
 function hora(iso: string) {
   const data = new Date(iso)
   if (Number.isNaN(data.getTime())) return ''
@@ -48,7 +81,8 @@ export function ChatPage() {
   const [carregando, setCarregando] = useState(true)
   const [enviando, setEnviando] = useState(false)
   const [toast, setToast] = useState<{ message: string; variant: 'success' | 'error' } | null>(null)
-  const fimRef = useRef<HTMLDivElement>(null)
+  const listaRef = useRef<HTMLDivElement>(null)
+  const ultimaId = mensagens.at(-1)?.id
 
   const fecharToast = useCallback(() => setToast(null), [])
 
@@ -60,33 +94,49 @@ export function ChatPage() {
   const avatar = outra?.avatarUrl ?? estado.avatarUrl ?? null
 
   useEffect(() => {
-    fimRef.current?.scrollIntoView({ behavior: 'smooth' })
-  }, [mensagens])
+    window.scrollTo({ top: 0, behavior: 'instant' })
+  }, [])
+
+  useEffect(() => {
+    const lista = listaRef.current
+    if (!lista) return
+    lista.scrollTo({ top: lista.scrollHeight, behavior: 'auto' })
+  }, [ultimaId])
 
   useEffect(() => {
     if (!destinatarioId) return
 
     let ativo = true
-    setCarregando(true)
 
-    listarConversa(destinatarioId)
-      .then((historico) => {
-        if (ativo) setMensagens(historico)
-      })
-      .catch((error) => {
+    async function sincronizar(inicial: boolean) {
+      if (inicial) setCarregando(true)
+      try {
+        const historico = await listarConversa(destinatarioId)
         if (!ativo) return
+        setMensagens((atual) => {
+          const pendentes = atual.filter((item) => item.id.startsWith('local-')).map(copiarMensagem)
+          return [...historico.map(copiarMensagem), ...pendentes]
+        })
+      } catch (error) {
+        if (!ativo || !inicial) return
         setMensagens([])
         setToast({
           variant: 'error',
           message: extractErrorMessage(error, 'Não foi possível carregar a conversa.'),
         })
-      })
-      .finally(() => {
-        if (ativo) setCarregando(false)
-      })
+      } finally {
+        if (ativo && inicial) setCarregando(false)
+      }
+    }
+
+    void sincronizar(true)
+    const timer = window.setInterval(() => {
+      void sincronizar(false)
+    }, 3000)
 
     return () => {
       ativo = false
+      window.clearInterval(timer)
     }
   }, [destinatarioId])
 
@@ -114,6 +164,7 @@ export function ChatPage() {
       destinatario: { id: destinatarioId, nome, avatarUrl: avatar },
       conteudo,
       lida: false,
+      entregue: false,
       dataEnvio: new Date().toISOString(),
     }
 
@@ -168,14 +219,14 @@ export function ChatPage() {
             </div>
           </header>
 
-          <div className="flex flex-1 flex-col gap-3 overflow-y-auto px-4 py-4">
+          <div ref={listaRef} className="flex flex-1 flex-col gap-3 overflow-y-auto px-4 py-4">
             {carregando && (
               <p className="text-center text-sm text-paper-500 dark:text-zinc-500">Carregando mensagens...</p>
             )}
 
             {!carregando && mensagens.length === 0 && (
               <p className="m-auto max-w-xs text-center text-sm text-paper-500 dark:text-zinc-500">
-                Nenhuma mensagem ainda. Escreva a primeira para combinar a aula.
+                Nenhuma mensagem ainda. Envie a primeira para começar a conversa.
               </p>
             )}
 
@@ -192,14 +243,19 @@ export function ChatPage() {
                     )}
                   >
                     <p className="whitespace-pre-wrap break-words">{mensagem.conteudo}</p>
-                    <p className={cn('mt-1 text-[11px]', minha ? 'text-white/75' : 'text-ink-500 dark:text-zinc-400')}>
-                      {hora(mensagem.dataEnvio)}
+                    <p
+                      className={cn(
+                        'mt-1 flex items-center gap-1 text-[11px]',
+                        minha ? 'justify-end text-white/75' : 'text-ink-500 dark:text-zinc-400',
+                      )}
+                    >
+                      <span>{hora(mensagem.dataEnvio)}</span>
+                      <Recibo lida={mensagem.lida} entregue={mensagem.entregue} minha={minha} />
                     </p>
                   </div>
                 </div>
               )
             })}
-            <div ref={fimRef} />
           </div>
 
           <form

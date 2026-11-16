@@ -9,6 +9,7 @@ public record MensagemResponse(
         ParticipanteChatResponse destinatario,
         String conteudo,
         boolean lida,
+        boolean entregue,
         OffsetDateTime dataEnvio
 ) {
 }

@@ -9,6 +9,7 @@ export type Notificacao = {
   lida: boolean
   dataCriacao: string
   tipo: TipoNotificacao
+  referenciaId: string | null
 }
 
 export async function listarNotificacoes(): Promise<Notificacao[]> {

@@ -8,6 +8,7 @@ import { CadastroStatusPage } from '@/pages/CadastroStatusPage'
 import { AgendamentosPage } from '@/pages/AgendamentosPage'
 import { AuthPage } from '@/pages/AuthPage'
 import { ChatPage } from '@/pages/chat/ChatPage'
+import { ConversasPage } from '@/pages/chat/ConversasPage'
 import { Dashboard } from '@/pages/Dashboard'
 import { ForgotPasswordPage } from '@/pages/ForgotPasswordPage'
 import { LandingPage } from '@/pages/LandingPage'
@@ -46,6 +47,14 @@ function App() {
         element={
           <RequireAuth>
             <TeacherProfilePage />
+          </RequireAuth>
+        }
+      />
+      <Route
+        path="/chat"
+        element={
+          <RequireAuth>
+            <ConversasPage />
           </RequireAuth>
         }
       />

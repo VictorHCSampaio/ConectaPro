@@ -1,5 +1,6 @@
 import { Bell } from 'lucide-react'
 import { useEffect, useId, useRef, useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { cn } from '@/lib/cn'
 import type { Notificacao } from '@/lib/notificacaoService'
 
@@ -9,6 +10,7 @@ type SininhoNotificacoesProps = {
 }
 
 export function SininhoNotificacoes({ notificacoes, marcarComoLida }: SininhoNotificacoesProps) {
+  const navigate = useNavigate()
   const [aberto, setAberto] = useState(false)
   const containerRef = useRef<HTMLDivElement>(null)
   const painelId = useId()
@@ -34,6 +36,15 @@ export function SininhoNotificacoes({ notificacoes, marcarComoLida }: SininhoNot
       document.removeEventListener('keydown', fecharComEscape)
     }
   }, [aberto])
+
+  function abrirNotificacao(notificacao: Notificacao) {
+    if (!notificacao.lida) marcarComoLida(notificacao.id)
+
+    if (notificacao.tipo !== 'CHAT' || !notificacao.referenciaId) return
+
+    setAberto(false)
+    navigate(`/chat/${notificacao.referenciaId}`)
+  }
 
   return (
     <div ref={containerRef} className="relative">
@@ -74,14 +85,12 @@ export function SininhoNotificacoes({ notificacoes, marcarComoLida }: SininhoNot
                   <li key={notificacao.id}>
                     <button
                       type="button"
-                      onClick={() => {
-                        if (!notificacao.lida) marcarComoLida(notificacao.id)
-                      }}
+                      onClick={() => abrirNotificacao(notificacao)}
                       className={cn(
-                        'flex w-full flex-col gap-1 border-b border-paper-200 px-4 py-3 text-left last:border-b-0 dark:border-white/10',
+                        'flex w-full cursor-pointer flex-col gap-1 border-b border-paper-200 px-4 py-3 text-left transition-colors last:border-b-0 dark:border-white/10',
                         notificacao.lida
-                          ? 'hover:bg-paper-100 dark:hover:bg-white/5'
-                          : 'bg-sky-50 font-semibold hover:bg-sky-100/80 dark:bg-sky-400/10 dark:hover:bg-sky-400/15',
+                          ? 'hover:bg-paper-100 dark:hover:bg-zinc-800/50'
+                          : 'bg-sky-50 font-semibold hover:bg-sky-100/80 dark:bg-sky-400/10 dark:hover:bg-zinc-800/50',
                       )}
                     >
                       <span className="text-sm text-ink-900 dark:text-white">{notificacao.titulo}</span>

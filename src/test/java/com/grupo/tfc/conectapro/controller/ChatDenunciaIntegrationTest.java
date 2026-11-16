@@ -21,7 +21,9 @@ import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.security.test.web.servlet.setup.SecurityMockMvcConfigurers.springSecurity;
+import static org.hamcrest.Matchers.hasEntry;
 import static org.hamcrest.Matchers.hasItem;
+import static org.hamcrest.Matchers.not;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
@@ -61,6 +63,9 @@ class ChatDenunciaIntegrationTest {
                 .andExpect(status().isUnauthorized());
 
         mockMvc.perform(get("/chat/mensagens/" + UUID.randomUUID()))
+                .andExpect(status().isUnauthorized());
+
+        mockMvc.perform(get("/chat/conversas"))
                 .andExpect(status().isUnauthorized());
     }
 
@@ -110,7 +115,22 @@ class ChatDenunciaIntegrationTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.length()").value(2))
                 .andExpect(jsonPath("$[0].conteudo").value("Podemos conversar antes de fechar?"))
-                .andExpect(jsonPath("$[1].conteudo").value("Claro, qual horário prefere?"));
+                .andExpect(jsonPath("$[0].lida").value(false))
+                .andExpect(jsonPath("$[0].entregue").value(false))
+                .andExpect(jsonPath("$[1].conteudo").value("Claro, qual horário prefere?"))
+                .andExpect(jsonPath("$[1].lida").value(true))
+                .andExpect(jsonPath("$[1].entregue").value(true));
+
+        mockMvc.perform(get("/chat/conversas")
+                        .header("Authorization", "Bearer " + tokenAluno))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.length()").value(1))
+                .andExpect(jsonPath("$[0].participante.id").value(professorUsuario.getId().toString()))
+                .andExpect(jsonPath("$[0].participante.nome").value("Professor Chat"))
+                .andExpect(jsonPath("$[0].ultimaMensagem").value("Claro, qual horário prefere?"))
+                .andExpect(jsonPath("$[0].enviadaPorMim").value(false))
+                .andExpect(jsonPath("$[0].naoLidas").value(0))
+                .andExpect(jsonPath("$[0].email").doesNotExist());
     }
 
     @Test
@@ -132,7 +152,26 @@ class ChatDenunciaIntegrationTest {
         mockMvc.perform(get("/chat/mensagens/" + professor.getId())
                         .header("Authorization", "Bearer " + tokenCurioso))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.length()").value(0));
+                .andExpect(jsonPath("$.length()").value(0))
+                .andExpect(jsonPath("$").value(not(hasItem(hasEntry("conteudo", "combinado secreto da aula")))));
+
+        mockMvc.perform(post("/chat/mensagens")
+                        .header("Authorization", "Bearer " + tokenAluno)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"destinatarioId":"%s","conteudo":"outra","idempotencyKey":"chave-do-aluno"}
+                                """.formatted(professor.getId())))
+                .andExpect(status().isCreated());
+
+        mockMvc.perform(post("/chat/mensagens")
+                        .header("Authorization", "Bearer " + tokenCurioso)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"destinatarioId":"%s","conteudo":"quero o segredo","idempotencyKey":"chave-do-aluno"}
+                                """.formatted(professor.getId())))
+                .andExpect(status().isForbidden())
+                .andExpect(jsonPath("$.erro").value("Acesso negado a esta conversa"))
+                .andExpect(jsonPath("$.erro").value(not("combinado secreto da aula")));
 
         mockMvc.perform(get("/chat/mensagens/" + aluno.getId())
                         .header("Authorization", "Bearer " + tokenCurioso))

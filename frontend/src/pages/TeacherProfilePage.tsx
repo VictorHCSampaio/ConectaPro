@@ -1,7 +1,7 @@
-import { ArrowLeft, BadgeCheck, BookOpen, CalendarDays, Clock, Flag, MapPin, Monitor } from 'lucide-react'
+import { ArrowLeft, BadgeCheck, BookOpen, CalendarDays, Clock, Flag, MapPin, MessageCircle, Monitor } from 'lucide-react'
 import { useCallback, useEffect, useState } from 'react'
 import type { ReactNode } from 'react'
-import { Link, useParams } from 'react-router-dom'
+import { Link, useNavigate, useParams } from 'react-router-dom'
 import { BookingDialog } from '@/components/booking/BookingDialog'
 import { DenunciaDialog } from '@/components/denuncia/DenunciaDialog'
 import { SiteFooter } from '@/components/landing/SiteFooter'
@@ -141,8 +141,20 @@ export function TeacherProfilePage() {
   const fecharDenuncia = useCallback(() => setDenunciaAberta(false), [])
 
   const { user } = useAuth()
+  const navigate = useNavigate()
   const meuId = idUsuarioLogado()
   const perfilProprio = Boolean(teacher && meuId && teacher.usuarioId === meuId)
+
+  function abrirConversa() {
+    if (!teacher?.usuarioId) return
+    navigate(`/chat/${teacher.usuarioId}`, {
+      state: {
+        nome: teacher.name,
+        avatarUrl: teacher.avatarUrl ?? null,
+        voltarPara: `/professores/${teacher.id}`,
+      },
+    })
+  }
 
   useEffect(() => {
     if (!id) return
@@ -288,7 +300,19 @@ export function TeacherProfilePage() {
                   </div>
                 </div>
 
-                <div className="flex w-full items-center justify-end gap-4 sm:w-auto">
+                <div className="flex w-full flex-col items-stretch gap-3 sm:w-auto sm:items-end">
+                  {!perfilProprio && teacher.usuarioId && (
+                    <Button
+                      type="button"
+                      variant="secondary"
+                      fullWidth={false}
+                      icon={<MessageCircle className="size-4" />}
+                      onClick={abrirConversa}
+                      className="w-full sm:w-auto"
+                    >
+                      Conversar
+                    </Button>
+                  )}
                   <p className="leading-tight text-right">
                     <span className="tnum text-2xl font-semibold text-ink-900 dark:text-white">
                       R$ {teacher.pricePerHour}
@@ -496,7 +520,18 @@ export function TeacherProfilePage() {
                   />
                 </dl>
 
-                <div className="mt-5">
+                <div className="mt-5 flex flex-col gap-2.5">
+                  {!perfilProprio && teacher.usuarioId && (
+                    <Button
+                      type="button"
+                      variant="secondary"
+                      fullWidth
+                      icon={<MessageCircle className="size-4" />}
+                      onClick={abrirConversa}
+                    >
+                      Conversar
+                    </Button>
+                  )}
                   <Button variant="primary" fullWidth onClick={() => setIsBookingOpen(true)}>
                     Agendar aula
                   </Button>

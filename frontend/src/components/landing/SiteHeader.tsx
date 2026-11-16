@@ -5,6 +5,7 @@ import {
   LayoutDashboard,
   LogOut,
   Menu,
+  MessageCircle,
   Moon,
   ShieldCheck,
   Sun,
@@ -165,6 +166,10 @@ export function SiteHeader() {
                       <UserRound className="size-4" />
                       Meu perfil
                     </Link>
+                    <Link to="/chat" onClick={close} className={DROPDOWN_ITEM_CLASS}>
+                      <MessageCircle className="size-4" />
+                      Conversas
+                    </Link>
                     <button
                       type="button"
                       onClick={() => {
@@ -298,6 +303,14 @@ export function SiteHeader() {
                     Meu perfil
                   </Link>
                 )}
+                <Link
+                  to="/chat"
+                  onClick={closeMenu}
+                  className="flex items-center justify-center gap-2 rounded-md border border-paper-300 bg-white px-3 py-2.5 text-center text-ink-800 dark:border-white/10 dark:bg-night-700 dark:text-zinc-100"
+                >
+                  <MessageCircle className="size-4" />
+                  Conversas
+                </Link>
                 <button
                   type="button"
                   onClick={handleSignOut}

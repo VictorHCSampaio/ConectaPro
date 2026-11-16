@@ -36,6 +36,12 @@ public class NotificacaoService {
 
     @Transactional
     public Notificacao criarNotificacao(Usuario usuario, String titulo, String mensagem, TipoNotificacao tipo) {
+        return criarNotificacao(usuario, titulo, mensagem, tipo, null);
+    }
+
+    @Transactional
+    public Notificacao criarNotificacao(Usuario usuario, String titulo, String mensagem, TipoNotificacao tipo,
+                                        UUID referenciaId) {
         if (usuario == null || usuario.getId() == null) {
             throw new ResponseStatusException(BAD_REQUEST, "Destinatário da notificação é obrigatório");
         }
@@ -50,6 +56,7 @@ public class NotificacaoService {
                 .mensagem(mensagem.trim())
                 .lida(false)
                 .tipo(tipo)
+                .referenciaId(referenciaId)
                 .build();
 
         Notificacao salva = notificacaoRepository.save(notificacao);
@@ -93,7 +100,8 @@ public class NotificacaoService {
                 notificacao.getMensagem(),
                 notificacao.isLida(),
                 notificacao.getDataCriacao(),
-                notificacao.getTipo()
+                notificacao.getTipo(),
+                notificacao.getReferenciaId()
         );
     }
 }
