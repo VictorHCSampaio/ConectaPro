@@ -291,11 +291,15 @@ public class AgendamentoService {
                 .map(Map.Entry::getKey)
                 .findFirst()
                 .orElse(null);
-        if (alvo == null) return LocalDate.now(FUSO_BRASIL);
+        if (alvo == null) {
+            return LocalDate.now(FUSO_BRASIL);
+        }
 
         LocalDate hoje = LocalDate.now(FUSO_BRASIL);
         int delta = (alvo.getValue() - hoje.getDayOfWeek().getValue() + 7) % 7;
-        if (delta == 0) delta = 7;
+        if (delta == 0) {
+            delta = 7;
+        }
         return hoje.plusDays(delta);
     }
 
@@ -358,7 +362,9 @@ public class AgendamentoService {
     }
 
     private String formatarDataHora(OffsetDateTime dataHora) {
-        if (dataHora == null) return "";
+        if (dataHora == null) {
+            return "";
+        }
         ZonedDateTime zdt = dataHora.atZoneSameInstant(FUSO_BRASIL);
         return zdt.format(DateTimeFormatter.ofPattern("dd/MM/yyyy 'às' HH:mm"));
     }

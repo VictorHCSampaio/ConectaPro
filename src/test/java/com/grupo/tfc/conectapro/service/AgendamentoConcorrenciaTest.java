@@ -160,7 +160,9 @@ class AgendamentoConcorrenciaTest {
     private OffsetDateTime proximaSegunda() {
         LocalDate hoje = LocalDate.now(FUSO);
         int delta = (DayOfWeek.MONDAY.getValue() - hoje.getDayOfWeek().getValue() + 7) % 7;
-        if (delta == 0) delta = 7;
+        if (delta == 0) {
+            delta = 7;
+        }
         LocalDate proxSeg = hoje.plusDays(delta);
         ZonedDateTime zdt = proxSeg.atTime(LocalTime.of(8, 0)).atZone(FUSO);
         return zdt.toOffsetDateTime();
