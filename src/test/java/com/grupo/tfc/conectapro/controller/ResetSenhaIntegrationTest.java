@@ -1,44 +1,30 @@
 package com.grupo.tfc.conectapro.controller;
 
 import com.grupo.tfc.conectapro.repository.UsuarioRepository;
+import com.grupo.tfc.conectapro.service.EmailService;
 import com.grupo.tfc.conectapro.service.JwtService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.boot.test.context.TestConfiguration;
 import org.springframework.boot.test.web.server.LocalServerPort;
-import org.springframework.context.annotation.Bean;
-import org.springframework.context.annotation.Primary;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
-import org.springframework.mail.SimpleMailMessage;
-import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.test.context.ActiveProfiles;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.web.client.RestClient;
 
 import java.util.Map;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.doNothing;
-import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.lenient;
 
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 @ActiveProfiles("test")
 class ResetSenhaIntegrationTest {
-
-    @TestConfiguration
-    static class MockMailConfig {
-        @Bean
-        @Primary
-        public JavaMailSender javaMailSender() {
-            JavaMailSender mock = mock(JavaMailSender.class);
-            doNothing().when(mock).send(any(SimpleMailMessage.class));
-            return mock;
-        }
-    }
 
     @LocalServerPort
     private int port;
@@ -49,10 +35,16 @@ class ResetSenhaIntegrationTest {
     @Autowired
     private JwtService jwtService;
 
+    @MockitoBean
+    private EmailService emailService;
+
     private RestClient client;
 
     @BeforeEach
     void configurarCliente() {
+        lenient().doNothing().when(emailService)
+                .enviarEmailResetSenha(anyString(), anyString(), anyString());
+
         client = RestClient.builder()
                 .baseUrl("http://localhost:" + port)
                 .defaultStatusHandler(status -> true, (req, res) -> {})

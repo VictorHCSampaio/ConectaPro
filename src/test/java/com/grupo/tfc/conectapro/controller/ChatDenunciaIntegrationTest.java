@@ -1,10 +1,12 @@
 package com.grupo.tfc.conectapro.controller;
 
+import com.grupo.tfc.conectapro.model.Denuncia;
 import com.grupo.tfc.conectapro.model.Professor;
 import com.grupo.tfc.conectapro.model.TipoUsuario;
 import com.grupo.tfc.conectapro.model.Usuario;
 import com.grupo.tfc.conectapro.repository.ProfessorRepository;
 import com.grupo.tfc.conectapro.repository.UsuarioRepository;
+import com.grupo.tfc.conectapro.service.EmailService;
 import com.grupo.tfc.conectapro.service.JwtService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -12,6 +14,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.http.MediaType;
 import org.springframework.test.context.ActiveProfiles;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 import org.springframework.transaction.annotation.Transactional;
@@ -20,6 +23,10 @@ import org.springframework.web.context.WebApplicationContext;
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Mockito.doNothing;
+import static org.mockito.Mockito.lenient;
 import static org.springframework.security.test.web.servlet.setup.SecurityMockMvcConfigurers.springSecurity;
 import static org.hamcrest.Matchers.hasEntry;
 import static org.hamcrest.Matchers.hasItem;
@@ -43,10 +50,16 @@ class ChatDenunciaIntegrationTest {
     @Autowired
     private JwtService jwtService;
 
+    @MockitoBean
+    private EmailService emailService;
+
     private MockMvc mockMvc;
 
     @BeforeEach
     void setUp() {
+        lenient().doNothing().when(emailService)
+                .enviarAlertaDenuncia(any(Denuncia.class), anyString());
+
         mockMvc = MockMvcBuilders
                 .webAppContextSetup(webApplicationContext)
                 .apply(springSecurity())
