@@ -243,6 +243,9 @@ export function BookingDialog({
                     O professor vai receber seu pedido e confirmar o horário. Você acompanha o
                     status em “Minhas aulas”.
                   </p>
+                  <p className="rounded-md bg-ocre-50 px-3 py-2 text-xs text-ink-700 dark:bg-ocre-500/10 dark:text-zinc-300">
+                    Importante: o cancelamento deve ser feito com no mínimo 1 hora de antecedência.
+                  </p>
                 </div>
                 <Button type="button" onClick={onClose}>
                   Fechar
@@ -380,7 +383,8 @@ export function BookingDialog({
                           : 'Solicitar agendamento'}
                   </Button>
                   <p className="text-center text-xs text-paper-500 dark:text-zinc-500">
-                    O professor confirma a solicitação. O aluno não paga nada.
+                    O professor confirma a solicitação. O aluno não paga nada. O cancelamento deve ser
+                    feito com no mínimo 1 hora de antecedência.
                   </p>
                 </footer>
               </>

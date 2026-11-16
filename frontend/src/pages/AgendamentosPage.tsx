@@ -28,6 +28,16 @@ import type { Agendamento, AgendamentoStatus } from '@/types/agendamento'
 const PAGE_SHELL =
   'flex min-h-screen flex-col bg-paper-50 transition-colors duration-300 dark:bg-night-900'
 
+const ANTECEDENCIA_CANCELAMENTO_MS = 60 * 60 * 1000
+const AVISO_CANCELAMENTO = 'Só é possível cancelar com no mínimo 1 hora de antecedência.'
+
+function podeCancelar(dataHoraInicio?: string | null) {
+  if (!dataHoraInicio) return true
+  const inicio = new Date(dataHoraInicio).getTime()
+  if (Number.isNaN(inicio)) return true
+  return inicio - Date.now() >= ANTECEDENCIA_CANCELAMENTO_MS
+}
+
 const STATUS_CHIP: Record<AgendamentoStatus, string> = {
   SOLICITADO:
     'border-ocre-600/20 bg-ocre-50 text-ocre-700 dark:border-ocre-400/20 dark:bg-ocre-400/10 dark:text-ocre-300',
@@ -253,7 +263,8 @@ function StudentBookingsView() {
                         className="px-3 py-1.5 text-xs text-red-600 hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-400/10"
                         icon={<Ban className="size-4" />}
                         isLoading={cancellingId === agendamento.id}
-                        disabled={cancellingId !== null}
+                        disabled={cancellingId !== null || !podeCancelar(agendamento.dataHoraInicio)}
+                        title={podeCancelar(agendamento.dataHoraInicio) ? undefined : AVISO_CANCELAMENTO}
                         onClick={(e) => {
                           e.stopPropagation()
                           handleCancelar(agendamento.id)

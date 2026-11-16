@@ -48,6 +48,8 @@ public class AgendamentoService {
 
     private static final ZoneId FUSO_BRASIL = ZoneId.of("America/Sao_Paulo");
 
+    private static final long ANTECEDENCIA_CANCELAMENTO_MINUTOS = 60;
+
     private static final DateTimeFormatter HORA_FMT = DateTimeFormatter.ofPattern("HH:mm");
 
     private static final Map<DayOfWeek, String> DIA_SIGLA = Map.of(
@@ -226,6 +228,13 @@ public class AgendamentoService {
 
         if (agendamento.getStatus() == StatusAgendamento.CANCELADO) {
             throw new ResponseStatusException(BAD_REQUEST, "Agendamento já está cancelado");
+        }
+
+        if (agendamento.getDataHoraInicio() != null
+                && ChronoUnit.MINUTES.between(OffsetDateTime.now(FUSO_BRASIL), agendamento.getDataHoraInicio())
+                        < ANTECEDENCIA_CANCELAMENTO_MINUTOS) {
+            throw new ResponseStatusException(BAD_REQUEST,
+                    "O cancelamento deve ser feito com no mínimo 1 hora de antecedência");
         }
 
         agendamento.setStatus(StatusAgendamento.CANCELADO);
