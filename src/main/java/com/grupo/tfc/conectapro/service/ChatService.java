@@ -1,6 +1,7 @@
 package com.grupo.tfc.conectapro.service;
 
 import com.grupo.tfc.conectapro.config.UsuarioAutenticado;
+import com.grupo.tfc.conectapro.dto.chat.ConversaResumoResponse;
 import com.grupo.tfc.conectapro.dto.chat.EnviarMensagemRequest;
 import com.grupo.tfc.conectapro.dto.chat.MensagemResponse;
 import com.grupo.tfc.conectapro.dto.chat.ParticipanteChatResponse;
@@ -18,13 +19,16 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 
+import java.util.Comparator;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 
 import static org.springframework.http.HttpStatus.BAD_REQUEST;
+import static org.springframework.http.HttpStatus.FORBIDDEN;
 import static org.springframework.http.HttpStatus.NOT_FOUND;
 
 @Service
@@ -62,12 +66,14 @@ public class ChatService {
         if (chave != null) {
             Optional<Mensagem> existente = mensagemRepository.findByIdempotencyKey(chave);
             if (existente.isPresent()) {
+                exigirParticipante(existente.get(), idUsuarioLogado);
                 return paraResponse(existente.get(), avataresDaMensagem(existente.get()));
             }
         }
 
         Usuario remetente = buscarUsuario(idUsuarioLogado);
         Usuario destinatario = buscarUsuario(request.destinatarioId());
+        // a conversa é o par de usuários. aula marcada não é pré-requisito.
 
         Mensagem mensagem = Mensagem.builder()
                 .remetente(remetente)
@@ -87,13 +93,43 @@ public class ChatService {
                 destinatario,
                 "Nova mensagem",
                 "Você recebeu uma nova mensagem de " + remetente.getNomeCompleto() + ".",
-                TipoNotificacao.CHAT);
+                TipoNotificacao.CHAT,
+                remetente.getId());
 
         Map<UUID, String> avatares = avataresDe(idUsuarioLogado, destinatario.getId());
         return paraResponse(salva, avatares);
     }
 
-    @Transactional(readOnly = true)
+    @Transactional
+    public List<ConversaResumoResponse> listarConversas() {
+        UUID idUsuarioLogado = UsuarioAutenticado.exigirUsuarioId();
+        marcarEntregues(idUsuarioLogado);
+        Map<UUID, ConversaEmAberto> porParticipante = new LinkedHashMap<>();
+
+        for (Mensagem mensagem : mensagemRepository.buscarMensagensDoUsuario(idUsuarioLogado)) {
+            exigirParticipante(mensagem, idUsuarioLogado);
+            boolean euEnviei = idUsuarioLogado.equals(mensagem.getRemetente().getId());
+            Usuario outro = euEnviei ? mensagem.getDestinatario() : mensagem.getRemetente();
+            ConversaEmAberto conversa = porParticipante.computeIfAbsent(
+                    outro.getId(), id -> new ConversaEmAberto(outro));
+            if (conversa.ultima == null
+                    || mensagem.getDataEnvio().isAfter(conversa.ultima.getDataEnvio())) {
+                conversa.ultima = mensagem;
+            }
+            boolean recebidaPorMim = idUsuarioLogado.equals(mensagem.getDestinatario().getId());
+            if (recebidaPorMim && !mensagem.isLida()) {
+                conversa.naoLidas++;
+            }
+        }
+
+        return porParticipante.values().stream()
+                .filter(conversa -> conversa.ultima != null)
+                .sorted(Comparator.comparing((ConversaEmAberto conversa) -> conversa.ultima.getDataEnvio()).reversed())
+                .map(conversa -> paraResumo(conversa, idUsuarioLogado))
+                .toList();
+    }
+
+    @Transactional
     public List<MensagemResponse> obterHistoricoSeguro(UUID idOutroUsuario) {
         UUID idUsuarioLogado = UsuarioAutenticado.exigirUsuarioId();
         if (idUsuarioLogado.equals(idOutroUsuario)) {
@@ -102,18 +138,48 @@ public class ChatService {
 
         buscarUsuario(idUsuarioLogado);
         buscarUsuario(idOutroUsuario);
+        Map<UUID, Mensagem> lidasAgora = marcarLidas(idUsuarioLogado, idOutroUsuario);
 
         // trava pra ninguem bisbilhotar chat alheio
         List<Mensagem> conversa = mensagemRepository
                 .buscarConversaDoUsuario(idUsuarioLogado, idOutroUsuario)
                 .stream()
-                .filter(mensagem -> ehDestaConversa(mensagem, idUsuarioLogado, idOutroUsuario))
+                .map(mensagem -> lidasAgora.getOrDefault(mensagem.getId(), mensagem))
                 .toList();
+        for (Mensagem mensagem : conversa) {
+            exigirPar(mensagem, idUsuarioLogado, idOutroUsuario);
+        }
 
         Map<UUID, String> avatares = avataresDe(idUsuarioLogado, idOutroUsuario);
         return conversa.stream()
                 .map(mensagem -> paraResponse(mensagem, avatares))
                 .toList();
+    }
+
+    private void marcarEntregues(UUID idUsuarioLogado) {
+        List<Mensagem> pendentes = mensagemRepository.buscarNaoEntregues(idUsuarioLogado);
+        if (pendentes.isEmpty()) {
+            return;
+        }
+        for (Mensagem mensagem : pendentes) {
+            mensagem.setEntregue(true);
+        }
+        mensagemRepository.saveAllAndFlush(pendentes);
+    }
+
+    private Map<UUID, Mensagem> marcarLidas(UUID idUsuarioLogado, UUID idOutroUsuario) {
+        List<Mensagem> pendentes = mensagemRepository.buscarNaoLidasRecebidas(idUsuarioLogado, idOutroUsuario);
+        Map<UUID, Mensagem> atualizadas = new HashMap<>();
+        if (pendentes.isEmpty()) {
+            return atualizadas;
+        }
+        for (Mensagem mensagem : pendentes) {
+            mensagem.setEntregue(true);
+            mensagem.setLida(true);
+            atualizadas.put(mensagem.getId(), mensagem);
+        }
+        mensagemRepository.saveAllAndFlush(pendentes);
+        return atualizadas;
     }
 
     private String chaveIdempotencia(String idempotencyKey) {
@@ -127,17 +193,48 @@ public class ChatService {
         return avataresDe(mensagem.getRemetente().getId(), mensagem.getDestinatario().getId());
     }
 
+    private boolean participa(Mensagem mensagem, UUID idUsuarioLogado) {
+        return idUsuarioLogado.equals(mensagem.getRemetente().getId())
+                || idUsuarioLogado.equals(mensagem.getDestinatario().getId());
+    }
+
+    private void exigirParticipante(Mensagem mensagem, UUID idUsuarioLogado) {
+        if (!participa(mensagem, idUsuarioLogado)) {
+            negarAcesso(idUsuarioLogado, mensagem.getId(), "usuario nao participa da mensagem");
+        }
+    }
+
+    private void exigirPar(Mensagem mensagem, UUID idUsuarioLogado, UUID idOutroUsuario) {
+        if (!ehDestaConversa(mensagem, idUsuarioLogado, idOutroUsuario)) {
+            negarAcesso(idUsuarioLogado, mensagem.getId(), "mensagem fora do par autenticado");
+        }
+    }
+
+    private void negarAcesso(UUID usuarioId, UUID mensagemId, String detalhe) {
+        logger.warn("Acesso negado ao chat. usuarioId={} mensagemId={}", usuarioId, mensagemId);
+        auditoriaService.registrar(AcaoAuditoria.ACESSO_NEGADO, usuarioId, "MENSAGEM",
+                mensagemId == null ? null : mensagemId.toString(), detalhe);
+        throw new ResponseStatusException(FORBIDDEN, "Acesso negado a esta conversa");
+    }
+
+    private ConversaResumoResponse paraResumo(ConversaEmAberto conversa, UUID idUsuarioLogado) {
+        Usuario participante = conversa.participante;
+        Mensagem ultima = conversa.ultima;
+        return new ConversaResumoResponse(
+                new ParticipanteChatResponse(participante.getId(), participante.getNomeCompleto(), avatarDe(participante.getId())),
+                ultima.getConteudo(),
+                ultima.getDataEnvio(),
+                idUsuarioLogado.equals(ultima.getRemetente().getId()),
+                conversa.naoLidas
+        );
+    }
+
     private boolean ehDestaConversa(Mensagem mensagem, UUID idUsuarioLogado, UUID idOutroUsuario) {
         UUID remetenteId = mensagem.getRemetente().getId();
         UUID destinatarioId = mensagem.getDestinatario().getId();
         boolean enviou = idUsuarioLogado.equals(remetenteId) && idOutroUsuario.equals(destinatarioId);
         boolean recebeu = idUsuarioLogado.equals(destinatarioId) && idOutroUsuario.equals(remetenteId);
-        if (enviou || recebeu) {
-            return true;
-        }
-        logger.warn("Mensagem fora da conversa ignorada. mensagemId={} usuarioId={}",
-                mensagem.getId(), idUsuarioLogado);
-        return false;
+        return enviou || recebeu;
     }
 
     private Usuario buscarUsuario(UUID usuarioId) {
@@ -174,7 +271,18 @@ public class ChatService {
                 new ParticipanteChatResponse(destinatario.getId(), destinatario.getNomeCompleto(), avatares.get(destinatario.getId())),
                 mensagem.getConteudo(),
                 mensagem.isLida(),
+                mensagem.isEntregue(),
                 mensagem.getDataEnvio()
         );
+    }
+
+    private static final class ConversaEmAberto {
+        private final Usuario participante;
+        private Mensagem ultima;
+        private long naoLidas;
+
+        private ConversaEmAberto(Usuario participante) {
+            this.participante = participante;
+        }
     }
 }

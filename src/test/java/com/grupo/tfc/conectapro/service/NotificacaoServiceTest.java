@@ -56,6 +56,7 @@ class NotificacaoServiceTest {
         assertThat(lista).hasSize(1);
         assertThat(lista.getFirst().id()).isEqualTo(notificacao.getId());
         assertThat(lista.getFirst().tipo()).isEqualTo(TipoNotificacao.CHAT);
+        assertThat(lista.getFirst().referenciaId()).isEqualTo(notificacao.getReferenciaId());
         verify(notificacaoRepository).findByUsuarioIdOrderByDataCriacaoDesc(usuarioId);
     }
 
@@ -103,6 +104,7 @@ class NotificacaoServiceTest {
                 .lida(lida)
                 .dataCriacao(OffsetDateTime.parse("2026-11-12T10:00:00-03:00"))
                 .tipo(TipoNotificacao.CHAT)
+                .referenciaId(UUID.randomUUID())
                 .build();
     }
 

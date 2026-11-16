@@ -11,6 +11,7 @@ public record NotificacaoResponse(
         String mensagem,
         boolean lida,
         OffsetDateTime dataCriacao,
-        TipoNotificacao tipo
+        TipoNotificacao tipo,
+        UUID referenciaId
 ) {
 }

@@ -58,6 +58,10 @@ public class Notificacao {
     @Column(nullable = false, length = 30)
     private TipoNotificacao tipo;
 
+    /** Outro participante do chat, ou nulo quando a notificação não abre uma conversa. */
+    @Column(name = "referencia_id")
+    private UUID referenciaId;
+
     @PrePersist
     void preencherDataCriacao() {
         dataCriacao = OffsetDateTime.now();
