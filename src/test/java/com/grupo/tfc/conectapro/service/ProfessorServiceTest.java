@@ -222,6 +222,50 @@ class ProfessorServiceTest {
     }
 
     @Test
+    void listarProfessores_ocultaOProprioProfessorLogado() {
+        Professor proprio = criarProfessor("Eu Mesmo");
+        Professor outro = criarProfessor("Ana Paula Silva");
+        UUID logadoId = proprio.getUsuario().getId();
+
+        when(usuarioRepository.findById(logadoId)).thenReturn(Optional.of(proprio.getUsuario()));
+        when(professorRepository.findAtivosComUsuario()).thenReturn(List.of(proprio, outro));
+        when(enderecoRepository.findByUsuarioIdIn(any())).thenReturn(List.of());
+        when(localizacaoService.buscarCoordenada(nullable(String.class))).thenReturn(Optional.empty());
+        when(professorMateriaRepository.findByProfessorIdIn(any())).thenReturn(List.of());
+        when(disponibilidadeRepository.findByProfessorIdIn(any())).thenReturn(List.of());
+        when(avaliacaoService.calcularMedia(any())).thenReturn(new double[]{0.0, 0});
+
+        List<ProfessorResumoResponse> resultado = professorService.listarProfessores(logadoId);
+
+        assertThat(resultado).extracting(ProfessorResumoResponse::name).containsExactly("Ana Paula Silva");
+    }
+
+    @Test
+    void listarProfessores_alunoVeTodosOsProfessoresAtivos() {
+        Professor primeiro = criarProfessor("Ana Paula Silva");
+        Professor segundo = criarProfessor("João Silva");
+        Usuario aluno = Usuario.builder()
+                .id(UUID.randomUUID())
+                .nomeCompleto("Maria Aluna")
+                .email("maria@aluno.com")
+                .tipo(TipoUsuario.ALUNO)
+                .build();
+
+        when(usuarioRepository.findById(aluno.getId())).thenReturn(Optional.of(aluno));
+        when(professorRepository.findAtivosComUsuario()).thenReturn(List.of(primeiro, segundo));
+        when(enderecoRepository.findByUsuarioIdIn(any())).thenReturn(List.of());
+        when(localizacaoService.buscarCoordenada(nullable(String.class))).thenReturn(Optional.empty());
+        when(professorMateriaRepository.findByProfessorIdIn(any())).thenReturn(List.of());
+        when(disponibilidadeRepository.findByProfessorIdIn(any())).thenReturn(List.of());
+        when(avaliacaoService.calcularMedia(any())).thenReturn(new double[]{0.0, 0});
+
+        List<ProfessorResumoResponse> resultado = professorService.listarProfessores(aluno.getId());
+
+        assertThat(resultado).extracting(ProfessorResumoResponse::name)
+                .containsExactlyInAnyOrder("Ana Paula Silva", "João Silva");
+    }
+
+    @Test
     void enviarCertificado_professorAtivo_atualizaNome() {
         usuarioProfessor.setStatusConta(StatusConta.ATIVO);
         when(usuarioRepository.findById(usuarioId)).thenReturn(Optional.of(usuarioProfessor));

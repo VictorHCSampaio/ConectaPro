@@ -444,8 +444,10 @@ public class ProfessorService {
 
     @Transactional(readOnly = true)
     public List<ProfessorResumoResponse> listarProfessores(UUID usuarioId) {
+        UUID proprioId = idDoProfessorLogado(usuarioId);
         List<Professor> professores = professorRepository.findAtivosComUsuario().stream()
                 .filter(this::visivelNaBuscaPublica)
+                .filter(professor -> proprioId == null || !professor.getUsuario().getId().equals(proprioId))
                 .toList();
         List<UUID> professorIds = professores.stream().map(Professor::getId).toList();
         Map<UUID, List<String>> materiasPorProfessor = carregarMaterias(professorIds);
@@ -528,6 +530,16 @@ public class ProfessorService {
 
     private boolean podeManterPerfil(Usuario usuario) {
         return usuario.getTipo() == TipoUsuario.PROFESSOR || usuario.administrador();
+    }
+
+    private UUID idDoProfessorLogado(UUID usuarioId) {
+        if (usuarioId == null) {
+            return null;
+        }
+        return usuarioRepository.findById(usuarioId)
+                .filter(usuario -> usuario.getTipo() == TipoUsuario.PROFESSOR && !usuario.administrador())
+                .map(Usuario::getId)
+                .orElse(null);
     }
 
     private boolean visivelNaBuscaPublica(Professor professor) {
