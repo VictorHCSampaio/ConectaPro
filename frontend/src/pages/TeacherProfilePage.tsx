@@ -13,6 +13,7 @@ import { Button } from '@/components/ui/Button'
 import { StarRating } from '@/components/ui/StarRating'
 import { Toast } from '@/components/ui/Toast'
 import { useAuth } from '@/hooks/useAuth'
+import { ehContaAdmin } from '@/types/auth'
 import { cn } from '@/lib/cn'
 import { listarAvaliacoes, type Avaliacao } from '@/lib/avaliacaoService'
 import { buscarProfessor } from '@/lib/professorService'
@@ -146,6 +147,7 @@ export function TeacherProfilePage() {
   const navigate = useNavigate()
   const meuId = idUsuarioLogado()
   const perfilProprio = Boolean(teacher && meuId && teacher.usuarioId === meuId)
+  const professorNaoAgenda = user?.role === 'PROFESSOR' && !ehContaAdmin(user)
 
   function abrirConversa() {
     if (!teacher?.usuarioId) return
@@ -542,9 +544,24 @@ export function TeacherProfilePage() {
                       Conversar
                     </Button>
                   )}
-                  <Button variant="primary" fullWidth onClick={() => setIsBookingOpen(true)}>
+                  <Button
+                    variant="primary"
+                    fullWidth
+                    disabled={professorNaoAgenda}
+                    onClick={() => {
+                      if (professorNaoAgenda) {
+                        return
+                      }
+                      setIsBookingOpen(true)
+                    }}
+                  >
                     Agendar aula
                   </Button>
+                  {professorNaoAgenda && (
+                    <p className="text-center text-xs text-ink-600 dark:text-zinc-400">
+                      Contas de professor não podem agendar aulas particulares na plataforma.
+                    </p>
+                  )}
                   {!perfilProprio && (
                     <button
                       type="button"

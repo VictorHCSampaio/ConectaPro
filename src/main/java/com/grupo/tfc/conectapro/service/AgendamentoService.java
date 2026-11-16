@@ -92,6 +92,10 @@ public class AgendamentoService {
         Usuario aluno = usuarioRepository.findById(alunoId)
                 .orElseThrow(() -> new ResponseStatusException(NOT_FOUND, "Usuário não encontrado"));
 
+        if (aluno.getTipo() == TipoUsuario.PROFESSOR && !aluno.administrador()) {
+            throw new ResponseStatusException(BAD_REQUEST, "Professores não podem agendar aulas com outros professores.");
+        }
+
         Professor professor = professorRepository.findById(request.professorId())
                 .orElseThrow(() -> new ResponseStatusException(NOT_FOUND, "Professor não encontrado"));
 
