@@ -272,6 +272,11 @@ public class DashboardService {
             case RESET_SENHA_CONFIRMADO -> "redefiniu a senha";
             case MENSAGEM_ENVIADA -> "enviou uma mensagem";
             case DENUNCIA_REGISTRADA -> "registrou uma denúncia";
+            case DENUNCIA_CONSULTADA -> "consultou denúncias";
+            case DENUNCIA_STATUS_ATUALIZADO -> "atualizou o estado de uma denúncia";
+            case DENUNCIA_BO_RECOMENDADO -> "recomendou boletim de ocorrência";
+            case USUARIO_BANIDO -> "baniu um usuário";
+            case USUARIO_TIMEOUT -> "aplicou um bloqueio temporário";
         };
     }
 }

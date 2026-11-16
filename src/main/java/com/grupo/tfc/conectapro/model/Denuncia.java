@@ -56,6 +56,9 @@ public class Denuncia {
     @Column(name = "data_criacao", nullable = false, columnDefinition = "timestamp with time zone")
     private OffsetDateTime dataCriacao;
 
+    @Column(name = "notas_moderacao", columnDefinition = "text")
+    private String notasModeracao;
+
     @PrePersist
     void preencherDataCriacao() {
         dataCriacao = OffsetDateTime.now();

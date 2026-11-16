@@ -30,6 +30,7 @@ import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
+import static org.mockito.ArgumentMatchers.isNull;
 
 @ExtendWith(MockitoExtension.class)
 class DenunciaServiceTest {
@@ -106,6 +107,36 @@ class DenunciaServiceTest {
     }
 
     @Test
+    void registrar_denunciaContraAlunoDisparaAlertaAdministrativo() {
+        autenticar(alunoId);
+        denunciado.setTipo(TipoUsuario.ALUNO);
+        denunciado.setNomeCompleto("Bruno Aluno");
+        when(usuarioRepository.findById(alunoId)).thenReturn(Optional.of(aluno));
+        when(usuarioRepository.findById(denunciadoId)).thenReturn(Optional.of(denunciado));
+        when(denunciaRepository.save(any(Denuncia.class))).thenAnswer(invocation -> {
+            Denuncia denuncia = invocation.getArgument(0);
+            denuncia.setId(UUID.randomUUID());
+            return denuncia;
+        });
+        when(emailProperties.adminAddress()).thenReturn("admin@conectapro.test");
+
+        DenunciaResponse response = denunciaService.registrar(new RegistrarDenunciaRequest(
+                denunciadoId, MotivoDenuncia.CONTEUDO_INADEQUADO, "Mensagens ofensivas no chat da aula."));
+
+        ArgumentCaptor<Denuncia> captor = ArgumentCaptor.forClass(Denuncia.class);
+        verify(denunciaRepository).save(captor.capture());
+        assertThat(captor.getValue().getDenunciado().getTipo()).isEqualTo(TipoUsuario.ALUNO);
+        assertThat(response.denunciadoNome()).isEqualTo("Bruno Aluno");
+        verify(auditoriaService).registrar(
+                eq(AcaoAuditoria.DENUNCIA_REGISTRADA),
+                eq(alunoId),
+                eq("DENUNCIA"),
+                any(),
+                eq("denunciadoId=" + denunciadoId + " tipo=ALUNO"));
+        verify(emailService).enviarAlertaDenuncia(eq(captor.getValue()), eq("admin@conectapro.test"));
+    }
+
+    @Test
     void registrar_semToken_deveFalhar() {
         ResponseStatusException excecao = assertThrows(ResponseStatusException.class,
                 () -> denunciaService.registrar(new RegistrarDenunciaRequest(
@@ -176,6 +207,62 @@ class DenunciaServiceTest {
         assertThat(lista.getFirst().denunciante().nome()).isEqualTo("Ana Aluna");
         assertThat(lista.getFirst().motivo()).isEqualTo(MotivoDenuncia.FRAUDE);
         assertThat(lista.getFirst().toString()).doesNotContain("ana@aluno.com");
+    }
+
+    @Test
+    void listarPorPapel_semAdmin_registraAcessoNegado() {
+        autenticar(alunoId);
+        when(usuarioRepository.findById(alunoId)).thenReturn(Optional.of(aluno));
+
+        ResponseStatusException excecao = assertThrows(ResponseStatusException.class,
+                () -> denunciaService.listarPorPapel(TipoUsuario.ALUNO));
+
+        assertThat(excecao.getStatusCode().value()).isEqualTo(403);
+        verify(denunciaRepository, never()).findByDenunciado_TipoOrderByDataCriacaoDesc(any());
+        verify(auditoriaService).registrar(
+                eq(AcaoAuditoria.ACESSO_NEGADO),
+                eq(alunoId),
+                eq("DENUNCIA"),
+                isNull(),
+                eq("consulta tipo=ALUNO"));
+    }
+
+    @Test
+    void listarPorPapel_adminFiltraAlunosEAuditaConsulta() {
+        aluno.setAdmin(true);
+        autenticar(alunoId);
+        when(usuarioRepository.findById(alunoId)).thenReturn(Optional.of(aluno));
+
+        Usuario alvoAluno = Usuario.builder()
+                .id(denunciadoId)
+                .nomeCompleto("Carla Aluna")
+                .email("carla@aluno.com")
+                .tipo(TipoUsuario.ALUNO)
+                .build();
+        Denuncia denuncia = Denuncia.builder()
+                .id(UUID.randomUUID())
+                .denunciante(aluno)
+                .denunciado(alvoAluno)
+                .motivo(MotivoDenuncia.ASSEDIO)
+                .descricao("Conduta inadequada no chat.")
+                .status(StatusDenuncia.PENDENTE)
+                .dataCriacao(OffsetDateTime.parse("2026-11-15T19:00:00Z"))
+                .build();
+        when(denunciaRepository.findByDenunciado_TipoOrderByDataCriacaoDesc(TipoUsuario.ALUNO))
+                .thenReturn(List.of(denuncia));
+
+        List<DenunciaResponse> lista = denunciaService.listarPorPapel(TipoUsuario.ALUNO);
+
+        assertThat(lista).hasSize(1);
+        assertThat(lista.getFirst().denunciadoNome()).isEqualTo("Carla Aluna");
+        assertThat(lista.getFirst().motivo()).isEqualTo(MotivoDenuncia.ASSEDIO);
+        assertThat(lista.getFirst().toString()).doesNotContain("carla@aluno.com");
+        verify(auditoriaService).registrar(
+                eq(AcaoAuditoria.DENUNCIA_CONSULTADA),
+                eq(alunoId),
+                eq("DENUNCIA"),
+                isNull(),
+                eq("tipo=ALUNO quantidade=1"));
     }
 
     private void autenticar(UUID usuarioId) {

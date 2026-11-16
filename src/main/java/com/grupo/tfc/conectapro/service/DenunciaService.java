@@ -8,6 +8,7 @@ import com.grupo.tfc.conectapro.dto.denuncia.RegistrarDenunciaRequest;
 import com.grupo.tfc.conectapro.model.AcaoAuditoria;
 import com.grupo.tfc.conectapro.model.Denuncia;
 import com.grupo.tfc.conectapro.model.StatusDenuncia;
+import com.grupo.tfc.conectapro.model.TipoUsuario;
 import com.grupo.tfc.conectapro.model.Usuario;
 import com.grupo.tfc.conectapro.repository.DenunciaRepository;
 import com.grupo.tfc.conectapro.repository.UsuarioRepository;
@@ -70,10 +71,11 @@ public class DenunciaService {
                 .build();
 
         Denuncia salva = denunciaRepository.save(denuncia);
-        logger.info("Denuncia registrada. denunciaId={} denuncianteId={} denunciadoId={}",
-                salva.getId(), idUsuarioLogado, denunciado.getId());
+        logger.info("Denuncia registrada. denunciaId={} denuncianteId={} denunciadoId={} tipoDenunciado={}",
+                salva.getId(), idUsuarioLogado, denunciado.getId(), denunciado.getTipo());
         auditoriaService.registrar(AcaoAuditoria.DENUNCIA_REGISTRADA, idUsuarioLogado, "DENUNCIA",
-                salva.getId().toString(), "denunciadoId=" + denunciado.getId());
+                salva.getId().toString(),
+                "denunciadoId=" + denunciado.getId() + " tipo=" + nomeTipo(denunciado.getTipo()));
 
         emailService.enviarAlertaDenuncia(salva, emailProperties.adminAddress());
 
@@ -94,8 +96,32 @@ public class DenunciaService {
                 .toList();
     }
 
+    @Transactional(readOnly = true)
+    public List<DenunciaResponse> listarPorPapel(TipoUsuario papel) {
+        UUID idUsuarioLogado = UsuarioAutenticado.exigirUsuarioId();
+        Usuario solicitante = usuarioRepository.findById(idUsuarioLogado)
+                .orElseThrow(() -> new ResponseStatusException(NOT_FOUND, "Usuário não encontrado"));
+        if (!solicitante.isAdmin()) {
+            auditoriaService.registrar(AcaoAuditoria.ACESSO_NEGADO, idUsuarioLogado, "DENUNCIA",
+                    null, "consulta tipo=" + papel.name());
+            throw new ResponseStatusException(FORBIDDEN, "Apenas administradores podem consultar denúncias");
+        }
+
+        List<DenunciaResponse> denuncias = denunciaRepository
+                .findByDenunciado_TipoOrderByDataCriacaoDesc(papel).stream()
+                .map(this::paraResponse)
+                .toList();
+        auditoriaService.registrar(AcaoAuditoria.DENUNCIA_CONSULTADA, idUsuarioLogado, "DENUNCIA",
+                null, "tipo=" + papel.name() + " quantidade=" + denuncias.size());
+        return denuncias;
+    }
+
+    private String nomeTipo(TipoUsuario tipo) {
+        return tipo == null ? "INDEFINIDO" : tipo.name();
+    }
+
     // LGPD: filtra os dados sensiveis no DTO
-    private DenunciaResponse paraResponse(Denuncia denuncia) {
+    public DenunciaResponse paraResponse(Denuncia denuncia) {
         Usuario denunciante = denuncia.getDenunciante();
         Usuario denunciado = denuncia.getDenunciado();
         return new DenunciaResponse(
@@ -107,7 +133,9 @@ public class DenunciaService {
                 denuncia.getMotivo(),
                 denuncia.getDescricao(),
                 denuncia.getStatus(),
-                denuncia.getDataCriacao()
+                denuncia.getDataCriacao(),
+                denunciado.getTipo(),
+                denuncia.getNotasModeracao()
         );
     }
 }

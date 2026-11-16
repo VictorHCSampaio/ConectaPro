@@ -3,6 +3,7 @@ package com.grupo.tfc.conectapro.service;
 import com.grupo.tfc.conectapro.config.EmailProperties;
 import com.grupo.tfc.conectapro.model.Denuncia;
 import com.grupo.tfc.conectapro.model.MotivoDenuncia;
+import com.grupo.tfc.conectapro.model.TipoUsuario;
 import com.grupo.tfc.conectapro.model.Usuario;
 import jakarta.mail.MessagingException;
 import org.slf4j.Logger;
@@ -85,6 +86,35 @@ public class EmailService {
         }
     }
 
+    @Async
+    public void enviarRecomendacaoBoletim(String destinatario, String nomeDestinatario, String texto) {
+        if (destinatario == null || destinatario.isBlank() || texto == null || texto.isBlank()) {
+            logger.warn("Recomendacao de boletim nao enviada: destinatario ou texto vazio");
+            return;
+        }
+
+        String corpo = """
+                Olá %s,
+
+                %s
+
+                Atenciosamente,
+                Equipe ConectaPro""".formatted(nomeDestinatario == null ? "" : nomeDestinatario, texto);
+
+        SimpleMailMessage mensagem = new SimpleMailMessage();
+        mensagem.setFrom(emailProperties.from());
+        mensagem.setTo(destinatario);
+        mensagem.setSubject("Recomendação de boletim de ocorrência — ConectaPro");
+        mensagem.setText(corpo);
+
+        try {
+            mailSender.send(mensagem);
+            logger.info("Recomendacao de boletim enviada. destinatario={}", mascararEmail(destinatario));
+        } catch (RuntimeException e) {
+            logger.error("Falha ao enviar recomendacao de boletim. destinatario={}", mascararEmail(destinatario), e);
+        }
+    }
+
     private String corpoAlertaDenuncia(Denuncia denuncia) {
         Usuario autor = denuncia.getDenunciante();
         Usuario alvo = denuncia.getDenunciado();
@@ -95,6 +125,7 @@ public class EmailService {
                   <li><strong>ID da denúncia:</strong> %s</li>
                   <li><strong>Autor:</strong> %s (%s)</li>
                   <li><strong>Usuário denunciado:</strong> %s (%s)</li>
+                  <li><strong>Perfil denunciado:</strong> %s</li>
                   <li><strong>Motivo:</strong> %s</li>
                 </ul>
                 <p><strong>Descrição:</strong></p>
@@ -105,9 +136,17 @@ public class EmailService {
                 escaparHtml(autor == null ? null : autor.getEmail()),
                 escaparHtml(alvo == null ? null : alvo.getNomeCompleto()),
                 escaparHtml(alvo == null ? null : alvo.getEmail()),
+                escaparHtml(rotuloPerfil(alvo)),
                 escaparHtml(rotuloMotivo(denuncia.getMotivo())),
                 escaparHtml(denuncia.getDescricao()).replace("\n", "<br>")
         );
+    }
+
+    private String rotuloPerfil(Usuario usuario) {
+        if (usuario == null || usuario.getTipo() == null) {
+            return null;
+        }
+        return usuario.getTipo() == TipoUsuario.ALUNO ? "Aluno" : "Professor";
     }
 
     private String rotuloMotivo(MotivoDenuncia motivo) {

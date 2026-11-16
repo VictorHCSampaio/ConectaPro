@@ -3,6 +3,7 @@ package com.grupo.tfc.conectapro.dto.denuncia;
 import com.grupo.tfc.conectapro.dto.chat.ParticipanteChatResponse;
 import com.grupo.tfc.conectapro.model.MotivoDenuncia;
 import com.grupo.tfc.conectapro.model.StatusDenuncia;
+import com.grupo.tfc.conectapro.model.TipoUsuario;
 
 import java.time.OffsetDateTime;
 import java.util.UUID;
@@ -16,6 +17,8 @@ public record DenunciaResponse(
         MotivoDenuncia motivo,
         String descricao,
         StatusDenuncia status,
-        OffsetDateTime dataCriacao
+        OffsetDateTime dataCriacao,
+        TipoUsuario denunciadoTipo,
+        String notasModeracao
 ) {
 }

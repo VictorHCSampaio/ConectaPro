@@ -29,6 +29,7 @@ import {
   YAxis,
 } from 'recharts'
 
+import { DenunciasAlunosSection } from '@/components/dashboard/DenunciasAlunosSection'
 import { DenunciasProfessoresSection } from '@/components/dashboard/DenunciasProfessoresSection'
 import { SiteFooter } from '@/components/landing/SiteFooter'
 import { SiteHeader } from '@/components/landing/SiteHeader'
@@ -500,6 +501,7 @@ export function Dashboard() {
         </section>
 
         <DenunciasProfessoresSection />
+        <DenunciasAlunosSection />
       </main>
 
       <SiteFooter />

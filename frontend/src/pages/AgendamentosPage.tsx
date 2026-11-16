@@ -1,4 +1,4 @@
-import { BookOpen, CalendarDays, Check, Clock, Loader2, MessageCircle, Monitor, Star, X } from 'lucide-react'
+import { Ban, BookOpen, CalendarDays, Check, Clock, Loader2, MessageCircle, Monitor, Star, X } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { AvaliacaoDialog } from '@/components/avaliacao/AvaliacaoDialog'
@@ -9,6 +9,7 @@ import { useAuth } from '@/hooks/useAuth'
 import { extractErrorMessage } from '@/lib/api'
 import {
   aprovarAgendamento,
+  cancelarAgendamento,
   listarAgendamentosRecebidos,
   listarMeusAgendamentos,
   recusarAgendamento,
@@ -153,6 +154,7 @@ function StudentBookingsView() {
   const [detalhe, setDetalhe] = useState<Agendamento | null>(null)
   const [avaliadosIds, setAvaliadosIds] = useState<Set<string>>(new Set())
   const [avaliacaoAlvo, setAvaliacaoAlvo] = useState<Agendamento | null>(null)
+  const [cancellingId, setCancellingId] = useState<string | null>(null)
   const [toast, setToast] = useState<{ variant: 'success' | 'error'; message: string } | null>(null)
 
   useEffect(() => {
@@ -161,6 +163,19 @@ function StudentBookingsView() {
       return () => clearTimeout(t)
     }
   }, [toast])
+
+  async function handleCancelar(id: string) {
+    setCancellingId(id)
+    try {
+      const atualizado = await cancelarAgendamento(id)
+      setAgendamentos((prev) => prev.map((a) => (a.id === id ? atualizado : a)))
+      setToast({ variant: 'success', message: 'Aula cancelada.' })
+    } catch (err) {
+      setToast({ variant: 'error', message: extractErrorMessage(err, 'Não foi possível cancelar.') })
+    } finally {
+      setCancellingId(null)
+    }
+  }
 
   useEffect(() => {
     let isActive = true
@@ -231,6 +246,23 @@ function StudentBookingsView() {
                   </div>
                   <div className="flex items-center gap-2">
                     <StatusChip status={agendamento.status} />
+                    {(agendamento.status === 'SOLICITADO' || agendamento.status === 'CONFIRMADO') && (
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        fullWidth={false}
+                        className="px-3 py-1.5 text-xs text-red-600 hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-400/10"
+                        icon={<Ban className="size-4" />}
+                        isLoading={cancellingId === agendamento.id}
+                        disabled={cancellingId !== null}
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          handleCancelar(agendamento.id)
+                        }}
+                      >
+                        Cancelar
+                      </Button>
+                    )}
                     {agendamento.status === 'CONFIRMADO' && !avaliadosIds.has(agendamento.id) && (
                       <Button
                         type="button"
@@ -299,6 +331,7 @@ function TeacherBookingsView() {
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [processingId, setProcessingId] = useState<string | null>(null)
+  const [cancellingId, setCancellingId] = useState<string | null>(null)
   const [avaliadosIds, setAvaliadosIds] = useState<Set<string>>(new Set())
   const [avaliacaoAlvo, setAvaliacaoAlvo] = useState<Agendamento | null>(null)
   const [toast, setToast] = useState<{ variant: 'success' | 'error'; message: string } | null>(null)
@@ -309,6 +342,19 @@ function TeacherBookingsView() {
       return () => clearTimeout(t)
     }
   }, [toast])
+
+  async function handleCancelar(id: string) {
+    setCancellingId(id)
+    try {
+      const atualizado = await cancelarAgendamento(id)
+      setAgendamentos((prev) => prev.map((a) => (a.id === id ? atualizado : a)))
+      setToast({ variant: 'success', message: 'Aula cancelada.' })
+    } catch (err) {
+      setToast({ variant: 'error', message: extractErrorMessage(err, 'Não foi possível cancelar.') })
+    } finally {
+      setCancellingId(null)
+    }
+  }
 
   useEffect(() => {
     let isActive = true
@@ -408,7 +454,7 @@ function TeacherBookingsView() {
                       icon={<X className="size-4" />}
                       onClick={() => responder(agendamento.id, 'recusar')}
                       isLoading={processingId === agendamento.id}
-                      disabled={processingId !== null}
+                      disabled={processingId !== null || cancellingId !== null}
                     >
                       Recusar
                     </Button>
@@ -417,15 +463,41 @@ function TeacherBookingsView() {
                       icon={<Check className="size-4" />}
                       onClick={() => responder(agendamento.id, 'aprovar')}
                       isLoading={processingId === agendamento.id}
-                      disabled={processingId !== null}
+                      disabled={processingId !== null || cancellingId !== null}
                     >
                       Aprovar
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      fullWidth={false}
+                      className="px-3 py-1.5 text-xs text-red-600 hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-400/10"
+                      icon={<Ban className="size-4" />}
+                      isLoading={cancellingId === agendamento.id}
+                      disabled={processingId !== null || cancellingId !== null}
+                      onClick={() => handleCancelar(agendamento.id)}
+                    >
+                      Cancelar
                     </Button>
                     <ChatDaAula agendamento={agendamento} nome={agendamento.studentName} />
                   </div>
                 ) : (
                   <div className="flex items-center gap-2">
                     <StatusChip status={agendamento.status} />
+                    {agendamento.status === 'CONFIRMADO' && (
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        fullWidth={false}
+                        className="px-3 py-1.5 text-xs text-red-600 hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-400/10"
+                        icon={<Ban className="size-4" />}
+                        isLoading={cancellingId === agendamento.id}
+                        disabled={cancellingId !== null}
+                        onClick={() => handleCancelar(agendamento.id)}
+                      >
+                        Cancelar
+                      </Button>
+                    )}
                     {agendamento.status === 'CONFIRMADO' && !avaliadosIds.has(agendamento.id) && (
                       <Button
                         type="button"

@@ -2,6 +2,7 @@ import { Navigate, Route, Routes } from 'react-router-dom'
 import { ChatbotFaq } from '@/components/chatbot/ChatbotFaq'
 import { RequireAdmin } from '@/components/auth/RequireAdmin'
 import { RequireAuth } from '@/components/auth/RequireAuth'
+import { AdminDenunciaResolutionPage } from '@/pages/AdminDenunciaResolutionPage'
 import { AdminMateriasPage } from '@/pages/AdminMateriasPage'
 import { AdminProfessoresPage } from '@/pages/AdminProfessoresPage'
 import { CadastroStatusPage } from '@/pages/CadastroStatusPage'
@@ -111,6 +112,22 @@ function App() {
           <RequireAuth>
             <ProfilePage />
           </RequireAuth>
+        }
+      />
+      <Route
+        path="/admin/denuncias"
+        element={
+          <RequireAdmin>
+            <AdminDenunciaResolutionPage />
+          </RequireAdmin>
+        }
+      />
+      <Route
+        path="/admin/denuncias/:id"
+        element={
+          <RequireAdmin>
+            <AdminDenunciaResolutionPage />
+          </RequireAdmin>
         }
       />
       <Route
