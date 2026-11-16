@@ -40,10 +40,16 @@ export function SininhoNotificacoes({ notificacoes, marcarComoLida }: SininhoNot
   function abrirNotificacao(notificacao: Notificacao) {
     if (!notificacao.lida) marcarComoLida(notificacao.id)
 
-    if (notificacao.tipo !== 'CHAT' || !notificacao.referenciaId) return
+    let destino: string | null = null
+    if (notificacao.tipo === 'CHAT') {
+      destino = notificacao.referenciaId ? `/chat/${notificacao.referenciaId}` : '/chat'
+    } else if (notificacao.tipo === 'AULA_NOVA' || notificacao.tipo === 'AULA_LEMBRETE') {
+      destino = '/aulas'
+    }
 
+    if (!destino) return
     setAberto(false)
-    navigate(`/chat/${notificacao.referenciaId}`)
+    navigate(destino)
   }
 
   return (
