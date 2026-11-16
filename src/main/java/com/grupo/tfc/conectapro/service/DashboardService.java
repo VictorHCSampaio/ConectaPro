@@ -203,8 +203,7 @@ public class DashboardService {
                 agendamento.getProfessor().getUsuario().getNomeCompleto(),
                 agendamento.getAluno().getNomeCompleto(),
                 agendamento.getMateria(),
-                agendamento.getDiaSemana(),
-                agendamento.getHorario(),
+                agendamento.getDataHoraInicio(),
                 traduzirStatus(agendamento.getStatus()),
                 agendamento.getCriadoEm()
         );
@@ -272,6 +271,8 @@ public class DashboardService {
             case RESET_SENHA_CONFIRMADO -> "redefiniu a senha";
             case MENSAGEM_ENVIADA -> "enviou uma mensagem";
             case DENUNCIA_REGISTRADA -> "registrou uma denúncia";
+            case CONTA_EXCLUIDA -> "excluiu a conta";
+            case DADOS_EXPORTADOS -> "exportou seus dados";
         };
     }
 }

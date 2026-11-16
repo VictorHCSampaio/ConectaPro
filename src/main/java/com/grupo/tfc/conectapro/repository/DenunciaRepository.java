@@ -9,4 +9,6 @@ import java.util.UUID;
 public interface DenunciaRepository extends JpaRepository<Denuncia, UUID> {
 
     List<Denuncia> findAllByOrderByDataCriacaoDesc();
+
+    List<Denuncia> findByDenuncianteIdOrDenunciadoId(UUID denuncianteId, UUID denunciadoId);
 }

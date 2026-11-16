@@ -11,6 +11,7 @@ public record AgendamentoResponse(
         String professorName,
         UUID studentId,
         String studentName,
+        OffsetDateTime dataHoraInicio,
         String day,
         String time,
         String modality,

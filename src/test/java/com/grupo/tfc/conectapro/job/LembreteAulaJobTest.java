@@ -44,7 +44,8 @@ class LembreteAulaJobTest {
 
     @Test
     void aulaEm24Horas_avisaAlunoEProfessor() {
-        Agendamento aula = aula("sex", "08:00", "Matemática");
+        OffsetDateTime inicioSexta = QUINTA_OITO.plusDays(1);
+        Agendamento aula = aula(inicioSexta, "Matemática");
         when(agendamentoRepository.buscarPorStatusComParticipantes(StatusAgendamento.CONFIRMADO))
                 .thenReturn(List.of(aula));
 
@@ -58,7 +59,8 @@ class LembreteAulaJobTest {
 
     @Test
     void aulaEm1Hora_avisaAlunoEProfessor() {
-        Agendamento aula = aula("qui", "08:00", "Física");
+        OffsetDateTime inicioQuinta = QUINTA_OITO;
+        Agendamento aula = aula(inicioQuinta, "Física");
         when(agendamentoRepository.buscarPorStatusComParticipantes(StatusAgendamento.CONFIRMADO))
                 .thenReturn(List.of(aula));
         OffsetDateTime agora = QUINTA_OITO.minusHours(1);
@@ -71,7 +73,8 @@ class LembreteAulaJobTest {
 
     @Test
     void aulaForaDaJanela_naoGeraLembrete() {
-        Agendamento aula = aula("qui", "14:00", "História");
+        OffsetDateTime inicioQuinta14h = QUINTA_OITO.plusHours(6);
+        Agendamento aula = aula(inicioQuinta14h, "História");
         when(agendamentoRepository.buscarPorStatusComParticipantes(StatusAgendamento.CONFIRMADO))
                 .thenReturn(List.of(aula));
 
@@ -82,7 +85,8 @@ class LembreteAulaJobTest {
 
     @Test
     void lembreteJaEnviadoNaMesmaJanela_naoRepete() {
-        Agendamento aula = aula("sex", "08:00", "Matemática");
+        OffsetDateTime inicioSexta = QUINTA_OITO.plusDays(1);
+        Agendamento aula = aula(inicioSexta, "Matemática");
         when(agendamentoRepository.buscarPorStatusComParticipantes(StatusAgendamento.CONFIRMADO))
                 .thenReturn(List.of(aula));
         when(notificacaoRepository.existsByUsuarioIdAndTipoAndMensagemAndDataCriacaoAfter(
@@ -93,7 +97,7 @@ class LembreteAulaJobTest {
         verify(notificacaoService, never()).criarNotificacao(any(), any(), any(), any());
     }
 
-    private Agendamento aula(String dia, String horario, String materia) {
+    private Agendamento aula(OffsetDateTime dataHoraInicio, String materia) {
         Usuario aluno = Usuario.builder().id(UUID.randomUUID()).nomeCompleto("Ana Aluna").build();
         Usuario professorUsuario = Usuario.builder().id(UUID.randomUUID()).nomeCompleto("Paulo Professor").build();
         Professor professor = new Professor();
@@ -103,8 +107,7 @@ class LembreteAulaJobTest {
                 .id(UUID.randomUUID())
                 .aluno(aluno)
                 .professor(professor)
-                .diaSemana(dia)
-                .horario(horario)
+                .dataHoraInicio(dataHoraInicio)
                 .materia(materia)
                 .status(StatusAgendamento.CONFIRMADO)
                 .build();

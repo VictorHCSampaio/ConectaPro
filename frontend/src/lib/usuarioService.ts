@@ -34,3 +34,12 @@ export async function salvarMeuPerfilAluno(payload: PerfilAlunoPayload): Promise
   const { data } = await api.put<PerfilAluno>('/usuarios/me/perfil', payload)
   return data
 }
+
+export async function exportarMeusDados(): Promise<Blob> {
+  const { data } = await api.get('/usuarios/me/dados', { responseType: 'blob' })
+  return data as Blob
+}
+
+export async function excluirMinhaConta(): Promise<void> {
+  await api.delete('/usuarios/me')
+}

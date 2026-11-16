@@ -4,5 +4,6 @@ public enum StatusConta {
     EM_ANALISE,
     REJEITADO,
     PENDENTE_PAGAMENTO,
-    ATIVO
+    ATIVO,
+    EXCLUIDO
 }

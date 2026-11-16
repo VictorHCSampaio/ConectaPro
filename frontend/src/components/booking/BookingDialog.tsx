@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/Button'
 import { extractErrorMessage } from '@/lib/api'
 import { agendarAula, listarHorariosDisponiveis } from '@/lib/agendamentoService'
 import { cn } from '@/lib/cn'
-import { DAY_ORDER, formatSlotDay, formatSlotTime } from '@/lib/formatSlot'
+import { DAY_ORDER, formatSlotTime } from '@/lib/formatSlot'
 import type { AvailableSlot } from '@/types/agendamento'
 
 type BookingDialogProps = {
@@ -42,6 +42,32 @@ function optionButtonCn(isSelected: boolean) {
       ? 'border-ink-900 bg-ink-900 text-white dark:border-ocre-400 dark:bg-ocre-500'
       : 'border-paper-200 bg-white text-ink-800 hover:border-paper-400 dark:border-white/10 dark:bg-white/[0.06] dark:text-zinc-200 dark:hover:border-white/20',
   )
+}
+
+const DAY_INDEX: Record<string, number> = {
+  dom: 0, seg: 1, ter: 2, qua: 3, qui: 4, sex: 5, sab: 6,
+}
+
+const SHORT_DAY_LABELS: Record<string, string> = {
+  dom: 'Dom', seg: 'Seg', ter: 'Ter', qua: 'Qua', qui: 'Qui', sex: 'Sex', sab: 'Sáb',
+}
+
+function proximaDataDoDia(day: string): Date {
+  const alvo = DAY_INDEX[day]
+  if (alvo === undefined) return new Date()
+  const agora = new Date()
+  let delta = (alvo - agora.getDay() + 7) % 7
+  if (delta === 0) delta = 7
+  const data = new Date(agora)
+  data.setDate(data.getDate() + delta)
+  return data
+}
+
+function formatDayHeader(day: string): string {
+  const data = proximaDataDoDia(day)
+  const dd = String(data.getDate()).padStart(2, '0')
+  const mm = String(data.getMonth() + 1).padStart(2, '0')
+  return `${SHORT_DAY_LABELS[day] ?? day}, ${dd}/${mm}`
 }
 
 function SectionLabel({ children }: { children: React.ReactNode }) {
@@ -110,13 +136,21 @@ export function BookingDialog({
     }
   }, [open, teacherId, modalities, subjects])
 
+  function calcularProximaData(day: string, time: string): string {
+    const data = proximaDataDoDia(day)
+    const [hora, minuto] = time.split(':').map(Number)
+    data.setHours(hora ?? 0, minuto ?? 0, 0, 0)
+    return data.toISOString()
+  }
+
   async function handleConfirm() {
     if (!selected || !selectedModality || !selectedSubject) return
 
     setError(null)
     setIsSubmitting(true)
     try {
-      await agendarAula(teacherId, selected.day, selected.time, selectedModality, selectedSubject)
+      const dataHoraInicio = calcularProximaData(selected.day, selected.time)
+      await agendarAula(teacherId, dataHoraInicio, selectedModality, selectedSubject)
       setIsDone(true)
     } catch (err) {
       setError(extractErrorMessage(err, 'Não foi possível enviar a solicitação. Tente novamente.'))
@@ -280,9 +314,9 @@ export function BookingDialog({
                         <div className="flex flex-col gap-5">
                           {sortedDays.map((day) => (
                             <div key={day}>
-                              <p className="mb-2 flex items-center gap-1.5 text-xs font-medium text-paper-600 dark:text-zinc-400">
+                              <p className="mb-2 flex items-center gap-1.5 text-sm font-medium text-ink-700 dark:text-zinc-300">
                                 <CalendarDays className="size-3.5 text-paper-400 dark:text-zinc-500" />
-                                {formatSlotDay(day)}
+                                {formatDayHeader(day)}
                               </p>
                               <ul className="flex flex-wrap gap-2">
                                 {slots

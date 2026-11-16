@@ -27,9 +27,9 @@ import org.springframework.web.server.ResponseStatusException;
 
 import java.time.DayOfWeek;
 import java.time.LocalDate;
-import java.time.LocalTime;
 import java.time.OffsetDateTime;
 import java.time.ZoneId;
+import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
 import java.time.temporal.ChronoUnit;
 import java.util.List;
@@ -56,14 +56,16 @@ public class AgendamentoService {
 
     private static final ZoneId FUSO_BRASIL = ZoneId.of("America/Sao_Paulo");
 
-    private static final Map<String, DayOfWeek> DIA_MAP = Map.of(
-            "seg", DayOfWeek.MONDAY,
-            "ter", DayOfWeek.TUESDAY,
-            "qua", DayOfWeek.WEDNESDAY,
-            "qui", DayOfWeek.THURSDAY,
-            "sex", DayOfWeek.FRIDAY,
-            "sab", DayOfWeek.SATURDAY,
-            "dom", DayOfWeek.SUNDAY
+    private static final DateTimeFormatter HORA_FMT = DateTimeFormatter.ofPattern("HH:mm");
+
+    private static final Map<DayOfWeek, String> DIA_SIGLA = Map.of(
+            DayOfWeek.MONDAY, "seg",
+            DayOfWeek.TUESDAY, "ter",
+            DayOfWeek.WEDNESDAY, "qua",
+            DayOfWeek.THURSDAY, "qui",
+            DayOfWeek.FRIDAY, "sex",
+            DayOfWeek.SATURDAY, "sab",
+            DayOfWeek.SUNDAY, "dom"
     );
 
     private final AgendamentoRepository agendamentoRepository;
@@ -109,8 +111,15 @@ public class AgendamentoService {
             throw new ResponseStatusException(BAD_REQUEST, "Não é possível agendar com você mesmo");
         }
 
-        String dia = request.day().trim();
-        String horario = request.time().trim();
+        OffsetDateTime dataHoraInicio = request.dataHoraInicio();
+        ZonedDateTime zdtBrasil = dataHoraInicio.atZoneSameInstant(FUSO_BRASIL);
+        String dia = DIA_SIGLA.get(zdtBrasil.getDayOfWeek());
+        String horario = zdtBrasil.format(HORA_FMT);
+
+        if (dataHoraInicio.isBefore(OffsetDateTime.now(FUSO_BRASIL))) {
+            throw new ResponseStatusException(BAD_REQUEST, "Não é possível agendar no passado");
+        }
+
         String modalidade = modalidadeValida(professor, request.modality());
         String materia = materiaValida(professor, request.subject());
 
@@ -120,29 +129,31 @@ public class AgendamentoService {
             throw new ResponseStatusException(BAD_REQUEST, "Horário indisponível na grade do professor");
         }
 
-        validarAntecedencia(professor, dia, horario);
+        validarAntecedencia(professor, dataHoraInicio);
 
-        if (agendamentoRepository.existsByProfessorIdAndDiaSemanaAndHorarioAndStatusIn(
-                professor.getId(), dia, horario, STATUS_OCUPADOS)) {
+        String slotChave = chave(professor.getId(), zdtBrasil.toLocalDate(), horario);
+
+        if (agendamentoRepository.existsBySlotChaveAndStatusIn(slotChave, STATUS_OCUPADOS)) {
             throw new ResponseStatusException(CONFLICT, "Horário já reservado");
         }
 
         Agendamento agendamento = Agendamento.builder()
                 .aluno(aluno)
                 .professor(professor)
+                .dataHoraInicio(dataHoraInicio)
                 .diaSemana(dia)
                 .horario(horario)
                 .modalidade(modalidade)
                 .materia(materia)
                 .status(StatusAgendamento.SOLICITADO)
-                .slotChave(chave(professor.getId(), dia, horario))
+                .slotChave(slotChave)
                 .build();
 
         Agendamento salvo;
         try {
             salvo = agendamentoRepository.saveAndFlush(agendamento);
         } catch (DataIntegrityViolationException excecao) {
-            logger.warn("Corrida ao reservar horário. professorId={} dia={} horario={}", professor.getId(), dia, horario);
+            logger.warn("Corrida ao reservar horário. professorId={} dataHoraInicio={}", professor.getId(), dataHoraInicio);
             throw new ResponseStatusException(CONFLICT, "Horário já reservado");
         }
 
@@ -238,9 +249,9 @@ public class AgendamentoService {
                 nomeQuemCancelou + " cancelou a aula de " + agendamento.getMateria() + ".",
                 TipoNotificacao.AULA_NOVA);
 
+        String dataFormatada = formatarDataHora(agendamento.getDataHoraInicio());
         String mensagemChat = "⚠️ Aula de " + agendamento.getMateria()
-                + " (" + agendamento.getDiaSemana() + " às " + agendamento.getHorario()
-                + ") foi cancelada.";
+                + " (" + dataFormatada + ") foi cancelada.";
         try {
             chatService.enviarMensagem(new EnviarMensagemRequest(outraParte.getId(), mensagemChat, null));
         } catch (Exception e) {
@@ -252,7 +263,7 @@ public class AgendamentoService {
 
     @Transactional(readOnly = true)
     public List<AgendamentoResponse> listarDoAluno(UUID alunoId) {
-        return agendamentoRepository.findByAlunoIdOrderByCriadoEmDesc(alunoId).stream()
+        return agendamentoRepository.findByAlunoIdOrderByDataHoraInicioDesc(alunoId).stream()
                 .map(this::paraResponse)
                 .toList();
     }
@@ -260,7 +271,7 @@ public class AgendamentoService {
     @Transactional(readOnly = true)
     public List<AgendamentoResponse> listarDoProfessor(UUID usuarioId) {
         Professor professor = professorDoUsuario(usuarioId);
-        return agendamentoRepository.findByProfessorIdOrderByCriadoEmDesc(professor.getId()).stream()
+        return agendamentoRepository.findByProfessorIdOrderByDataHoraInicioDesc(professor.getId()).stream()
                 .map(this::paraResponse)
                 .toList();
     }
@@ -271,15 +282,29 @@ public class AgendamentoService {
                 .orElseThrow(() -> new ResponseStatusException(NOT_FOUND, "Professor não encontrado"));
 
         Set<String> ocupados = agendamentoRepository.findByProfessorIdAndStatusIn(professor.getId(), STATUS_OCUPADOS).stream()
-                .map(agendamento -> chaveSlot(agendamento.getDiaSemana(), agendamento.getHorario()))
+                .map(Agendamento::getSlotChave)
                 .collect(Collectors.toSet());
 
         return disponibilidadeRepository.findByProfessorId(professor.getId()).stream()
                 .map(slot -> new HorarioDisponivelResponse(
                         slot.getDiaSemana(),
                         slot.getHorario(),
-                        !ocupados.contains(chaveSlot(slot.getDiaSemana(), slot.getHorario()))))
+                        !ocupados.contains(chave(professor.getId(), proximaData(slot.getDiaSemana()), slot.getHorario()))))
                 .toList();
+    }
+
+    private LocalDate proximaData(String diaSemana) {
+        DayOfWeek alvo = DIA_SIGLA.entrySet().stream()
+                .filter(e -> e.getValue().equals(diaSemana))
+                .map(Map.Entry::getKey)
+                .findFirst()
+                .orElse(null);
+        if (alvo == null) return LocalDate.now(FUSO_BRASIL);
+
+        LocalDate hoje = LocalDate.now(FUSO_BRASIL);
+        int delta = (alvo.getValue() - hoje.getDayOfWeek().getValue() + 7) % 7;
+        if (delta == 0) delta = 7;
+        return hoje.plusDays(delta);
     }
 
     private String modalidadeValida(Professor professor, String modalidade) {
@@ -321,41 +346,18 @@ public class AgendamentoService {
                 .orElseThrow(() -> new ResponseStatusException(NOT_FOUND, "Perfil ainda não configurado"));
     }
 
-    private String chave(UUID professorId, String dia, String horario) {
-        return professorId + "|" + dia + "|" + horario;
+    private String chave(UUID professorId, LocalDate data, String horario) {
+        return professorId + "|" + data + "|" + horario;
     }
 
-    private String chaveSlot(String dia, String horario) {
-        return dia + "|" + horario;
-    }
-
-    private void validarAntecedencia(Professor professor, String dia, String horario) {
+    private void validarAntecedencia(Professor professor, OffsetDateTime dataHoraInicio) {
         Integer minHoras = professor.getAntecedenciaMinHoras();
         if (minHoras == null || minHoras <= 0) {
             return;
         }
 
-        DayOfWeek diaDaSemana = DIA_MAP.get(dia.toLowerCase());
-        if (diaDaSemana == null) {
-            return;
-        }
-
-        LocalTime horaSlot;
-        try {
-            horaSlot = LocalTime.parse(horario, DateTimeFormatter.ofPattern("HH:mm"));
-        } catch (Exception e) {
-            return;
-        }
-
         OffsetDateTime agora = OffsetDateTime.now(FUSO_BRASIL);
-        LocalDate hoje = agora.toLocalDate();
-        int diasAte = (diaDaSemana.getValue() - hoje.getDayOfWeek().getValue() + 7) % 7;
-        if (diasAte == 0 && agora.toLocalTime().isAfter(horaSlot)) {
-            diasAte = 7;
-        }
-        LocalDate dataSlot = hoje.plusDays(diasAte);
-        OffsetDateTime momentoSlot = dataSlot.atTime(horaSlot).atZone(FUSO_BRASIL).toOffsetDateTime();
-        long horasAte = ChronoUnit.HOURS.between(agora, momentoSlot);
+        long horasAte = ChronoUnit.HOURS.between(agora, dataHoraInicio);
 
         if (horasAte < minHoras) {
             throw new ResponseStatusException(BAD_REQUEST,
@@ -363,15 +365,29 @@ public class AgendamentoService {
         }
     }
 
+    private String formatarDataHora(OffsetDateTime dataHora) {
+        if (dataHora == null) return "";
+        ZonedDateTime zdt = dataHora.atZoneSameInstant(FUSO_BRASIL);
+        return zdt.format(DateTimeFormatter.ofPattern("dd/MM/yyyy 'às' HH:mm"));
+    }
+
     private AgendamentoResponse paraResponse(Agendamento agendamento) {
+        String dia = agendamento.getDiaSemana();
+        String horario = agendamento.getHorario();
+        if (agendamento.getDataHoraInicio() != null && (dia == null || horario == null)) {
+            ZonedDateTime zdt = agendamento.getDataHoraInicio().atZoneSameInstant(FUSO_BRASIL);
+            dia = DIA_SIGLA.getOrDefault(zdt.getDayOfWeek(), "");
+            horario = zdt.format(HORA_FMT);
+        }
         return new AgendamentoResponse(
                 agendamento.getId(),
                 agendamento.getProfessor().getId(),
                 agendamento.getProfessor().getUsuario().getNomeCompleto(),
                 agendamento.getAluno().getId(),
                 agendamento.getAluno().getNomeCompleto(),
-                agendamento.getDiaSemana(),
-                agendamento.getHorario(),
+                agendamento.getDataHoraInicio(),
+                dia,
+                horario,
                 agendamento.getModalidade(),
                 agendamento.getMateria(),
                 agendamento.getStatus(),

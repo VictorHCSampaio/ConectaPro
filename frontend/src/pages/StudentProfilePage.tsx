@@ -6,6 +6,7 @@ import { AvatarUpload } from '@/components/teacher-config/AvatarUpload'
 import { FormSection } from '@/components/teacher-config/FormSection'
 import { Button } from '@/components/ui/Button'
 import { Input } from '@/components/ui/Input'
+import { LgpdSection } from '@/components/ui/LgpdSection'
 import { useAuth } from '@/hooks/useAuth'
 import { extractErrorMessage } from '@/lib/api'
 import {
@@ -134,6 +135,7 @@ export function StudentProfilePage() {
             Carregando…
           </div>
         ) : (
+          <>
           <form onSubmit={handleSubmit} className="mt-8 flex flex-col gap-6">
             <FormSection title="Sobre mim" description="Informações visíveis no seu perfil público.">
               <div className="flex flex-col gap-5">
@@ -230,6 +232,9 @@ export function StudentProfilePage() {
               </Button>
             </div>
           </form>
+
+          <LgpdSection />
+          </>
         )}
       </main>
 

@@ -12,6 +12,7 @@ export type Agendamento = {
   professorName: string
   studentId: string
   studentName: string
+  dataHoraInicio: string
   day: string
   time: string
   modality: string

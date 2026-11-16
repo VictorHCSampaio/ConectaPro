@@ -8,15 +8,13 @@ export async function listarHorariosDisponiveis(professorId: string): Promise<Av
 
 export async function agendarAula(
   professorId: string,
-  day: string,
-  time: string,
+  dataHoraInicio: string,
   modality: string,
   subject: string,
 ): Promise<Agendamento> {
   const { data } = await api.post<Agendamento>('/agendamentos', {
     professorId,
-    day,
-    time,
+    dataHoraInicio,
     modality,
     subject,
   })

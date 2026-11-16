@@ -13,4 +13,6 @@ public interface AvaliacaoRepository extends JpaRepository<Avaliacao, UUID> {
     boolean existsByAvaliadorIdAndAgendamentoId(UUID avaliadorId, UUID agendamentoId);
 
     List<Avaliacao> findByAgendamentoId(UUID agendamentoId);
+
+    List<Avaliacao> findByAvaliadorIdOrderByCriadoEmDesc(UUID avaliadorId);
 }

@@ -1,4 +1,4 @@
-import { Ban, BookOpen, CalendarDays, Check, Clock, Loader2, MessageCircle, Monitor, Star, X } from 'lucide-react'
+import { Ban, BookOpen, CalendarDays, Check, Loader2, MessageCircle, Monitor, Star, X } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { AvaliacaoDialog } from '@/components/avaliacao/AvaliacaoDialog'
@@ -19,9 +19,8 @@ import { AgendamentoDetailsDialog } from '@/components/booking/AgendamentoDetail
 import { cn } from '@/lib/cn'
 import {
   AGENDAMENTO_STATUS_LABEL,
+  formatDataHoraInicio,
   formatModality,
-  formatSlotDay,
-  formatSlotTime,
 } from '@/lib/formatSlot'
 import type { Agendamento, AgendamentoStatus } from '@/types/agendamento'
 
@@ -92,11 +91,7 @@ function SlotInfo({ agendamento }: { agendamento: Agendamento }) {
       <span className="inline-flex flex-wrap items-center gap-x-3 gap-y-1">
         <span className="inline-flex items-center gap-1.5">
           <CalendarDays className="size-3.5 text-paper-400 dark:text-zinc-500" />
-          {formatSlotDay(agendamento.day)}
-        </span>
-        <span className="inline-flex items-center gap-1.5 tabular-nums">
-          <Clock className="size-3.5 text-paper-400 dark:text-zinc-500" />
-          {formatSlotTime(agendamento.time)}
+          {formatDataHoraInicio(agendamento.dataHoraInicio)}
         </span>
       </span>
     </div>

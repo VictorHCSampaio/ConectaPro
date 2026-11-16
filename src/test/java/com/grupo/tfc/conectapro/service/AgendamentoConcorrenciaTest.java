@@ -24,7 +24,12 @@ import org.springframework.http.HttpStatus;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.web.server.ResponseStatusException;
 
+import java.time.DayOfWeek;
+import java.time.LocalDate;
+import java.time.LocalTime;
 import java.time.OffsetDateTime;
+import java.time.ZoneId;
+import java.time.ZonedDateTime;
 import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.Callable;
@@ -44,6 +49,7 @@ class AgendamentoConcorrenciaTest {
     private static final String DIA = "seg";
     private static final String HORARIO = "08:00";
     private static final String MATERIA = "Matemática";
+    private static final ZoneId FUSO = ZoneId.of("America/Sao_Paulo");
 
     @Autowired
     private AgendamentoService agendamentoService;
@@ -112,9 +118,10 @@ class AgendamentoConcorrenciaTest {
 
     @Test
     void segundaReservaDoMesmoHorario_retornaConflito() {
-        agendamentoService.solicitar(aluno1Id, requisicao());
+        OffsetDateTime dataHora = proximaSegunda();
+        agendamentoService.solicitar(aluno1Id, requisicao(dataHora));
 
-        assertThatThrownBy(() -> agendamentoService.solicitar(aluno2Id, requisicao()))
+        assertThatThrownBy(() -> agendamentoService.solicitar(aluno2Id, requisicao(dataHora)))
                 .isInstanceOf(ResponseStatusException.class)
                 .satisfies(erro ->
                         assertThat(((ResponseStatusException) erro).getStatusCode()).isEqualTo(HttpStatus.CONFLICT));
@@ -124,11 +131,12 @@ class AgendamentoConcorrenciaTest {
 
     @Test
     void duasReservasSimultaneas_apenasUmaVence() throws Exception {
+        OffsetDateTime dataHora = proximaSegunda();
         CountDownLatch largada = new CountDownLatch(1);
         ExecutorService pool = Executors.newFixedThreadPool(2);
 
-        Future<Object> primeira = pool.submit(tarefa(aluno1Id, largada));
-        Future<Object> segunda = pool.submit(tarefa(aluno2Id, largada));
+        Future<Object> primeira = pool.submit(tarefa(aluno1Id, dataHora, largada));
+        Future<Object> segunda = pool.submit(tarefa(aluno2Id, dataHora, largada));
 
         largada.countDown();
 
@@ -149,28 +157,34 @@ class AgendamentoConcorrenciaTest {
         assertThat(ativosNoSlot()).isEqualTo(1);
     }
 
-    private Callable<Object> tarefa(UUID alunoId, CountDownLatch largada) {
+    private OffsetDateTime proximaSegunda() {
+        LocalDate hoje = LocalDate.now(FUSO);
+        int delta = (DayOfWeek.MONDAY.getValue() - hoje.getDayOfWeek().getValue() + 7) % 7;
+        if (delta == 0) delta = 7;
+        LocalDate proxSeg = hoje.plusDays(delta);
+        ZonedDateTime zdt = proxSeg.atTime(LocalTime.of(8, 0)).atZone(FUSO);
+        return zdt.toOffsetDateTime();
+    }
+
+    private Callable<Object> tarefa(UUID alunoId, OffsetDateTime dataHora, CountDownLatch largada) {
         return () -> {
             largada.await();
             try {
-                return agendamentoService.solicitar(alunoId, requisicao());
+                return agendamentoService.solicitar(alunoId, requisicao(dataHora));
             } catch (Exception excecao) {
                 return excecao;
             }
         };
     }
 
-    private AgendarRequest requisicao() {
-        return new AgendarRequest(professorId, DIA, HORARIO, "ONLINE", MATERIA);
+    private AgendarRequest requisicao(OffsetDateTime dataHora) {
+        return new AgendarRequest(professorId, dataHora, "ONLINE", MATERIA);
     }
 
     private long ativosNoSlot() {
         return agendamentoRepository.findByProfessorIdAndStatusIn(professorId,
                         List.of(StatusAgendamento.SOLICITADO, StatusAgendamento.CONFIRMADO))
-                .stream()
-                .filter(agendamento -> agendamento.getDiaSemana().equals(DIA)
-                        && agendamento.getHorario().equals(HORARIO))
-                .count();
+                .size();
     }
 
     private Usuario criarUsuario(TipoUsuario tipo) {

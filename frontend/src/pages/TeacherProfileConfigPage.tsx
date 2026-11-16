@@ -22,6 +22,7 @@ import { SubjectExperienceInput } from '@/components/teacher-config/SubjectExper
 import { Button } from '@/components/ui/Button'
 import { Checkbox } from '@/components/ui/Checkbox'
 import { Input } from '@/components/ui/Input'
+import { LgpdSection } from '@/components/ui/LgpdSection'
 import { Radio } from '@/components/ui/Radio'
 import { SiteFooter } from '@/components/landing/SiteFooter'
 import { SiteHeader } from '@/components/landing/SiteHeader'
@@ -992,6 +993,8 @@ export function TeacherProfileConfigPage() {
             </div>
           </div>
         </form>
+
+        <LgpdSection />
       </main>
 
       <SiteFooter />

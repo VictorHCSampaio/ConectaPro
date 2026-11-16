@@ -24,8 +24,7 @@ public record DashboardResumoDTO(
             String professor,
             String aluno,
             String materia,
-            String diaSemana,
-            String horario,
+            OffsetDateTime dataHoraInicio,
             String status,
             OffsetDateTime criadoEm
     ) {

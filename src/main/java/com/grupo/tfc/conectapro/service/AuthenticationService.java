@@ -97,6 +97,10 @@ public class AuthenticationService {
                     return new ResponseStatusException(UNAUTHORIZED, "Credênciais inválidas");
                 });
 
+        if (usuario.getStatusConta() == StatusConta.EXCLUIDO) {
+            throw new ResponseStatusException(UNAUTHORIZED, "Esta conta foi excluída.");
+        }
+
         verificarBloqueio(usuario);
 
         if (!senhaService.match(senha, usuario.getSenhaHash())) {

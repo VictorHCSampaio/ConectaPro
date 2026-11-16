@@ -27,10 +27,13 @@ public class Agendamento {
     @JoinColumn(name = "professor_id", nullable = false)
     private Professor professor;
 
-    @Column(name = "dia_semana", nullable = false)
+    @Column(name = "data_hora_inicio", nullable = false)
+    private OffsetDateTime dataHoraInicio;
+
+    @Column(name = "dia_semana")
     private String diaSemana;
 
-    @Column(nullable = false)
+    @Column
     private String horario;
 
     @Column(nullable = false)

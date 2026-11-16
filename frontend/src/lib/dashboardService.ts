@@ -15,8 +15,7 @@ export type AulaRecente = {
   professor: string
   aluno: string
   materia: string
-  diaSemana: string
-  horario: string
+  dataHoraInicio: string | null
   status: string
   criadoEm: string
 }

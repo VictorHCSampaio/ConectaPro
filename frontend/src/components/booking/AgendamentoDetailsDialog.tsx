@@ -5,9 +5,8 @@ import { createPortal } from 'react-dom'
 import { cn } from '@/lib/cn'
 import {
   AGENDAMENTO_STATUS_LABEL,
+  formatDataHoraInicio,
   formatModality,
-  formatSlotDay,
-  formatSlotTime,
 } from '@/lib/formatSlot'
 import type { Agendamento } from '@/types/agendamento'
 
@@ -140,8 +139,7 @@ export function AgendamentoDetailsDialog({
               <Row label={counterpartLabel} value={counterpartName} />
               <Row label="Matéria" value={agendamento.subject} />
               <Row label="Modalidade" value={formatModality(agendamento.modality)} />
-              <Row label="Dia" value={formatSlotDay(agendamento.day)} />
-              <Row label="Horário" value={formatSlotTime(agendamento.time)} />
+              <Row label="Data da aula" value={formatDataHoraInicio(agendamento.dataHoraInicio)} />
               <Row label="Status" value={AGENDAMENTO_STATUS_LABEL[agendamento.status]} />
               <Row label="Solicitado em" value={formatCreatedAt(agendamento.createdAt)} />
             </dl>

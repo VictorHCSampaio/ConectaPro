@@ -108,10 +108,8 @@ function formatQuando(valor: string) {
 }
 
 function formatDataHorario(aula: AulaRecente) {
-  const agenda = [aula.diaSemana, aula.horario].filter(Boolean).join(' · ')
-  const quando = formatQuando(aula.criadoEm)
-  if (agenda && quando) return `${agenda} · ${quando}`
-  return agenda || quando || '—'
+  if (aula.dataHoraInicio) return formatQuando(aula.dataHoraInicio)
+  return formatQuando(aula.criadoEm) || '—'
 }
 
 function iconeDaAtividade(acao: string): LucideIcon {

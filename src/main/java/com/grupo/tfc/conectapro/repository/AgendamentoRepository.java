@@ -13,12 +13,11 @@ import java.util.UUID;
 
 public interface AgendamentoRepository extends JpaRepository<Agendamento, UUID> {
 
-    List<Agendamento> findByAlunoIdOrderByCriadoEmDesc(UUID alunoId);
+    List<Agendamento> findByAlunoIdOrderByDataHoraInicioDesc(UUID alunoId);
 
-    List<Agendamento> findByProfessorIdOrderByCriadoEmDesc(UUID professorId);
+    List<Agendamento> findByProfessorIdOrderByDataHoraInicioDesc(UUID professorId);
 
-    boolean existsByProfessorIdAndDiaSemanaAndHorarioAndStatusIn(
-            UUID professorId, String diaSemana, String horario, Collection<StatusAgendamento> status);
+    boolean existsBySlotChaveAndStatusIn(String slotChave, Collection<StatusAgendamento> status);
 
     List<Agendamento> findByProfessorIdAndStatusIn(UUID professorId, Collection<StatusAgendamento> status);
 
@@ -35,4 +34,6 @@ public interface AgendamentoRepository extends JpaRepository<Agendamento, UUID> 
             where agendamento.status = :status
             """)
     List<Agendamento> buscarPorStatusComParticipantes(@Param("status") StatusAgendamento status);
+
+    List<Agendamento> findByAlunoIdOrderByCriadoEmDesc(UUID alunoId);
 }
