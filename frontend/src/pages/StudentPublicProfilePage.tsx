@@ -1,7 +1,6 @@
-import { ArrowLeft, CalendarDays, Flag, MapPin, Star, User } from 'lucide-react'
+import { ArrowLeft, CalendarDays, Flag, MapPin, User } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
-import { AvaliacaoDialog } from '@/components/avaliacao/AvaliacaoDialog'
 import { DenunciaDialog } from '@/components/denuncia/DenunciaDialog'
 import { SiteFooter } from '@/components/landing/SiteFooter'
 import { SiteHeader } from '@/components/landing/SiteHeader'
