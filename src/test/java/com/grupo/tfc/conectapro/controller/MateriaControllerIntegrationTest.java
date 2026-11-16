@@ -97,7 +97,7 @@ class MateriaControllerIntegrationTest {
     @Test
     void createMateriaFlow_shouldAppearInList() {
         long ts = System.nanoTime();
-        String token = registrarAdminELogar("admin" + ts + "@conecta.pro", "senha12345");
+        String token = registrarAdminELogar("admin" + ts + "@conecta.pro", "Senha@12345");
         String nome = "Quimica " + ts;
 
         ResponseEntity<MateriaDTO> criada = client.post().uri(MATERIAS)
@@ -126,7 +126,7 @@ class MateriaControllerIntegrationTest {
 
     private Integer criarMateriaComoAdmin(String nome, String descricao) {
         long ts = System.nanoTime();
-        String token = registrarAdminELogar("admin" + ts + "@conecta.pro", "senha12345");
+        String token = registrarAdminELogar("admin" + ts + "@conecta.pro", "Senha@12345");
 
         ResponseEntity<MateriaDTO> response = client.post().uri(MATERIAS)
                 .header("Authorization", "Bearer " + token)
@@ -166,7 +166,7 @@ class MateriaControllerIntegrationTest {
     @Test
     void criar_comoAdmin_deveRetornar201EPersistir() {
         long ts = System.nanoTime();
-        String token = registrarAdminELogar("admin" + ts + "@conecta.pro", "senha12345");
+        String token = registrarAdminELogar("admin" + ts + "@conecta.pro", "Senha@12345");
         String nome = "Biologia " + ts;
 
         ResponseEntity<MateriaDTO> response = client.post().uri(MATERIAS)
@@ -191,7 +191,7 @@ class MateriaControllerIntegrationTest {
     @Test
     void criar_comoAdmin_deveRetornar201ComHeaderContentTypeJson() {
         long ts = System.nanoTime();
-        String token = registrarAdminELogar("admin" + ts + "@conecta.pro", "senha12345");
+        String token = registrarAdminELogar("admin" + ts + "@conecta.pro", "Senha@12345");
         String nome = "Sociologia " + ts;
 
         ResponseEntity<MateriaDTO> response = client.post().uri(MATERIAS)
@@ -223,7 +223,7 @@ class MateriaControllerIntegrationTest {
     @Test
     void criar_comUsuarioNaoAdmin_deveRetornar403() {
         long ts = System.nanoTime();
-        String token = registrarUsuarioComumELogar("usuario" + ts + "@conecta.pro", "senha12345");
+        String token = registrarUsuarioComumELogar("usuario" + ts + "@conecta.pro", "Senha@12345");
 
         ResponseEntity<Void> response = client.post().uri(MATERIAS)
                 .header("Authorization", "Bearer " + token)

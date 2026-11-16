@@ -69,7 +69,7 @@ class UsuarioControllerIntegrationTest {
                 {
                   "nome": "Usuário de Integração",
                   "email": "%s",
-                  "password": "senha@123",
+                  "password": "Senha@123",
                   "acceptTerms": true
                 }
                 """.formatted(EMAIL_REGISTRO);
@@ -92,7 +92,7 @@ class UsuarioControllerIntegrationTest {
                 {
                   "nome": "Sem Aceite",
                   "email": "%s",
-                  "password": "senha@123"
+                  "password": "Senha@123"
                 }
                 """.formatted(emailSemAceite);
 
@@ -105,7 +105,7 @@ class UsuarioControllerIntegrationTest {
                 {
                   "nome": "Sem Aceite",
                   "email": "%s",
-                  "password": "senha@123",
+                  "password": "Senha@123",
                   "acceptTerms": false
                 }
                 """.formatted(emailSemAceite);
@@ -124,7 +124,7 @@ class UsuarioControllerIntegrationTest {
                 {
                   "nome": "Usuário Inválido",
                   "email": "",
-                  "password": "senha@123"
+                  "password": "Senha@123"
                 }
                 """;
 
@@ -140,7 +140,7 @@ class UsuarioControllerIntegrationTest {
                 {
                   "nome": "Usuário Duplicado",
                   "email": "%s",
-                  "password": "senha@123",
+                  "password": "Senha@123",
                   "acceptTerms": true
                 }
                 """.formatted(EMAIL_DUPLICADO);
@@ -162,7 +162,7 @@ class UsuarioControllerIntegrationTest {
         RegisterRequest payload = new RegisterRequest(
                 "Usuario de Integracao",
                 email,
-                "senha@123",
+                "Senha@123",
                 null,
                 true
         );
@@ -184,7 +184,7 @@ class UsuarioControllerIntegrationTest {
     @Test
     void login_comCredenciaisValidas_deveRetornarTokenJwt() {
         String email = "teste" + System.nanoTime() + "@email.com";
-        String senha = "senha@123";
+        String senha = "Senha@123";
         registrarUsuarioParaTeste(email, senha);
         LoginRequest payload = new LoginRequest(email, senha);
 
