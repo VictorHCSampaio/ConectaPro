@@ -159,7 +159,9 @@ export function BookingDialog({
     }
   }
 
-  const sortedDays = DAY_ORDER.filter((day) => slots.some((slot) => slot.day === day))
+  const sortedDays = DAY_ORDER.filter((day) => slots.some((slot) => slot.day === day)).sort(
+    (a, b) => proximaDataDoDia(a).getTime() - proximaDataDoDia(b).getTime(),
+  )
   const hasSlots = slots.length > 0
   const canSubmit = selected != null && selectedModality != null && selectedSubject != null
 
