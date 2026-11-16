@@ -1,18 +1,10 @@
 package com.grupo.tfc.conectapro.service;
 
-import com.grupo.tfc.conectapro.config.UsuarioAutenticado;
 import com.grupo.tfc.conectapro.dto.agendamento.AgendamentoResponse;
 import com.grupo.tfc.conectapro.dto.agendamento.AgendarRequest;
 import com.grupo.tfc.conectapro.dto.agendamento.HorarioDisponivelResponse;
 import com.grupo.tfc.conectapro.dto.chat.EnviarMensagemRequest;
-import com.grupo.tfc.conectapro.model.AcaoAuditoria;
-import com.grupo.tfc.conectapro.model.Agendamento;
-import com.grupo.tfc.conectapro.model.Professor;
-import com.grupo.tfc.conectapro.model.ProfessorMateria;
-import com.grupo.tfc.conectapro.model.StatusAgendamento;
-import com.grupo.tfc.conectapro.model.StatusConta;
-import com.grupo.tfc.conectapro.model.TipoNotificacao;
-import com.grupo.tfc.conectapro.model.Usuario;
+import com.grupo.tfc.conectapro.model.*;
 import com.grupo.tfc.conectapro.repository.AgendamentoRepository;
 import com.grupo.tfc.conectapro.repository.ProfessorDisponibilidadeRepository;
 import com.grupo.tfc.conectapro.repository.ProfessorMateriaRepository;
@@ -321,7 +313,7 @@ public class AgendamentoService {
         String alvo = materia == null ? "" : materia.trim();
         return professorMateriaRepository.findByProfessorId(professor.getId()).stream()
                 .map(ProfessorMateria::getMateria)
-                .map(m -> m.getNome())
+                .map(Materia::getNome)
                 .filter(nome -> nome.equalsIgnoreCase(alvo))
                 .findFirst()
                 .orElseThrow(() -> new ResponseStatusException(BAD_REQUEST, "Matéria não oferecida por este professor"));
