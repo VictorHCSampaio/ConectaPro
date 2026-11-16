@@ -143,7 +143,7 @@ class MateriaControllerIntegrationTest {
     private String registrarAdminELogar(String email, String senha) {
         client.post().uri(AUTH + "/register")
                 .contentType(MediaType.APPLICATION_JSON)
-                .body(Map.of("nome", "Admin Teste", "email", email, "password", senha))
+                .body(Map.of("nome", "Admin Teste", "email", email, "password", senha, "acceptTerms", true))
                 .retrieve()
                 .toBodilessEntity();
 
@@ -238,7 +238,7 @@ class MateriaControllerIntegrationTest {
     private String registrarUsuarioComumELogar(String email, String senha) {
         client.post().uri(AUTH + "/register")
                 .contentType(MediaType.APPLICATION_JSON)
-                .body(Map.of("nome", "Usuario Teste", "email", email, "password", senha))
+                .body(Map.of("nome", "Usuario Teste", "email", email, "password", senha, "acceptTerms", true))
                 .retrieve()
                 .toBodilessEntity();
 

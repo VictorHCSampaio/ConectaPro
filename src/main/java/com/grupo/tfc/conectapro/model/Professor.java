@@ -69,4 +69,10 @@ public class Professor {
 
     @Column(name = "antecedencia_min_horas")
     private Integer antecedenciaMinHoras;
+
+    @Column(name = "certificado_nome")
+    private String certificadoNome;
+
+    @Column(name = "justificativa_sem_certificado", columnDefinition = "text")
+    private String justificativaSemCertificado;
 }

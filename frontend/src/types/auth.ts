@@ -20,6 +20,7 @@ export type RegisterRequestPayload = {
   email: string
   password: string
   role: UserRole
+  acceptTerms: boolean
 }
 
 export type TotpSetupResponse = {
@@ -40,7 +41,7 @@ export type MensagemAutenticacaoResponse = {
   statusConta?: StatusConta
 }
 
-export type StatusConta = 'ATIVO' | 'PENDENTE_PAGAMENTO'
+export type StatusConta = 'EM_ANALISE' | 'REJEITADO' | 'PENDENTE_PAGAMENTO' | 'ATIVO'
 
 export type LoginResponse = {
   status: 'TOTP_REQUIRED' | 'AUTHENTICATED'

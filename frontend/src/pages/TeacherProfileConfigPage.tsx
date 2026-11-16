@@ -31,7 +31,12 @@ import { ativarTotp, obterConfigTotp, obterStatusTotp } from '@/lib/authService'
 import { buscarEnderecoPorCep } from '@/lib/enderecoService'
 import { cn } from '@/lib/cn'
 import { maskCep } from '@/lib/masks'
-import { buscarPerfilProfessor, salvarPerfilProfessor } from '@/lib/teacherProfileService'
+import {
+  buscarPerfilProfessor,
+  enviarAvatarProfessor,
+  removerAvatarProfessor,
+  salvarPerfilProfessor,
+} from '@/lib/teacherProfileService'
 import type {
   ApiModality,
   ApiTeachingModel,
@@ -185,7 +190,7 @@ const TEACHING_MODEL_FROM_API: Record<ApiTeachingModel, TeachingModel> = {
 function buildFormFromPayload(payload: TeacherProfilePayload): TeacherProfileFormData {
   return {
     avatarFile: null,
-    avatarPreviewUrl: null,
+    avatarPreviewUrl: payload.avatarUrl ?? null,
     fullName: payload.fullName ?? '',
     phone: maskPhone(payload.phone ?? ''),
     bio: payload.bio ?? '',
@@ -605,7 +610,21 @@ export function TeacherProfileConfigPage() {
     setSubmitError(null)
     try {
       const saved = await salvarPerfilProfessor(buildPayload(form))
-      setForm(buildFormFromPayload(saved))
+
+      let avatarUrl = saved.avatarUrl ?? null
+      if (form.avatarFile) {
+        avatarUrl = await enviarAvatarProfessor(form.avatarFile)
+      } else if (!form.avatarPreviewUrl && avatarUrl) {
+        await removerAvatarProfessor()
+        avatarUrl = null
+      }
+
+      if (prevAvatarUrlRef.current) {
+        URL.revokeObjectURL(prevAvatarUrlRef.current)
+        prevAvatarUrlRef.current = null
+      }
+
+      setForm(buildFormFromPayload({ ...saved, avatarUrl }))
 
       setShowSuccess(true)
       setTimeout(() => setShowSuccess(false), 5000)

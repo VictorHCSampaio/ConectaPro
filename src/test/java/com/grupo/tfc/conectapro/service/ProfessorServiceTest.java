@@ -54,6 +54,8 @@ class ProfessorServiceTest {
     @Mock private LocalizacaoService localizacaoService;
     @Mock private EnderecoService enderecoService;
     @Mock private AuditoriaService auditoriaService;
+    @Mock private ArmazenamentoS3Service armazenamentoS3Service;
+    @Mock private AvaliacaoService avaliacaoService;
 
     @InjectMocks
     private ProfessorService professorService;
@@ -182,6 +184,7 @@ class ProfessorServiceTest {
         when(localizacaoService.buscarCoordenada(nullable(String.class))).thenReturn(Optional.empty());
         when(professorMateriaRepository.findByProfessorIdIn(any())).thenReturn(List.of());
         when(disponibilidadeRepository.findByProfessorIdIn(any())).thenReturn(List.of());
+        when(avaliacaoService.calcularMedia(any())).thenReturn(new double[]{0.0, 0});
 
         // Act
         List<ProfessorResumoResponse> resultado = professorService.listarProfessores(null);

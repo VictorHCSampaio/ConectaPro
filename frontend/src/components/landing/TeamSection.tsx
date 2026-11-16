@@ -46,10 +46,10 @@ export function TeamSection() {
           </div>
         </Reveal>
 
-        <div className="grid gap-8 md:grid-cols-3">
+        <div className="grid items-stretch gap-8 md:grid-cols-3">
           {TEAM_MEMBERS.map((member, index) => (
-            <Reveal key={member.name} delay={index * 0.1}>
-              <div className="flex flex-col items-center rounded-2xl bg-white p-8 text-center shadow-sm ring-1 ring-paper-200 transition-all duration-300 dark:bg-white/[0.03] dark:ring-white/10 dark:shadow-[0_0_0_1px_rgba(255,255,255,0.04),0_16px_40px_-12px_rgba(0,0,0,0.6)]">
+            <Reveal key={member.name} delay={index * 0.1} className="h-full">
+              <div className="flex h-full flex-col items-center rounded-2xl bg-white p-8 text-center shadow-sm ring-1 ring-paper-200 transition-all duration-300 dark:bg-white/[0.03] dark:ring-white/10 dark:shadow-[0_0_0_1px_rgba(255,255,255,0.04),0_16px_40px_-12px_rgba(0,0,0,0.6)]">
                 <img
                   src={member.avatar}
                   alt={`Foto de ${member.name}`}
@@ -61,7 +61,7 @@ export function TeamSection() {
                 <span className="mt-1 text-xs font-medium uppercase tracking-wide text-ocre-500">
                   {member.role}
                 </span>
-                <p className="mt-3 text-sm leading-relaxed text-ink-600 dark:text-zinc-400">
+                <p className="mt-3 flex-1 text-sm leading-relaxed text-ink-600 dark:text-zinc-400">
                   {member.description}
                 </p>
               </div>

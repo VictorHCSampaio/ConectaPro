@@ -180,6 +180,13 @@ function TeacherProfileView() {
 export function ProfileViewPage() {
   const { user } = useAuth()
 
+  if (
+    user?.role === 'PROFESSOR' &&
+    (user.statusConta === 'EM_ANALISE' || user.statusConta === 'REJEITADO')
+  ) {
+    return <Navigate to="/cadastro-status" replace />
+  }
+
   if (user?.role === 'PROFESSOR' && user.statusConta === 'PENDENTE_PAGAMENTO') {
     return <Navigate to="/pagamento" replace />
   }

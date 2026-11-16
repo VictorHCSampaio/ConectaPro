@@ -40,7 +40,8 @@ class ResetSenhaServiceTest {
         EmailProperties props = new EmailProperties(
                 "noreply@test.com",
                 new EmailProperties.ResetProperties("Reset", 15),
-                "http://localhost:3000"
+                "http://localhost:3000",
+                "admin@test.com"
         );
         resetSenhaService = new ResetSenhaService(
                 usuarioRepository, jwtService, senhaService,

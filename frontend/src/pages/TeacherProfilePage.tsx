@@ -239,12 +239,20 @@ export function TeacherProfilePage() {
             <div className="px-5 py-5">
               <div className="flex flex-col items-center gap-4 sm:flex-row sm:items-center sm:justify-between">
                 <div className="flex flex-col items-center gap-4 sm:flex-row sm:items-center">
-                  <span
-                    aria-hidden="true"
-                    className="flex size-20 shrink-0 items-center justify-center rounded-full bg-ink-800 text-xl font-semibold text-paper-50 shadow-[inset_0_1px_0_rgba(255,255,255,0.18),0_4px_0_var(--color-ink-950)] dark:shadow-[inset_0_1px_0_rgba(255,255,255,0.14)] dark:ring-1 dark:ring-white/10"
-                  >
-                    {teacher.initials}
-                  </span>
+                  {teacher.avatarUrl ? (
+                    <img
+                      src={teacher.avatarUrl}
+                      alt={`Foto de ${teacher.name}`}
+                      className="size-20 shrink-0 rounded-full object-cover shadow-[inset_0_1px_0_rgba(255,255,255,0.18),0_4px_0_var(--color-ink-950)] dark:ring-1 dark:ring-white/10"
+                    />
+                  ) : (
+                    <span
+                      aria-hidden="true"
+                      className="flex size-20 shrink-0 items-center justify-center rounded-full bg-ink-800 text-xl font-semibold text-paper-50 shadow-[inset_0_1px_0_rgba(255,255,255,0.18),0_4px_0_var(--color-ink-950)] dark:shadow-[inset_0_1px_0_rgba(255,255,255,0.14)] dark:ring-1 dark:ring-white/10"
+                    >
+                      {teacher.initials}
+                    </span>
+                  )}
 
                   <div className="flex min-w-0 flex-col items-center gap-1.5 sm:items-start">
                     <div className="flex flex-wrap items-center justify-center gap-2 sm:justify-start">
@@ -496,9 +504,9 @@ export function TeacherProfilePage() {
                     <button
                       type="button"
                       onClick={() => setDenunciaAberta(true)}
-                      className="mx-auto mt-3 inline-flex items-center gap-1.5 text-xs font-medium text-paper-500 transition-colors hover:text-ink-700 dark:text-zinc-500 dark:hover:text-zinc-200"
+                      className="mx-auto mt-3 inline-flex items-center gap-1.5 rounded-md px-2.5 py-1 text-xs font-medium text-red-600 transition-colors hover:bg-red-50 hover:text-red-700 dark:text-red-400 dark:hover:bg-red-950/40 dark:hover:text-red-300"
                     >
-                      <Flag className="size-3.5" />
+                      <Flag className="size-3.5 text-current" />
                       Denunciar
                     </button>
                   )}

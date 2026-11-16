@@ -1,12 +1,9 @@
 package com.grupo.tfc.conectapro.service;
 
+import com.grupo.tfc.conectapro.config.EmailProperties;
 import com.grupo.tfc.conectapro.dto.denuncia.DenunciaResponse;
 import com.grupo.tfc.conectapro.dto.denuncia.RegistrarDenunciaRequest;
-import com.grupo.tfc.conectapro.model.AcaoAuditoria;
-import com.grupo.tfc.conectapro.model.Denuncia;
-import com.grupo.tfc.conectapro.model.MotivoDenuncia;
-import com.grupo.tfc.conectapro.model.StatusDenuncia;
-import com.grupo.tfc.conectapro.model.Usuario;
+import com.grupo.tfc.conectapro.model.*;
 import com.grupo.tfc.conectapro.repository.DenunciaRepository;
 import com.grupo.tfc.conectapro.repository.UsuarioRepository;
 import org.junit.jupiter.api.AfterEach;
@@ -21,6 +18,7 @@ import org.springframework.security.authentication.UsernamePasswordAuthenticatio
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.server.ResponseStatusException;
 
+import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -42,6 +40,10 @@ class DenunciaServiceTest {
     private UsuarioRepository usuarioRepository;
     @Mock
     private AuditoriaService auditoriaService;
+    @Mock
+    private EmailService emailService;
+    @Mock
+    private EmailProperties emailProperties;
 
     @InjectMocks
     private DenunciaService denunciaService;
@@ -80,6 +82,7 @@ class DenunciaServiceTest {
             denuncia.setId(UUID.randomUUID());
             return denuncia;
         });
+        when(emailProperties.adminAddress()).thenReturn("admin@conectapro.test");
 
         DenunciaResponse response = denunciaService.registrar(new RegistrarDenunciaRequest(
                 denunciadoId, MotivoDenuncia.FRAUDE, "  Cobrou e não compareceu à aula combinada.  "));
@@ -99,6 +102,7 @@ class DenunciaServiceTest {
         assertThat(response.toString()).doesNotContain("ana@aluno.com").doesNotContain("paulo@prof.com");
         verify(auditoriaService).registrar(
                 eq(AcaoAuditoria.DENUNCIA_REGISTRADA), eq(alunoId), eq("DENUNCIA"), any(), any());
+        verify(emailService).enviarAlertaDenuncia(eq(captor.getValue()), eq("admin@conectapro.test"));
     }
 
     @Test
@@ -135,6 +139,43 @@ class DenunciaServiceTest {
                         denunciadoId, MotivoDenuncia.ASSEDIO, "Relato de conduta inadequada em aula.")));
 
         assertThat(excecao.getStatusCode().value()).isEqualTo(404);
+    }
+
+    @Test
+    void listar_semAdmin_deveFalhar() {
+        autenticar(alunoId);
+        when(usuarioRepository.findById(alunoId)).thenReturn(Optional.of(aluno));
+
+        ResponseStatusException excecao = assertThrows(ResponseStatusException.class, () -> denunciaService.listar());
+
+        assertThat(excecao.getStatusCode().value()).isEqualTo(403);
+        verify(denunciaRepository, never()).findAllByOrderByDataCriacaoDesc();
+    }
+
+    @Test
+    void listar_adminRetornaDenunciasMaisRecentes() {
+        aluno.setAdmin(true);
+        autenticar(alunoId);
+        when(usuarioRepository.findById(alunoId)).thenReturn(Optional.of(aluno));
+
+        Denuncia denuncia = Denuncia.builder()
+                .id(UUID.randomUUID())
+                .denunciante(aluno)
+                .denunciado(denunciado)
+                .motivo(MotivoDenuncia.FRAUDE)
+                .descricao("Cobrança indevida na aula combinada.")
+                .status(StatusDenuncia.PENDENTE)
+                .dataCriacao(OffsetDateTime.parse("2026-11-15T18:00:00Z"))
+                .build();
+        when(denunciaRepository.findAllByOrderByDataCriacaoDesc()).thenReturn(List.of(denuncia));
+
+        List<DenunciaResponse> lista = denunciaService.listar();
+
+        assertThat(lista).hasSize(1);
+        assertThat(lista.getFirst().denunciadoNome()).isEqualTo("Paulo Professor");
+        assertThat(lista.getFirst().denunciante().nome()).isEqualTo("Ana Aluna");
+        assertThat(lista.getFirst().motivo()).isEqualTo(MotivoDenuncia.FRAUDE);
+        assertThat(lista.getFirst().toString()).doesNotContain("ana@aluno.com");
     }
 
     private void autenticar(UUID usuarioId) {

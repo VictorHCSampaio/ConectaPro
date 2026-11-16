@@ -1,12 +1,14 @@
 package com.grupo.tfc.conectapro.service;
 
 import com.grupo.tfc.conectapro.dto.EnderecoRequest;
+import com.grupo.tfc.conectapro.dto.professor.AvatarResponse;
 import com.grupo.tfc.conectapro.dto.professor.DisponibilidadeRequest;
 import com.grupo.tfc.conectapro.dto.professor.EnderecoProfessorRequest;
 import com.grupo.tfc.conectapro.dto.professor.MateriaProfessorRequest;
 import com.grupo.tfc.conectapro.dto.professor.PerfilProfessorRequest;
 import com.grupo.tfc.conectapro.dto.professor.PerfilProfessorResponse;
 import com.grupo.tfc.conectapro.dto.professor.ProfessorResumoResponse;
+import com.grupo.tfc.conectapro.dto.professor.StatusCadastroResponse;
 import com.grupo.tfc.conectapro.model.AcaoAuditoria;
 import com.grupo.tfc.conectapro.model.Endereco;
 import com.grupo.tfc.conectapro.model.Materia;
@@ -27,6 +29,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.server.ResponseStatusException;
 
 import java.math.BigDecimal;
@@ -41,6 +44,7 @@ import java.util.Optional;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
+import static org.springframework.http.HttpStatus.BAD_REQUEST;
 import static org.springframework.http.HttpStatus.FORBIDDEN;
 import static org.springframework.http.HttpStatus.NOT_FOUND;
 
@@ -76,6 +80,7 @@ public class ProfessorService {
     private final EnderecoService enderecoService;
     private final AuditoriaService auditoriaService;
     private final AvaliacaoService avaliacaoService;
+    private final ArmazenamentoS3Service armazenamentoS3Service;
 
     public ProfessorService(UsuarioRepository usuarioRepository,
                             ProfessorRepository professorRepository,
@@ -86,7 +91,8 @@ public class ProfessorService {
                             LocalizacaoService localizacaoService,
                             EnderecoService enderecoService,
                             AuditoriaService auditoriaService,
-                            AvaliacaoService avaliacaoService) {
+                            AvaliacaoService avaliacaoService,
+                            ArmazenamentoS3Service armazenamentoS3Service) {
         this.usuarioRepository = usuarioRepository;
         this.professorRepository = professorRepository;
         this.materiaRepository = materiaRepository;
@@ -97,6 +103,7 @@ public class ProfessorService {
         this.enderecoService = enderecoService;
         this.auditoriaService = auditoriaService;
         this.avaliacaoService = avaliacaoService;
+        this.armazenamentoS3Service = armazenamentoS3Service;
     }
 
     @Transactional
@@ -105,6 +112,10 @@ public class ProfessorService {
         if (usuario.getTipo() != TipoUsuario.PROFESSOR) {
             auditoriaService.registrar(AcaoAuditoria.ACESSO_NEGADO, usuarioId, "PROFESSOR", null, "configuração de perfil por usuário que não é professor");
             throw new ResponseStatusException(FORBIDDEN, "Apenas professores podem configurar este perfil");
+        }
+        if (usuario.getStatusConta() == StatusConta.EM_ANALISE
+                || usuario.getStatusConta() == StatusConta.REJEITADO) {
+            throw new ResponseStatusException(FORBIDDEN, "Seu cadastro precisa ser aprovado antes de configurar o perfil");
         }
         if (usuario.getStatusConta() == StatusConta.PENDENTE_PAGAMENTO) {
             throw new ResponseStatusException(FORBIDDEN, "Efetue o pagamento para editar seu perfil");
@@ -152,6 +163,130 @@ public class ProfessorService {
         return buscarPerfil(usuarioId);
     }
 
+    @Transactional
+    public AvatarResponse enviarAvatar(UUID usuarioId, MultipartFile arquivo) {
+        Usuario usuario = buscarUsuario(usuarioId);
+        if (usuario.getTipo() != TipoUsuario.PROFESSOR) {
+            auditoriaService.registrar(AcaoAuditoria.ACESSO_NEGADO, usuarioId, "PROFESSOR", null, "envio de foto por usuario que nao e professor");
+            throw new ResponseStatusException(FORBIDDEN, "Apenas professores podem enviar foto de perfil");
+        }
+
+        Professor professor = professorRepository.findByUsuarioId(usuarioId)
+                .orElseThrow(() -> new ResponseStatusException(NOT_FOUND, "Configure e salve seu perfil antes de enviar a foto"));
+
+        String url = armazenamentoS3Service.enviarAvatar(professor.getId(), arquivo);
+        professor.setAvatarUrl(url);
+        professor.setAtualizadoEm(OffsetDateTime.now());
+        professorRepository.save(professor);
+
+        logger.info("Foto de perfil atualizada. usuarioId={} professorId={}", usuarioId, professor.getId());
+        return new AvatarResponse(url);
+    }
+
+    @Transactional
+    public void removerAvatar(UUID usuarioId) {
+        Professor professor = professorRepository.findByUsuarioId(usuarioId).orElse(null);
+        if (professor == null || professor.getAvatarUrl() == null) {
+            return;
+        }
+
+        armazenamentoS3Service.removerAvatar(professor.getId());
+        professor.setAvatarUrl(null);
+        professor.setAtualizadoEm(OffsetDateTime.now());
+        professorRepository.save(professor);
+
+        logger.info("Foto de perfil removida. usuarioId={} professorId={}", usuarioId, professor.getId());
+    }
+
+    @Transactional
+    public void enviarCertificado(UUID usuarioId, MultipartFile arquivo) {
+        Usuario usuario = buscarUsuario(usuarioId);
+        if (usuario.getTipo() != TipoUsuario.PROFESSOR) {
+            throw new ResponseStatusException(FORBIDDEN, "Apenas professores podem enviar certificado");
+        }
+        if (usuario.getStatusConta() != StatusConta.EM_ANALISE
+                && usuario.getStatusConta() != StatusConta.REJEITADO) {
+            throw new ResponseStatusException(FORBIDDEN, "O certificado so pode ser enviado durante a analise do cadastro");
+        }
+
+        Professor professor = obterOuCriarProfessor(usuario);
+        armazenamentoS3Service.enviarCertificado(professor.getId(), arquivo);
+        professor.setCertificadoNome(nomeArquivo(arquivo));
+        professor.setJustificativaSemCertificado(null);
+        professor.setAtualizadoEm(OffsetDateTime.now());
+        professorRepository.save(professor);
+
+        auditoriaService.registrar(AcaoAuditoria.CERTIFICADO_ENVIADO, usuarioId, "PROFESSOR", professor.getId().toString(), null);
+        logger.info("Certificado enviado. usuarioId={} professorId={}", usuarioId, professor.getId());
+    }
+
+    @Transactional
+    public void enviarJustificativa(UUID usuarioId, String justificativa) {
+        Usuario usuario = buscarUsuario(usuarioId);
+        if (usuario.getTipo() != TipoUsuario.PROFESSOR) {
+            throw new ResponseStatusException(FORBIDDEN, "Apenas professores podem enviar justificativa");
+        }
+        if (usuario.getStatusConta() != StatusConta.EM_ANALISE
+                && usuario.getStatusConta() != StatusConta.REJEITADO) {
+            throw new ResponseStatusException(FORBIDDEN, "A justificativa so pode ser enviada durante a analise do cadastro");
+        }
+
+        Professor professor = obterOuCriarProfessor(usuario);
+        professor.setJustificativaSemCertificado(justificativa.trim());
+        professor.setAtualizadoEm(OffsetDateTime.now());
+        professorRepository.save(professor);
+
+        logger.info("Justificativa de ausencia de certificado enviada. usuarioId={} professorId={}", usuarioId, professor.getId());
+    }
+
+    @Transactional
+    public void reenviarParaAnalise(UUID usuarioId) {
+        Usuario usuario = buscarUsuario(usuarioId);
+        if (usuario.getTipo() != TipoUsuario.PROFESSOR) {
+            throw new ResponseStatusException(FORBIDDEN, "Apenas professores podem reenviar o cadastro");
+        }
+        if (usuario.getStatusConta() != StatusConta.REJEITADO) {
+            throw new ResponseStatusException(BAD_REQUEST, "O cadastro nao esta rejeitado");
+        }
+
+        usuario.setStatusConta(StatusConta.EM_ANALISE);
+        usuario.setMotivoRejeicao(null);
+        usuarioRepository.save(usuario);
+
+        logger.info("Cadastro reenviado para analise. usuarioId={}", usuarioId);
+    }
+
+    @Transactional(readOnly = true)
+    public StatusCadastroResponse statusCadastro(UUID usuarioId) {
+        Usuario usuario = buscarUsuario(usuarioId);
+        Professor professor = professorRepository.findByUsuarioId(usuarioId).orElse(null);
+        String certificadoNome = professor == null ? null : professor.getCertificadoNome();
+        String justificativa = professor == null ? null : professor.getJustificativaSemCertificado();
+
+        return new StatusCadastroResponse(
+                usuario.getStatusConta().name(),
+                certificadoNome != null,
+                certificadoNome,
+                justificativa,
+                usuario.getMotivoRejeicao());
+    }
+
+    private Professor obterOuCriarProfessor(Usuario usuario) {
+        return professorRepository.findByUsuarioId(usuario.getId())
+                .orElseGet(() -> {
+                    Professor novo = new Professor();
+                    novo.setUsuario(usuario);
+                    novo.setCriadoEm(OffsetDateTime.now());
+                    novo.setVerificado(false);
+                    return professorRepository.save(novo);
+                });
+    }
+
+    private String nomeArquivo(MultipartFile arquivo) {
+        String nome = arquivo.getOriginalFilename();
+        return nome == null || nome.isBlank() ? "certificado" : nome;
+    }
+
     @Transactional(readOnly = true)
     public PerfilProfessorResponse buscarPerfil(UUID usuarioId) {
         Usuario usuario = buscarUsuario(usuarioId);
@@ -186,6 +321,7 @@ public class ProfessorService {
                 usuario.getNomeCompleto(),
                 professor.getTelefone(),
                 professor.getBiografia(),
+                professor.getAvatarUrl(),
                 materias,
                 atendeInstituicoes(professor) ? MODELO_INSTITUICOES : MODELO_PARTICULARES,
                 modalidadesDoProfessor(professor),
@@ -252,6 +388,7 @@ public class ProfessorService {
                 resumo.id(),
                 "",
                 resumo.initials(),
+                resumo.avatarUrl(),
                 resumo.subjects(),
                 resumo.rating(),
                 resumo.reviewCount(),
@@ -314,6 +451,7 @@ public class ProfessorService {
                 professor.getId().toString(),
                 nome,
                 gerarIniciais(nome),
+                professor.getAvatarUrl(),
                 materias,
                 ratingDoProfessor[0],
                 (int) ratingDoProfessor[1],

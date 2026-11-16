@@ -1,4 +1,3 @@
-import { ContactSection } from '@/components/landing/ContactSection'
 import { HeroSection } from '@/components/landing/HeroSection'
 import { HowItWorks } from '@/components/landing/HowItWorks'
 import { SiteFooter } from '@/components/landing/SiteFooter'
@@ -13,7 +12,6 @@ export function LandingPage() {
         <HeroSection />
         <HowItWorks />
         <TeamSection />
-        <ContactSection />
       </main>
       <SiteFooter />
     </div>

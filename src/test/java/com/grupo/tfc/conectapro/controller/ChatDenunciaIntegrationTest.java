@@ -21,6 +21,7 @@ import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.security.test.web.servlet.setup.SecurityMockMvcConfigurers.springSecurity;
+import static org.hamcrest.Matchers.hasItem;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
@@ -158,12 +159,15 @@ class ChatDenunciaIntegrationTest {
     @Test
     void denuncia_registraContraProfessorComDenuncianteDoJwt() throws Exception {
         Usuario aluno = salvarUsuario("Aluno Denuncia", TipoUsuario.ALUNO);
-        Usuario professorUsuario = salvarUsuario("Professor Denuncia", TipoUsuario.PROFESSOR);
+        Usuario profUser = salvarUsuario("Professor Denuncia", TipoUsuario.PROFESSOR);
+        profUser.setAvatarUrl("https://cdn.conectapro.test/denuncia.png");
+        profUser = usuarioRepository.save(profUser);
         Professor professor = new Professor();
-        professor.setUsuario(professorUsuario);
-        professor.setAvatarUrl("https://cdn.conectapro.test/denuncia.png");
+        professor.setUsuario(profUser);
         professor = professorRepository.save(professor);
 
+        String profEmail = profUser.getEmail();
+        String profId = profUser.getId().toString();
         String token = jwtService.gerarToken(aluno.getId(), aluno.getTipo().name(), false);
 
         mockMvc.perform(post("/denuncias")
@@ -171,23 +175,23 @@ class ChatDenunciaIntegrationTest {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
                                 {
-                                  "professorId":"%s",
+                                  "denunciadoId":"%s",
                                   "motivo":"ASSEDIO",
                                   "descricao":"Conduta inadequada durante a aula online."
                                 }
-                                """.formatted(professor.getId())))
+                                """.formatted(profId)))
                 .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.denunciante.id").value(aluno.getId().toString()))
                 .andExpect(jsonPath("$.denunciante.nome").value("Aluno Denuncia"))
-                .andExpect(jsonPath("$.professorId").value(professor.getId().toString()))
-                .andExpect(jsonPath("$.professorNome").value("Professor Denuncia"))
-                .andExpect(jsonPath("$.professorAvatar").value("https://cdn.conectapro.test/denuncia.png"))
+                .andExpect(jsonPath("$.denunciadoId").value(profId))
+                .andExpect(jsonPath("$.denunciadoNome").value("Professor Denuncia"))
+                .andExpect(jsonPath("$.denunciadoAvatar").value("https://cdn.conectapro.test/denuncia.png"))
                 .andExpect(jsonPath("$.motivo").value("ASSEDIO"))
                 .andExpect(jsonPath("$.status").value("PENDENTE"))
                 .andExpect(jsonPath("$.dataCriacao").isNotEmpty())
                 .andExpect(result -> assertThat(result.getResponse().getContentAsString())
                         .doesNotContain(aluno.getEmail())
-                        .doesNotContain(professorUsuario.getEmail()));
+                        .doesNotContain(profEmail));
     }
 
     @Test
@@ -195,7 +199,7 @@ class ChatDenunciaIntegrationTest {
         mockMvc.perform(post("/denuncias")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
-                                {"professorId":"%s","motivo":"FRAUDE","descricao":"Descrição longa o bastante."}
+                                {"denunciadoId":"%s","motivo":"FRAUDE","descricao":"Descrição longa o bastante."}
                                 """.formatted(UUID.randomUUID())))
                 .andExpect(status().isUnauthorized());
 
@@ -206,10 +210,50 @@ class ChatDenunciaIntegrationTest {
                         .header("Authorization", "Bearer " + token)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
-                                {"professorId":"%s","motivo":"INVASIVO","descricao":"Descrição longa o bastante."}
+                                {"denunciadoId":"%s","motivo":"INVASIVO","descricao":"Descrição longa o bastante."}
                                 """.formatted(UUID.randomUUID())))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.erro").value("Dados inválidos"));
+    }
+
+    @Test
+    void denuncia_listagemSomenteAdmin() throws Exception {
+        Usuario aluno = salvarUsuario("Aluno Lista", TipoUsuario.ALUNO);
+        Usuario professorUsuario = salvarUsuario("Professor Lista", TipoUsuario.PROFESSOR);
+        Professor professor = new Professor();
+        professor.setUsuario(professorUsuario);
+        professor = professorRepository.save(professor);
+
+        String tokenAluno = jwtService.gerarToken(aluno.getId(), aluno.getTipo().name(), false);
+        mockMvc.perform(post("/denuncias")
+                        .header("Authorization", "Bearer " + tokenAluno)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "denunciadoId":"%s",
+                                  "motivo":"FRAUDE",
+                                  "descricao":"Cobrança fora da plataforma combinada."
+                                }
+                                """.formatted(professorUsuario.getId())))
+                .andExpect(status().isCreated());
+
+        mockMvc.perform(get("/denuncias").header("Authorization", "Bearer " + tokenAluno))
+                .andExpect(status().isForbidden());
+
+        Usuario admin = usuarioRepository.save(Usuario.builder()
+                .nomeCompleto("Admin Lista")
+                .email("admin." + UUID.randomUUID() + "@conectapro.test")
+                .tipo(TipoUsuario.ALUNO)
+                .admin(true)
+                .build());
+        String tokenAdmin = jwtService.gerarToken(admin.getId(), admin.getTipo().name(), true);
+
+        mockMvc.perform(get("/denuncias").header("Authorization", "Bearer " + tokenAdmin))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$[*].denunciadoNome", hasItem("Professor Lista")))
+                .andExpect(jsonPath("$[*].denunciante.nome", hasItem("Aluno Lista")))
+                .andExpect(jsonPath("$[*].motivo", hasItem("FRAUDE")))
+                .andExpect(jsonPath("$[*].status", hasItem("PENDENTE")));
     }
 
     private Usuario salvarUsuario(String nome, TipoUsuario tipo) {

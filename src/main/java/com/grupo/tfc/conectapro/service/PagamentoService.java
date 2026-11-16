@@ -18,6 +18,7 @@ import java.math.BigDecimal;
 import java.util.UUID;
 
 import static org.springframework.http.HttpStatus.BAD_REQUEST;
+import static org.springframework.http.HttpStatus.FORBIDDEN;
 import static org.springframework.http.HttpStatus.NOT_FOUND;
 
 @Service
@@ -48,6 +49,10 @@ public class PagamentoService {
 
         if (usuario.getStatusConta() == StatusConta.ATIVO) {
             throw new ResponseStatusException(BAD_REQUEST, "Pagamento já foi efetuado");
+        }
+
+        if (usuario.getStatusConta() != StatusConta.PENDENTE_PAGAMENTO) {
+            throw new ResponseStatusException(FORBIDDEN, "Aguarde a aprovação do seu cadastro para efetuar o pagamento");
         }
 
         String referencia = "PROF-" + usuarioId;

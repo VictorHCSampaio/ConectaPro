@@ -6,6 +6,7 @@ public record PerfilProfessorResponse(
         String fullName,
         String phone,
         String bio,
+        String avatarUrl,
         List<MateriaProfessorRequest> subjects,
         String teachingModel,
         List<String> modalities,

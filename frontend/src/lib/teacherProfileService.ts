@@ -14,3 +14,14 @@ export async function buscarPerfilProfessor(): Promise<TeacherProfilePayload | n
     return null
   }
 }
+
+export async function enviarAvatarProfessor(file: File): Promise<string> {
+  const formData = new FormData()
+  formData.append('file', file)
+  const { data } = await api.post<{ avatarUrl: string }>('/professores/me/avatar', formData)
+  return data.avatarUrl
+}
+
+export async function removerAvatarProfessor(): Promise<void> {
+  await api.delete('/professores/me/avatar')
+}

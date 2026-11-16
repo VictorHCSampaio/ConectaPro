@@ -1,5 +1,6 @@
 package com.grupo.tfc.conectapro.service;
 
+import com.grupo.tfc.conectapro.config.EmailProperties;
 import com.grupo.tfc.conectapro.config.UsuarioAutenticado;
 import com.grupo.tfc.conectapro.dto.chat.ParticipanteChatResponse;
 import com.grupo.tfc.conectapro.dto.denuncia.DenunciaResponse;
@@ -16,9 +17,12 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 
+import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 
 import static org.springframework.http.HttpStatus.BAD_REQUEST;
+import static org.springframework.http.HttpStatus.FORBIDDEN;
 import static org.springframework.http.HttpStatus.NOT_FOUND;
 
 @Service
@@ -29,13 +33,19 @@ public class DenunciaService {
     private final DenunciaRepository denunciaRepository;
     private final UsuarioRepository usuarioRepository;
     private final AuditoriaService auditoriaService;
+    private final EmailService emailService;
+    private final EmailProperties emailProperties;
 
     public DenunciaService(DenunciaRepository denunciaRepository,
                            UsuarioRepository usuarioRepository,
-                           AuditoriaService auditoriaService) {
+                           AuditoriaService auditoriaService,
+                           EmailService emailService,
+                           EmailProperties emailProperties) {
         this.denunciaRepository = denunciaRepository;
         this.usuarioRepository = usuarioRepository;
         this.auditoriaService = auditoriaService;
+        this.emailService = emailService;
+        this.emailProperties = emailProperties;
     }
 
     @Transactional
@@ -65,9 +75,26 @@ public class DenunciaService {
         auditoriaService.registrar(AcaoAuditoria.DENUNCIA_REGISTRADA, idUsuarioLogado, "DENUNCIA",
                 salva.getId().toString(), "denunciadoId=" + denunciado.getId());
 
+        emailService.enviarAlertaDenuncia(salva, emailProperties.adminAddress());
+
         return paraResponse(salva);
     }
 
+    @Transactional(readOnly = true)
+    public List<DenunciaResponse> listar() {
+        UUID idUsuarioLogado = UsuarioAutenticado.exigirUsuarioId();
+        Usuario solicitante = usuarioRepository.findById(idUsuarioLogado)
+                .orElseThrow(() -> new ResponseStatusException(NOT_FOUND, "Usuário não encontrado"));
+        if (!solicitante.isAdmin()) {
+            throw new ResponseStatusException(FORBIDDEN, "Apenas administradores podem consultar denúncias");
+        }
+
+        return denunciaRepository.findAllByOrderByDataCriacaoDesc().stream()
+                .map(this::paraResponse)
+                .toList();
+    }
+
+    // LGPD: filtra os dados sensiveis no DTO
     private DenunciaResponse paraResponse(Denuncia denuncia) {
         Usuario denunciante = denuncia.getDenunciante();
         Usuario denunciado = denuncia.getDenunciado();

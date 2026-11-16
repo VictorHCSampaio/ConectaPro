@@ -1,10 +1,12 @@
 import {
   BookOpen,
   CalendarDays,
+  ChevronDown,
   LayoutDashboard,
   LogOut,
   Menu,
   Moon,
+  ShieldCheck,
   Sun,
   UserRound,
   X,
@@ -12,6 +14,7 @@ import {
 import { useState } from 'react'
 import { Link, NavLink, useNavigate } from 'react-router-dom'
 import { Brand } from '@/components/Brand'
+import { NavDropdown } from '@/components/landing/NavDropdown'
 import { SininhoNotificacoes } from '@/components/notificacoes/SininhoNotificacoes'
 import { useAuth } from '@/hooks/useAuth'
 import { useNotificacoes } from '@/hooks/useNotificacoes'
@@ -25,6 +28,20 @@ const NAV_LINKS = [
 
 const PRIMARY_BUTTON_CLASS =
   'rounded-md bg-ink-800 px-4 py-2 text-sm font-semibold text-paper-50 shadow-[inset_0_1px_0_rgba(255,255,255,0.2),0_3px_0_var(--color-ink-950),0_10px_18px_-10px_rgba(18,38,63,0.7)] transition-[background-color,transform,box-shadow] duration-150 hover:bg-ink-700 active:translate-y-[3px] active:shadow-[inset_0_2px_4px_rgba(0,0,0,0.35)]'
+
+const NAV_LINK_CLASS =
+  'inline-flex items-center gap-1.5 rounded-md px-3 py-2 text-sm text-ink-600 transition-colors hover:bg-paper-100 hover:text-ink-900 dark:text-zinc-400 dark:hover:bg-white/5 dark:hover:text-white'
+
+const DROPDOWN_ITEM_CLASS =
+  'flex w-full items-center gap-2 px-3 py-2 text-left text-sm text-ink-700 transition-colors hover:bg-paper-100 hover:text-ink-900 dark:text-zinc-300 dark:hover:bg-white/5 dark:hover:text-white'
+
+function iniciais(nome?: string) {
+  if (!nome) return '?'
+  const partes = nome.trim().split(/\s+/)
+  const primeira = partes[0]?.[0] ?? ''
+  const ultima = partes.length > 1 ? (partes.at(-1)?.[0] ?? '') : ''
+  return (primeira + ultima).toUpperCase() || '?'
+}
 
 export function SiteHeader() {
   const [isMenuOpen, setIsMenuOpen] = useState(false)
@@ -70,66 +87,112 @@ export function SiteHeader() {
           ))}
         </nav>
 
-        <div className="hidden items-center gap-4 md:flex">
-          {user?.isAdmin && (
-            <Link
-              to="/dashboard"
-              className="inline-flex items-center gap-1.5 text-sm text-ink-600 transition-colors hover:text-ink-900 dark:text-zinc-400 dark:hover:text-white"
-            >
-              <LayoutDashboard className="size-4" />
-              Dashboard
-            </Link>
-          )}
-          <button
-            type="button"
-            onClick={toggleTheme}
-            aria-label={theme === 'light' ? 'Ativar modo escuro' : 'Ativar modo claro'}
-            className="flex size-9 items-center justify-center rounded-md text-ink-600 transition-colors dark:text-zinc-400 dark:hover:bg-white/5 dark:hover:text-white hover:bg-paper-100 hover:text-ink-900 dark:text-zinc-400 dark:hover:bg-white/5 dark:hover:text-white"
-          >
-            {theme === 'light' ? <Moon size={18} /> : <Sun size={18} />}
-          </button>
+        <div className="hidden items-center gap-1.5 md:flex">
           {isAuthenticated ? (
             <>
               {user?.isAdmin && (
-                <Link
-                  to="/admin/materias"
-                  className="inline-flex items-center gap-1.5 text-sm text-ink-600 transition-colors hover:text-ink-900 dark:text-zinc-400 dark:hover:text-white"
+                <NavDropdown
+                  label="Menu de administração"
+                  triggerClassName={NAV_LINK_CLASS}
+                  trigger={
+                    <>
+                      <ShieldCheck className="size-4" />
+                      Admin
+                      <ChevronDown className="size-4 opacity-70" />
+                    </>
+                  }
                 >
-                  <BookOpen className="size-4" />
-                  Matérias
-                </Link>
+                  {(close) => (
+                    <>
+                      <Link to="/dashboard" onClick={close} className={DROPDOWN_ITEM_CLASS}>
+                        <LayoutDashboard className="size-4" />
+                        Dashboard
+                      </Link>
+                      <Link to="/admin/materias" onClick={close} className={DROPDOWN_ITEM_CLASS}>
+                        <BookOpen className="size-4" />
+                        Matérias
+                      </Link>
+                      <Link to="/admin/professores" onClick={close} className={DROPDOWN_ITEM_CLASS}>
+                        <ShieldCheck className="size-4" />
+                        Aprovações
+                      </Link>
+                    </>
+                  )}
+                </NavDropdown>
               )}
-              <Link
-                to="/aulas"
-                className="inline-flex items-center gap-1.5 text-sm text-ink-600 transition-colors hover:text-ink-900 dark:text-zinc-400 dark:hover:text-white"
-              >
+
+              <Link to="/aulas" className={NAV_LINK_CLASS}>
                 <CalendarDays className="size-4" />
                 {user?.role === 'PROFESSOR' ? 'Aulas recebidas' : 'Minhas aulas'}
               </Link>
-              <SininhoNotificacoes notificacoes={notificacoes} marcarComoLida={marcarComoLida} />
-              {isAuthenticated && (
-                <Link
-                  to="/perfil"
-                  className={cn(PRIMARY_BUTTON_CLASS, 'inline-flex items-center gap-2')}
-                >
-                  <UserRound className="size-4" />
-                  Meu perfil
-                </Link>
-              )}
+
               <button
                 type="button"
-                onClick={handleSignOut}
-                className="inline-flex items-center gap-1.5 text-sm text-ink-600 transition-colors hover:text-ink-900 dark:text-zinc-400 dark:hover:text-white"
+                onClick={toggleTheme}
+                aria-label={theme === 'light' ? 'Ativar modo escuro' : 'Ativar modo claro'}
+                className="flex size-9 items-center justify-center rounded-md text-ink-600 transition-colors hover:bg-paper-100 hover:text-ink-900 dark:text-zinc-400 dark:hover:bg-white/5 dark:hover:text-white"
               >
-                <LogOut className="size-4" />
-                Sair
+                {theme === 'light' ? <Moon size={18} /> : <Sun size={18} />}
               </button>
+
+              <SininhoNotificacoes notificacoes={notificacoes} marcarComoLida={marcarComoLida} />
+
+              <NavDropdown
+                label="Menu da conta"
+                triggerClassName="flex items-center gap-1 rounded-full pl-0.5 outline-none transition-opacity hover:opacity-90 focus-visible:ring-2 focus-visible:ring-ocre-400"
+                trigger={
+                  <>
+                    <span className="flex size-9 items-center justify-center rounded-full bg-ink-800 text-xs font-semibold text-paper-50 dark:bg-white/10 dark:text-white">
+                      {iniciais(user?.name)}
+                    </span>
+                    <ChevronDown className="size-4 text-ink-500 dark:text-zinc-500" />
+                  </>
+                }
+              >
+                {(close) => (
+                  <>
+                    <div className="border-b border-paper-200 px-3 py-2 dark:border-white/10">
+                      <p className="truncate text-sm font-semibold text-ink-900 dark:text-white">
+                        {user?.name}
+                      </p>
+                      {user?.role && (
+                        <p className="text-xs text-ink-500 dark:text-zinc-500">
+                          {user.role === 'PROFESSOR' ? 'Professor' : 'Aluno'}
+                        </p>
+                      )}
+                    </div>
+                    <Link to="/perfil" onClick={close} className={DROPDOWN_ITEM_CLASS}>
+                      <UserRound className="size-4" />
+                      Meu perfil
+                    </Link>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        close()
+                        handleSignOut()
+                      }}
+                      className={cn(DROPDOWN_ITEM_CLASS, 'text-alert-600 dark:text-alert-200')}
+                    >
+                      <LogOut className="size-4" />
+                      Sair
+                    </button>
+                  </>
+                )}
+              </NavDropdown>
             </>
           ) : (
             <>
+              <button
+                type="button"
+                onClick={toggleTheme}
+                aria-label={theme === 'light' ? 'Ativar modo escuro' : 'Ativar modo claro'}
+                className="flex size-9 items-center justify-center rounded-md text-ink-600 transition-colors hover:bg-paper-100 hover:text-ink-900 dark:text-zinc-400 dark:hover:bg-white/5 dark:hover:text-white"
+              >
+                {theme === 'light' ? <Moon size={18} /> : <Sun size={18} />}
+              </button>
               <Link
                 to="/login"
-                className="text-sm text-ink-600 transition-colors hover:text-ink-900 dark:text-zinc-400 dark:hover:text-white"
+                className="px-3 text-sm text-ink-600 transition-colors hover:text-ink-900 dark:text-zinc-400 dark:hover:text-white"
               >
                 Entrar
               </Link>
@@ -205,6 +268,16 @@ export function SiteHeader() {
                   >
                     <BookOpen className="size-4" />
                     Matérias
+                  </Link>
+                )}
+                {user?.isAdmin && (
+                  <Link
+                    to="/admin/professores"
+                    onClick={closeMenu}
+                    className="flex items-center justify-center gap-2 rounded-md border border-paper-300 bg-white dark:border-white/10 dark:bg-night-700 px-3 py-2.5 text-center text-ink-800 dark:text-zinc-100"
+                  >
+                    <ShieldCheck className="size-4" />
+                    Aprovações
                   </Link>
                 )}
                 <Link
