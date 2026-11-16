@@ -63,4 +63,10 @@ public class AgendamentoController {
         UUID usuarioId = UsuarioAutenticado.exigirUsuarioId();
         return ResponseEntity.ok(agendamentoService.recusar(usuarioId, id));
     }
+
+    @PostMapping("/{id}/cancelar")
+    public ResponseEntity<AgendamentoResponse> cancelar(@PathVariable UUID id) {
+        UUID usuarioId = UsuarioAutenticado.exigirUsuarioId();
+        return ResponseEntity.ok(agendamentoService.cancelar(usuarioId, id));
+    }
 }

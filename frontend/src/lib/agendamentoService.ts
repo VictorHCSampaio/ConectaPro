@@ -42,3 +42,8 @@ export async function recusarAgendamento(id: string): Promise<Agendamento> {
   const { data } = await api.post<Agendamento>(`/agendamentos/${id}/recusar`)
   return data
 }
+
+export async function cancelarAgendamento(id: string): Promise<Agendamento> {
+  const { data } = await api.post<Agendamento>(`/agendamentos/${id}/cancelar`)
+  return data
+}

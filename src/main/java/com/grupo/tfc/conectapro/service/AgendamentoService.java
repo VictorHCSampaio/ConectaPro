@@ -1,8 +1,10 @@
 package com.grupo.tfc.conectapro.service;
 
+import com.grupo.tfc.conectapro.config.UsuarioAutenticado;
 import com.grupo.tfc.conectapro.dto.agendamento.AgendamentoResponse;
 import com.grupo.tfc.conectapro.dto.agendamento.AgendarRequest;
 import com.grupo.tfc.conectapro.dto.agendamento.HorarioDisponivelResponse;
+import com.grupo.tfc.conectapro.dto.chat.EnviarMensagemRequest;
 import com.grupo.tfc.conectapro.model.AcaoAuditoria;
 import com.grupo.tfc.conectapro.model.Agendamento;
 import com.grupo.tfc.conectapro.model.Professor;
@@ -71,6 +73,7 @@ public class AgendamentoService {
     private final ProfessorMateriaRepository professorMateriaRepository;
     private final AuditoriaService auditoriaService;
     private final NotificacaoService notificacaoService;
+    private final ChatService chatService;
 
     public AgendamentoService(AgendamentoRepository agendamentoRepository,
                               ProfessorRepository professorRepository,
@@ -78,7 +81,8 @@ public class AgendamentoService {
                               ProfessorDisponibilidadeRepository disponibilidadeRepository,
                               ProfessorMateriaRepository professorMateriaRepository,
                               AuditoriaService auditoriaService,
-                              NotificacaoService notificacaoService) {
+                              NotificacaoService notificacaoService,
+                              ChatService chatService) {
         this.agendamentoRepository = agendamentoRepository;
         this.professorRepository = professorRepository;
         this.usuarioRepository = usuarioRepository;
@@ -86,6 +90,7 @@ public class AgendamentoService {
         this.professorMateriaRepository = professorMateriaRepository;
         this.auditoriaService = auditoriaService;
         this.notificacaoService = notificacaoService;
+        this.chatService = chatService;
     }
 
     @Transactional
@@ -190,6 +195,57 @@ public class AgendamentoService {
 
         logger.info("Agendamento recusado. agendamentoId={} professorUsuarioId={}", agendamentoId, usuarioId);
         auditoriaService.registrar(AcaoAuditoria.AGENDAMENTO_CANCELADO, usuarioId, "AGENDAMENTO", agendamentoId.toString(), null);
+
+        return paraResponse(agendamento);
+    }
+
+    @Transactional
+    public AgendamentoResponse cancelar(UUID usuarioId, UUID agendamentoId) {
+        Agendamento agendamento = agendamentoRepository.findById(agendamentoId)
+                .orElseThrow(() -> new ResponseStatusException(NOT_FOUND, "Agendamento não encontrado"));
+
+        boolean ehAluno = agendamento.getAluno().getId().equals(usuarioId);
+        boolean ehProfessor = agendamento.getProfessor().getUsuario().getId().equals(usuarioId);
+
+        if (!ehAluno && !ehProfessor) {
+            auditoriaService.registrar(AcaoAuditoria.ACESSO_NEGADO, usuarioId, "AGENDAMENTO",
+                    agendamentoId.toString(), "tentativa de cancelar agendamento alheio");
+            throw new ResponseStatusException(FORBIDDEN, "Este agendamento não pertence a você");
+        }
+
+        if (agendamento.getStatus() == StatusAgendamento.CANCELADO) {
+            throw new ResponseStatusException(BAD_REQUEST, "Agendamento já está cancelado");
+        }
+
+        agendamento.setStatus(StatusAgendamento.CANCELADO);
+        agendamento.setSlotChave(null);
+        agendamentoRepository.save(agendamento);
+
+        logger.info("Agendamento cancelado. agendamentoId={} usuarioId={}", agendamentoId, usuarioId);
+        auditoriaService.registrar(AcaoAuditoria.AGENDAMENTO_CANCELADO, usuarioId, "AGENDAMENTO",
+                agendamentoId.toString(), null);
+
+        Usuario outraParte = ehAluno
+                ? agendamento.getProfessor().getUsuario()
+                : agendamento.getAluno();
+        String nomeQuemCancelou = ehAluno
+                ? agendamento.getAluno().getNomeCompleto()
+                : agendamento.getProfessor().getUsuario().getNomeCompleto();
+
+        notificacaoService.criarNotificacao(
+                outraParte,
+                "Aula cancelada",
+                nomeQuemCancelou + " cancelou a aula de " + agendamento.getMateria() + ".",
+                TipoNotificacao.AULA_NOVA);
+
+        String mensagemChat = "⚠️ Aula de " + agendamento.getMateria()
+                + " (" + agendamento.getDiaSemana() + " às " + agendamento.getHorario()
+                + ") foi cancelada.";
+        try {
+            chatService.enviarMensagem(new EnviarMensagemRequest(outraParte.getId(), mensagemChat, null));
+        } catch (Exception e) {
+            logger.warn("Falha ao enviar mensagem de cancelamento no chat. agendamentoId={}", agendamentoId, e);
+        }
 
         return paraResponse(agendamento);
     }
