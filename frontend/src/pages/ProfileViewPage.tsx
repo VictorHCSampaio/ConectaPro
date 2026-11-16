@@ -150,6 +150,18 @@ function TeacherProfileView() {
               </div>
             </FormSection>
 
+            {perfil.advanceNoticeHours != null && perfil.advanceNoticeHours > 0 && (
+              <FormSection
+                title="Agendamento"
+                description="Configurações de como os alunos agendam com você."
+              >
+                <Campo
+                  rotulo="Antecedência mínima"
+                  valor={`${perfil.advanceNoticeHours} hora(s)`}
+                />
+              </FormSection>
+            )}
+
             <FormSection title="Localização" description="Visível apenas para você.">
               <div className="grid grid-cols-2 gap-4">
                 <Campo rotulo="Cidade" valor={perfil.address.city || '—'} />

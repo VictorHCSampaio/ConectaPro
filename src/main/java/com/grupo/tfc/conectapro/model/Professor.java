@@ -66,4 +66,7 @@ public class Professor {
 
     @Column
     private Boolean verificado;
+
+    @Column(name = "antecedencia_min_horas")
+    private Integer antecedenciaMinHoras;
 }

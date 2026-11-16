@@ -2,6 +2,7 @@ import { Loader2, MapPin, Search } from 'lucide-react'
 import { useCallback, useEffect, useState } from 'react'
 import { SiteFooter } from '@/components/landing/SiteFooter'
 import { SiteHeader } from '@/components/landing/SiteHeader'
+import { AvatarUpload } from '@/components/teacher-config/AvatarUpload'
 import { FormSection } from '@/components/teacher-config/FormSection'
 import { Button } from '@/components/ui/Button'
 import { Input } from '@/components/ui/Input'
@@ -14,8 +15,9 @@ import {
   type EnderecoPayload,
 } from '@/lib/enderecoService'
 import { maskCep } from '@/lib/masks'
+import { buscarMeuPerfilAluno, salvarMeuPerfilAluno } from '@/lib/usuarioService'
 
-const VAZIO: EnderecoPayload = {
+const ENDERECO_VAZIO: EnderecoPayload = {
   cep: '',
   street: '',
   neighborhood: '',
@@ -26,22 +28,30 @@ const VAZIO: EnderecoPayload = {
 export function StudentProfilePage() {
   const { user } = useAuth()
 
-  const [form, setForm] = useState<EnderecoPayload>(VAZIO)
+  const [biografia, setBiografia] = useState('')
+  const [avatarPreviewUrl, setAvatarPreviewUrl] = useState<string | null>(null)
+
+  const [endereco, setEndereco] = useState<EnderecoPayload>(ENDERECO_VAZIO)
   const [isLoading, setIsLoading] = useState(true)
   const [isSaving, setIsSaving] = useState(false)
   const [cepLoading, setCepLoading] = useState(false)
   const [cepError, setCepError] = useState<string | null>(null)
   const [feedback, setFeedback] = useState<string | null>(null)
+  const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
     let isActive = true
 
-    buscarMeuEndereco()
-      .then((endereco) => {
-        if (isActive && endereco) {
-          setForm({ ...endereco, cep: maskCep(endereco.cep ?? '') })
+    Promise.all([buscarMeuPerfilAluno(), buscarMeuEndereco()])
+      .then(([perfil, end]) => {
+        if (!isActive) return
+        setBiografia(perfil.biografia ?? '')
+        setAvatarPreviewUrl(perfil.avatarUrl ?? null)
+        if (end) {
+          setEndereco({ ...end, cep: maskCep(end.cep ?? '') })
         }
       })
+      .catch(() => {})
       .finally(() => {
         if (isActive) setIsLoading(false)
       })
@@ -56,16 +66,16 @@ export function StudentProfilePage() {
     setCepError(null)
 
     try {
-      const endereco = await buscarEnderecoPorCep(digitos)
-      setForm((prev) => ({
+      const end = await buscarEnderecoPorCep(digitos)
+      setEndereco((prev) => ({
         ...prev,
-        street: endereco.street,
-        neighborhood: endereco.neighborhood,
-        city: endereco.city,
-        state: endereco.state,
+        street: end.street,
+        neighborhood: end.neighborhood,
+        city: end.city,
+        state: end.state,
       }))
-    } catch (error) {
-      setCepError(extractErrorMessage(error, 'Não foi possível buscar esse CEP.'))
+    } catch (err) {
+      setCepError(extractErrorMessage(err, 'Não foi possível buscar esse CEP.'))
     } finally {
       setCepLoading(false)
     }
@@ -73,7 +83,7 @@ export function StudentProfilePage() {
 
   function handleCepChange(raw: string) {
     const masked = maskCep(raw)
-    setForm((prev) => ({ ...prev, cep: masked }))
+    setEndereco((prev) => ({ ...prev, cep: masked }))
     setCepError(null)
     setFeedback(null)
 
@@ -82,21 +92,24 @@ export function StudentProfilePage() {
 
   async function handleSubmit(event: React.FormEvent) {
     event.preventDefault()
-
-    const digitos = form.cep.replace(/\D/g, '')
-    if (digitos.length !== 8) {
-      setCepError('Informe um CEP com 8 dígitos.')
-      return
-    }
-
     setIsSaving(true)
     setFeedback(null)
+    setError(null)
 
     try {
-      await salvarMeuEndereco({ ...form, cep: digitos })
-      setFeedback('Endereço salvo. A distância até cada professor já usa ele.')
-    } catch (error) {
-      setCepError(extractErrorMessage(error, 'Não foi possível salvar o endereço.'))
+      await salvarMeuPerfilAluno({
+        biografia: biografia.trim(),
+        avatarUrl: avatarPreviewUrl ?? undefined,
+      })
+
+      const digitos = endereco.cep.replace(/\D/g, '')
+      if (digitos.length === 8) {
+        await salvarMeuEndereco({ ...endereco, cep: digitos })
+      }
+
+      setFeedback('Perfil salvo com sucesso!')
+    } catch (err) {
+      setError(extractErrorMessage(err, 'Não foi possível salvar o perfil.'))
     } finally {
       setIsSaving(false)
     }
@@ -115,17 +128,49 @@ export function StudentProfilePage() {
           {user?.name} · {user?.email}
         </p>
 
-        <form onSubmit={handleSubmit} className="mt-8 flex flex-col gap-6">
-          <FormSection
-            title="Meu endereço"
-            description="Informe seu CEP para ver a distância até cada professor na busca."
-          >
-            {isLoading ? (
-              <div className="flex items-center gap-2 text-sm text-paper-600 dark:text-zinc-400">
-                <Loader2 className="size-4 animate-spin" />
-                Carregando…
+        {isLoading ? (
+          <div className="mt-8 flex items-center gap-2 text-sm text-paper-600 dark:text-zinc-400">
+            <Loader2 className="size-4 animate-spin" />
+            Carregando…
+          </div>
+        ) : (
+          <form onSubmit={handleSubmit} className="mt-8 flex flex-col gap-6">
+            <FormSection title="Sobre mim" description="Informações visíveis no seu perfil público.">
+              <div className="flex flex-col gap-5">
+                <div>
+                  <span className="mb-2 block text-xs font-medium text-paper-600 dark:text-zinc-400">
+                    Foto de perfil
+                  </span>
+                  <AvatarUpload
+                    previewUrl={avatarPreviewUrl}
+                    onFileSelect={(_file, url) => setAvatarPreviewUrl(url)}
+                    onRemove={() => setAvatarPreviewUrl(null)}
+                  />
+                </div>
+
+                <label className="flex flex-col gap-2 text-sm">
+                  <span className="text-xs font-medium text-paper-600 dark:text-zinc-400">
+                    Biografia
+                  </span>
+                  <textarea
+                    value={biografia}
+                    onChange={(e) => setBiografia(e.target.value)}
+                    rows={4}
+                    maxLength={1000}
+                    placeholder="Conte um pouco sobre você, seus interesses e objetivos."
+                    className="inset-well w-full resize-y rounded-md px-3 py-2.5 text-sm text-ink-900 placeholder:text-paper-400 focus:border-ocre-400 focus:outline-none dark:text-white dark:placeholder:text-zinc-600"
+                  />
+                  <span className="self-end text-xs tabular-nums text-paper-400 dark:text-zinc-600">
+                    {biografia.length}/1000
+                  </span>
+                </label>
               </div>
-            ) : (
+            </FormSection>
+
+            <FormSection
+              title="Meu endereço"
+              description="Informe seu CEP para ver a distância até cada professor na busca."
+            >
               <div className="flex flex-col gap-5">
                 <div className="grid gap-4 sm:grid-cols-[1fr_auto]">
                   <Input
@@ -134,9 +179,9 @@ export function StudentProfilePage() {
                     placeholder="00000-000"
                     inputMode="numeric"
                     icon={<MapPin className="size-4" />}
-                    value={form.cep}
+                    value={endereco.cep}
                     error={cepError ?? undefined}
-                    onChange={(event) => handleCepChange(event.target.value)}
+                    onChange={(e) => handleCepChange(e.target.value)}
                     trailing={
                       cepLoading ? (
                         <span className="flex items-center pr-1">
@@ -147,7 +192,7 @@ export function StudentProfilePage() {
                           type="button"
                           aria-label="Buscar CEP"
                           onClick={() => {
-                            const digitos = form.cep.replace(/\D/g, '')
+                            const digitos = endereco.cep.replace(/\D/g, '')
                             if (digitos.length === 8) buscarCep(digitos)
                           }}
                           className="flex items-center px-2 text-paper-500 transition-colors hover:text-ink-800 dark:text-zinc-500 dark:hover:text-white"
@@ -160,29 +205,32 @@ export function StudentProfilePage() {
                 </div>
 
                 <div className="grid gap-4 sm:grid-cols-2">
-                  <Input label="Logradouro" value={form.street ?? ''} readOnly />
-                  <Input label="Bairro" value={form.neighborhood ?? ''} readOnly />
-                  <Input label="Cidade" value={form.city ?? ''} readOnly />
-                  <Input label="Estado" value={form.state ?? ''} readOnly />
+                  <Input label="Logradouro" value={endereco.street ?? ''} readOnly />
+                  <Input label="Bairro" value={endereco.neighborhood ?? ''} readOnly />
+                  <Input label="Cidade" value={endereco.city ?? ''} readOnly />
+                  <Input label="Estado" value={endereco.state ?? ''} readOnly />
                 </div>
 
                 <p className="text-xs text-paper-500 dark:text-zinc-600">
                   Preenchemos o endereço a partir do CEP. Ele fica visível apenas para você.
                 </p>
               </div>
+            </FormSection>
+
+            {error && (
+              <p className="text-sm font-medium text-red-600 dark:text-red-400">{error}</p>
             )}
-          </FormSection>
+            {feedback && (
+              <p className="text-sm font-medium text-sage-600 dark:text-emerald-400">{feedback}</p>
+            )}
 
-          {feedback && (
-            <p className="text-sm font-medium text-sage-600 dark:text-emerald-400">{feedback}</p>
-          )}
-
-          <div className="flex justify-end">
-            <Button type="submit" fullWidth={false} isLoading={isSaving} className="px-8">
-              Salvar endereço
-            </Button>
-          </div>
-        </form>
+            <div className="flex justify-end">
+              <Button type="submit" fullWidth={false} isLoading={isSaving} className="px-8">
+                Salvar perfil
+              </Button>
+            </div>
+          </form>
+        )}
       </main>
 
       <SiteFooter />

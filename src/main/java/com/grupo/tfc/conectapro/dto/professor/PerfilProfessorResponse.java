@@ -11,6 +11,7 @@ public record PerfilProfessorResponse(
         List<String> modalities,
         Double pricePerHour,
         EnderecoProfessorRequest address,
-        List<DisponibilidadeRequest> availability
+        List<DisponibilidadeRequest> availability,
+        Integer advanceNoticeHours
 ) {
 }

@@ -40,6 +40,8 @@ public record PerfilProfessorRequest(
         EnderecoProfessorRequest address,
 
         @Valid
-        List<DisponibilidadeRequest> availability
+        List<DisponibilidadeRequest> availability,
+
+        Integer advanceNoticeHours
 ) {
 }

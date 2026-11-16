@@ -223,7 +223,8 @@ class ProfessorServiceTest {
                 List.of(modality),
                 pricePerHour,
                 address,
-                List.of(new DisponibilidadeRequest("seg", "08:00"))
+                List.of(new DisponibilidadeRequest("seg", "08:00")),
+                null
         );
     }
 

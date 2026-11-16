@@ -23,7 +23,15 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 
+import java.time.DayOfWeek;
+import java.time.LocalDate;
+import java.time.LocalTime;
+import java.time.OffsetDateTime;
+import java.time.ZoneId;
+import java.time.format.DateTimeFormatter;
+import java.time.temporal.ChronoUnit;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
@@ -43,6 +51,18 @@ public class AgendamentoService {
 
     private static final List<StatusAgendamento> STATUS_OCUPADOS =
             List.of(StatusAgendamento.SOLICITADO, StatusAgendamento.CONFIRMADO);
+
+    private static final ZoneId FUSO_BRASIL = ZoneId.of("America/Sao_Paulo");
+
+    private static final Map<String, DayOfWeek> DIA_MAP = Map.of(
+            "seg", DayOfWeek.MONDAY,
+            "ter", DayOfWeek.TUESDAY,
+            "qua", DayOfWeek.WEDNESDAY,
+            "qui", DayOfWeek.THURSDAY,
+            "sex", DayOfWeek.FRIDAY,
+            "sab", DayOfWeek.SATURDAY,
+            "dom", DayOfWeek.SUNDAY
+    );
 
     private final AgendamentoRepository agendamentoRepository;
     private final ProfessorRepository professorRepository;
@@ -94,6 +114,8 @@ public class AgendamentoService {
         if (!existeNaGrade) {
             throw new ResponseStatusException(BAD_REQUEST, "Horário indisponível na grade do professor");
         }
+
+        validarAntecedencia(professor, dia, horario);
 
         if (agendamentoRepository.existsByProfessorIdAndDiaSemanaAndHorarioAndStatusIn(
                 professor.getId(), dia, horario, STATUS_OCUPADOS)) {
@@ -251,11 +273,46 @@ public class AgendamentoService {
         return dia + "|" + horario;
     }
 
+    private void validarAntecedencia(Professor professor, String dia, String horario) {
+        Integer minHoras = professor.getAntecedenciaMinHoras();
+        if (minHoras == null || minHoras <= 0) {
+            return;
+        }
+
+        DayOfWeek diaDaSemana = DIA_MAP.get(dia.toLowerCase());
+        if (diaDaSemana == null) {
+            return;
+        }
+
+        LocalTime horaSlot;
+        try {
+            horaSlot = LocalTime.parse(horario, DateTimeFormatter.ofPattern("HH:mm"));
+        } catch (Exception e) {
+            return;
+        }
+
+        OffsetDateTime agora = OffsetDateTime.now(FUSO_BRASIL);
+        LocalDate hoje = agora.toLocalDate();
+        int diasAte = (diaDaSemana.getValue() - hoje.getDayOfWeek().getValue() + 7) % 7;
+        if (diasAte == 0 && agora.toLocalTime().isAfter(horaSlot)) {
+            diasAte = 7;
+        }
+        LocalDate dataSlot = hoje.plusDays(diasAte);
+        OffsetDateTime momentoSlot = dataSlot.atTime(horaSlot).atZone(FUSO_BRASIL).toOffsetDateTime();
+        long horasAte = ChronoUnit.HOURS.between(agora, momentoSlot);
+
+        if (horasAte < minHoras) {
+            throw new ResponseStatusException(BAD_REQUEST,
+                    String.format("Este professor exige no mínimo %d hora(s) de antecedência para agendamento", minHoras));
+        }
+    }
+
     private AgendamentoResponse paraResponse(Agendamento agendamento) {
         return new AgendamentoResponse(
                 agendamento.getId(),
                 agendamento.getProfessor().getId(),
                 agendamento.getProfessor().getUsuario().getNomeCompleto(),
+                agendamento.getAluno().getId(),
                 agendamento.getAluno().getNomeCompleto(),
                 agendamento.getDiaSemana(),
                 agendamento.getHorario(),

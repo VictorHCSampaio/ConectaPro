@@ -10,9 +10,9 @@ export const MOTIVOS_DENUNCIA = [
 export type MotivoDenuncia = (typeof MOTIVOS_DENUNCIA)[number]['value']
 
 export async function registrarDenuncia(
-  professorId: string,
+  denunciadoId: string,
   motivo: MotivoDenuncia,
   descricao: string,
 ) {
-  await api.post('/denuncias', { professorId, motivo, descricao })
+  await api.post('/denuncias', { denunciadoId, motivo, descricao })
 }

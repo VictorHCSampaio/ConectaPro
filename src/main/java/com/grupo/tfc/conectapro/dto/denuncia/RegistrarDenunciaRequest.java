@@ -7,10 +7,9 @@ import jakarta.validation.constraints.Size;
 
 import java.util.UUID;
 
-// denunciante nao entra no body. sai do token no service
 public record RegistrarDenunciaRequest(
-        @NotNull(message = "Professor denunciado é obrigatório")
-        UUID professorId,
+        @NotNull(message = "ID do denunciado é obrigatório")
+        UUID denunciadoId,
         @NotNull(message = "Motivo é obrigatório")
         MotivoDenuncia motivo,
         @NotBlank(message = "Descrição é obrigatória")

@@ -3,7 +3,10 @@ import axios from 'axios'
 const IGNORED_UNAUTHORIZED_URLS = ['/auth/login', '/auth/logout', '/auth/2fa/verify']
 
 let onUnauthorized: (() => void) | null = null
-let accessToken: string | null = null
+const TOKEN_KEY = 'access_token'
+let accessToken: string | null = (() => {
+  try { return localStorage.getItem(TOKEN_KEY) } catch { return null }
+})()
 
 export const api = axios.create({
   baseURL: import.meta.env.VITE_API_URL ?? 'http://localhost:8080/api',
@@ -31,6 +34,10 @@ api.interceptors.response.use(
 
 export function setAccessToken(token: string | null) {
   accessToken = token
+  try {
+    if (token) localStorage.setItem(TOKEN_KEY, token)
+    else localStorage.removeItem(TOKEN_KEY)
+  } catch { /* private browsing */ }
 }
 
 export function getAccessToken(): string | null {

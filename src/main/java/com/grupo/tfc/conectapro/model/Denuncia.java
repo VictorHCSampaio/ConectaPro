@@ -39,7 +39,7 @@ public class Denuncia {
 
     @ManyToOne(optional = false)
     @JoinColumn(name = "denunciado_id", nullable = false)
-    private Professor denunciado;
+    private Usuario denunciado;
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 40)

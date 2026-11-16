@@ -7,13 +7,12 @@ import com.grupo.tfc.conectapro.model.StatusDenuncia;
 import java.time.OffsetDateTime;
 import java.util.UUID;
 
-// LGPD: denunciante e professor so com id, nome e avatar. professorId é o perfil, nao o user
 public record DenunciaResponse(
         UUID id,
         ParticipanteChatResponse denunciante,
-        UUID professorId,
-        String professorNome,
-        String professorAvatar,
+        UUID denunciadoId,
+        String denunciadoNome,
+        String denunciadoAvatar,
         MotivoDenuncia motivo,
         String descricao,
         StatusDenuncia status,

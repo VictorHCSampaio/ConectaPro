@@ -11,8 +11,8 @@ import { MOTIVOS_DENUNCIA, registrarDenuncia, type MotivoDenuncia } from '@/lib/
 type DenunciaDialogProps = {
   open: boolean
   onClose: () => void
-  professorId: string
-  professorNome: string
+  denunciadoId: string
+  denunciadoNome: string
   onSuccess: () => void
   onError: (mensagem: string) => void
 }
@@ -22,8 +22,8 @@ const EASE = [0.16, 1, 0.3, 1] as const
 export function DenunciaDialog({
   open,
   onClose,
-  professorId,
-  professorNome,
+  denunciadoId,
+  denunciadoNome,
   onSuccess,
   onError,
 }: DenunciaDialogProps) {
@@ -73,7 +73,7 @@ export function DenunciaDialog({
 
     setEnviando(true)
     try {
-      await registrarDenuncia(professorId, motivo, texto)
+      await registrarDenuncia(denunciadoId, motivo, texto)
       onSuccess()
       onClose()
     } catch (error) {
@@ -118,7 +118,7 @@ export function DenunciaDialog({
               <div>
                 <p className="label-mono text-paper-500 dark:text-zinc-500">Canal de denúncia</p>
                 <h2 id={titleId} className="mt-1 text-lg font-semibold tracking-tight text-ink-900 dark:text-white">
-                  Denunciar {professorNome}
+                  Denunciar {denunciadoNome}
                 </h2>
               </div>
               <button

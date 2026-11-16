@@ -12,6 +12,7 @@ import { StarRating } from '@/components/ui/StarRating'
 import { Toast } from '@/components/ui/Toast'
 import { useAuth } from '@/hooks/useAuth'
 import { cn } from '@/lib/cn'
+import { listarAvaliacoes, type Avaliacao } from '@/lib/avaliacaoService'
 import { buscarProfessor } from '@/lib/professorService'
 import { idUsuarioLogado } from '@/lib/session'
 import { formatDistance, formatModalities, formatRating } from '@/lib/formatTeacher'
@@ -130,6 +131,7 @@ function ProfileSkeleton() {
 export function TeacherProfilePage() {
   const { id } = useParams<{ id: string }>()
   const [teacher, setTeacher] = useState<Teacher | null>(null)
+  const [avaliacoes, setAvaliacoes] = useState<Avaliacao[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [isError, setIsError] = useState(false)
   const [isBookingOpen, setIsBookingOpen] = useState(false)
@@ -152,7 +154,12 @@ export function TeacherProfilePage() {
 
     buscarProfessor(id)
       .then((found) => {
-        if (isActive) setTeacher(found)
+        if (isActive) {
+          setTeacher(found)
+          listarAvaliacoes(found.usuarioId)
+            .then((avs) => { if (isActive) setAvaliacoes(avs) })
+            .catch(() => {})
+        }
       })
       .catch(() => {
         if (isActive) setIsError(true)
@@ -395,6 +402,39 @@ export function TeacherProfilePage() {
                   </div>
                 </Block>
               )}
+
+              {avaliacoes.length > 0 && (
+                <Block
+                  title="Avaliações"
+                  meta={
+                    <span className="text-xs text-paper-500 dark:text-zinc-500">
+                      {avaliacoes.length} {avaliacoes.length === 1 ? 'avaliação' : 'avaliações'}
+                    </span>
+                  }
+                >
+                  <ul className="flex flex-col gap-4">
+                    {avaliacoes.map((av) => (
+                      <li
+                        key={av.id}
+                        className="flex flex-col gap-1 border-b border-paper-100 pb-4 last:border-0 last:pb-0 dark:border-white/5"
+                      >
+                        <div className="flex items-center gap-2">
+                          <StarRating rating={av.nota} />
+                          <span className="text-sm font-medium text-ink-900 dark:text-white">
+                            {av.avaliadorNome}
+                          </span>
+                        </div>
+                        {av.comentario && (
+                          <p className="text-sm text-ink-600 dark:text-zinc-400">{av.comentario}</p>
+                        )}
+                        <span className="text-xs text-paper-500 dark:text-zinc-600">
+                          {new Date(av.criadoEm).toLocaleDateString('pt-BR')}
+                        </span>
+                      </li>
+                    ))}
+                  </ul>
+                </Block>
+              )}
             </div>
           </Reveal>
 
@@ -484,8 +524,8 @@ export function TeacherProfilePage() {
       <DenunciaDialog
         open={denunciaAberta}
         onClose={fecharDenuncia}
-        professorId={teacher.id}
-        professorNome={teacher.name}
+        denunciadoId={teacher.usuarioId}
+        denunciadoNome={teacher.name}
         onSuccess={() =>
           setToast({
             variant: 'success',

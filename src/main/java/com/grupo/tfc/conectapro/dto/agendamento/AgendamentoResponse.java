@@ -9,6 +9,7 @@ public record AgendamentoResponse(
         UUID id,
         UUID professorId,
         String professorName,
+        UUID studentId,
         String studentName,
         String day,
         String time,

@@ -3,6 +3,7 @@ import { AnimatePresence, motion } from 'framer-motion'
 import {
   ArrowLeft,
   CheckCircle2,
+  Clock,
   DollarSign,
   Loader2,
   MapPin,
@@ -127,6 +128,7 @@ const TEACHING_MODEL_MAP: Record<string, ApiTeachingModel> = {
 }
 
 function buildPayload(data: TeacherProfileFormData): TeacherProfilePayload {
+  const hours = data.advanceNoticeHours ? parseInt(data.advanceNoticeHours, 10) : null
   return {
     fullName: data.fullName.trim(),
     phone: data.phone,
@@ -148,6 +150,7 @@ function buildPayload(data: TeacherProfileFormData): TeacherProfilePayload {
       const time = key.slice(idx + 1) as HourSlot | ShiftSlot
       return { day, time }
     }),
+    advanceNoticeHours: hours != null && hours >= 0 ? hours : null,
   }
 }
 
@@ -171,6 +174,7 @@ const INITIAL_FORM: TeacherProfileFormData = {
   pricePerHour: '',
   address: INITIAL_ADDRESS,
   availability: new Set(),
+  advanceNoticeHours: '',
 }
 
 const TEACHING_MODEL_FROM_API: Record<ApiTeachingModel, TeachingModel> = {
@@ -202,6 +206,8 @@ function buildFormFromPayload(payload: TeacherProfilePayload): TeacherProfileFor
       estado: payload.address?.state ?? '',
     },
     availability: new Set((payload.availability ?? []).map((slot) => `${slot.day}-${slot.time}`)),
+    advanceNoticeHours:
+      payload.advanceNoticeHours != null ? String(payload.advanceNoticeHours) : '',
   }
 }
 
@@ -914,6 +920,30 @@ export function TeacherProfileConfigPage() {
             description="Selecione os dias e turnos em que você costuma dar aulas."
           >
             <AvailabilityGrid selected={form.availability} onToggle={toggleAvailability} />
+          </FormSection>
+
+          <FormSection
+            title="Antecedência para Agendamento"
+            description="Defina o tempo mínimo de antecedência que o aluno deve ter para marcar uma aula."
+          >
+            <div className="flex flex-col gap-2">
+              <Input
+                label="Horas de antecedência mínima"
+                type="number"
+                placeholder="Ex: 2"
+                inputMode="numeric"
+                icon={<Clock className="size-4" />}
+                value={form.advanceNoticeHours}
+                onChange={(e) => {
+                  const value = e.target.value.replace(/\D/g, '')
+                  setForm((prev) => ({ ...prev, advanceNoticeHours: value }))
+                }}
+              />
+              <p className="text-xs text-paper-500 dark:text-zinc-500">
+                Deixe vazio para permitir agendamento sem antecedência mínima. Valor em horas (ex:
+                2 = o aluno precisa marcar com pelo menos 2h de antecedência).
+              </p>
+            </div>
           </FormSection>
 
           <SecuritySection />

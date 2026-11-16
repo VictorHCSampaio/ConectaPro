@@ -54,6 +54,7 @@ export type TeacherProfileFormData = {
   pricePerHour: string
   address: TeacherAddress
   availability: Set<string>
+  advanceNoticeHours: string
 }
 
 export type TeacherProfileErrors = Partial<{
@@ -83,6 +84,7 @@ export type TeacherProfilePayload = {
     state: string
   }
   availability: Array<{ day: WeekDay; time: HourSlot | ShiftSlot }>
+  advanceNoticeHours: number | null
 }
 
 export type EnderecoCep = {

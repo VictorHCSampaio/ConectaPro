@@ -1,6 +1,7 @@
-import { BookOpen, CalendarDays, Check, Clock, Loader2, MessageCircle, Monitor, X } from 'lucide-react'
+import { BookOpen, CalendarDays, Check, Clock, Loader2, MessageCircle, Monitor, Star, X } from 'lucide-react'
 import { useEffect, useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
+import { AvaliacaoDialog } from '@/components/avaliacao/AvaliacaoDialog'
 import { SiteFooter } from '@/components/landing/SiteFooter'
 import { SiteHeader } from '@/components/landing/SiteHeader'
 import { Button } from '@/components/ui/Button'
@@ -12,6 +13,7 @@ import {
   listarMeusAgendamentos,
   recusarAgendamento,
 } from '@/lib/agendamentoService'
+import { listarAvaliacoesAgendamento } from '@/lib/avaliacaoService'
 import { AgendamentoDetailsDialog } from '@/components/booking/AgendamentoDetailsDialog'
 import { cn } from '@/lib/cn'
 import {
@@ -32,6 +34,19 @@ const STATUS_CHIP: Record<AgendamentoStatus, string> = {
     'border-sage-600/20 bg-sage-50 text-sage-600 dark:border-emerald-800/50 dark:bg-emerald-900/30 dark:text-emerald-400',
   CANCELADO:
     'border-red-600/20 bg-red-50 text-red-600 dark:border-red-400/20 dark:bg-red-400/10 dark:text-red-400',
+}
+
+function StatusChip({ status }: { status: AgendamentoStatus }) {
+  return (
+    <span
+      className={cn(
+        'inline-flex items-center rounded-full border px-2.5 py-1 text-xs font-medium',
+        STATUS_CHIP[status],
+      )}
+    >
+      {AGENDAMENTO_STATUS_LABEL[status]}
+    </span>
+  )
 }
 
 function ChatDaAula({ agendamento, nome }: { agendamento: Agendamento; nome: string }) {
@@ -56,19 +71,6 @@ function ChatDaAula({ agendamento, nome }: { agendamento: Agendamento; nome: str
     >
       Chat
     </Button>
-  )
-}
-
-function StatusChip({ status }: { status: AgendamentoStatus }) {
-  return (
-    <span
-      className={cn(
-        'inline-flex items-center rounded-full border px-2.5 py-1 text-xs font-medium',
-        STATUS_CHIP[status],
-      )}
-    >
-      {AGENDAMENTO_STATUS_LABEL[status]}
-    </span>
   )
 }
 
@@ -144,17 +146,48 @@ function EmptyState({ message }: { message: string }) {
 }
 
 function StudentBookingsView() {
+  const { user } = useAuth()
   const [agendamentos, setAgendamentos] = useState<Agendamento[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [detalhe, setDetalhe] = useState<Agendamento | null>(null)
+  const [avaliadosIds, setAvaliadosIds] = useState<Set<string>>(new Set())
+  const [avaliacaoAlvo, setAvaliacaoAlvo] = useState<Agendamento | null>(null)
+  const [toast, setToast] = useState<{ variant: 'success' | 'error'; message: string } | null>(null)
+
+  useEffect(() => {
+    if (toast) {
+      const t = setTimeout(() => setToast(null), 4000)
+      return () => clearTimeout(t)
+    }
+  }, [toast])
 
   useEffect(() => {
     let isActive = true
 
     listarMeusAgendamentos()
-      .then((dados) => {
-        if (isActive) setAgendamentos(dados)
+      .then(async (dados) => {
+        if (!isActive) return
+        setAgendamentos(dados)
+
+        const confirmados = dados.filter((a) => a.status === 'CONFIRMADO')
+        if (confirmados.length === 0) return
+
+        const resultados = await Promise.allSettled(
+          confirmados.map((a) => listarAvaliacoesAgendamento(a.id)),
+        )
+        if (!isActive) return
+
+        const jaAvaliados = new Set<string>()
+        resultados.forEach((res, i) => {
+          if (res.status === 'fulfilled') {
+            const minhaAvaliacao = res.value.some(
+              (av) => av.avaliadorNome === user?.name,
+            )
+            if (minhaAvaliacao) jaAvaliados.add(confirmados[i].id)
+          }
+        })
+        setAvaliadosIds(jaAvaliados)
       })
       .catch((err) => {
         if (isActive) setError(extractErrorMessage(err, 'Não foi possível carregar suas aulas.'))
@@ -166,7 +199,7 @@ function StudentBookingsView() {
     return () => {
       isActive = false
     }
-  }, [])
+  }, [user?.name])
 
   return (
     <>
@@ -184,24 +217,38 @@ function StudentBookingsView() {
         ) : (
           <ul className="flex flex-col gap-3">
             {agendamentos.map((agendamento) => (
-              <li
-                key={agendamento.id}
-                className="flex flex-col gap-3 rounded-lg border border-paper-200 bg-white px-4 py-3.5 dark:border-white/10 dark:bg-night-700 sm:flex-row sm:items-center sm:justify-between"
-              >
+              <li key={agendamento.id}>
                 <button
                   type="button"
                   onClick={() => setDetalhe(agendamento)}
-                  className="flex min-w-0 flex-1 flex-col gap-1 text-left focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ocre-500"
+                  className="flex w-full flex-col gap-2 rounded-lg border border-paper-200 bg-white px-4 py-3.5 text-left transition-colors hover:border-paper-300 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ocre-500 dark:border-white/10 dark:bg-night-700 dark:hover:border-white/20 sm:flex-row sm:items-center sm:justify-between"
                 >
-                  <span className="font-medium text-ink-900 dark:text-white">
-                    {agendamento.professorName}
-                  </span>
-                  <SlotInfo agendamento={agendamento} />
+                  <div className="flex flex-col gap-1">
+                    <span className="font-medium text-ink-900 dark:text-white">
+                      {agendamento.professorName}
+                    </span>
+                    <SlotInfo agendamento={agendamento} />
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <StatusChip status={agendamento.status} />
+                    {agendamento.status === 'CONFIRMADO' && !avaliadosIds.has(agendamento.id) && (
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        fullWidth={false}
+                        className="px-3 py-1.5 text-xs"
+                        icon={<Star className="size-4" />}
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          setAvaliacaoAlvo(agendamento)
+                        }}
+                      >
+                        Avaliar
+                      </Button>
+                    )}
+                    <ChatDaAula agendamento={agendamento} nome={agendamento.professorName} />
+                  </div>
                 </button>
-                <div className="flex items-center gap-2">
-                  <StatusChip status={agendamento.status} />
-                  <ChatDaAula agendamento={agendamento} nome={agendamento.professorName} />
-                </div>
               </li>
             ))}
           </ul>
@@ -215,22 +262,80 @@ function StudentBookingsView() {
         counterpartLabel="Professor"
         counterpartName={detalhe?.professorName ?? ''}
       />
+
+      {avaliacaoAlvo && (
+        <AvaliacaoDialog
+          open
+          onClose={() => setAvaliacaoAlvo(null)}
+          avaliadoId={avaliacaoAlvo.professorUsuarioId}
+          avaliadoNome={avaliacaoAlvo.professorName}
+          agendamentoId={avaliacaoAlvo.id}
+          onSuccess={() => {
+            setAvaliadosIds((prev) => new Set(prev).add(avaliacaoAlvo.id))
+            setAvaliacaoAlvo(null)
+            setToast({ variant: 'success', message: 'Avaliação enviada com sucesso!' })
+          }}
+          onError={(msg) => setToast({ variant: 'error', message: msg })}
+        />
+      )}
+
+      {toast && (
+        <div
+          className={cn(
+            'fixed bottom-6 left-1/2 z-50 -translate-x-1/2 rounded-lg px-5 py-3 text-sm font-medium shadow-lg',
+            toast.variant === 'success' ? 'bg-sage-600 text-white' : 'bg-red-600 text-white',
+          )}
+        >
+          {toast.message}
+        </div>
+      )}
     </>
   )
 }
 
 function TeacherBookingsView() {
+  const { user } = useAuth()
   const [agendamentos, setAgendamentos] = useState<Agendamento[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [processingId, setProcessingId] = useState<string | null>(null)
+  const [avaliadosIds, setAvaliadosIds] = useState<Set<string>>(new Set())
+  const [avaliacaoAlvo, setAvaliacaoAlvo] = useState<Agendamento | null>(null)
+  const [toast, setToast] = useState<{ variant: 'success' | 'error'; message: string } | null>(null)
+
+  useEffect(() => {
+    if (toast) {
+      const t = setTimeout(() => setToast(null), 4000)
+      return () => clearTimeout(t)
+    }
+  }, [toast])
 
   useEffect(() => {
     let isActive = true
 
     listarAgendamentosRecebidos()
-      .then((dados) => {
-        if (isActive) setAgendamentos(dados)
+      .then(async (dados) => {
+        if (!isActive) return
+        setAgendamentos(dados)
+
+        const confirmados = dados.filter((a) => a.status === 'CONFIRMADO')
+        if (confirmados.length === 0) return
+
+        const resultados = await Promise.allSettled(
+          confirmados.map((a) => listarAvaliacoesAgendamento(a.id)),
+        )
+        if (!isActive) return
+
+        const jaAvaliados = new Set<string>()
+        resultados.forEach((res, i) => {
+          if (res.status === 'fulfilled') {
+            const minhaAvaliacao = res.value.some(
+              (av) => av.avaliadorNome === user?.name,
+            )
+            if (minhaAvaliacao) jaAvaliados.add(confirmados[i].id)
+          }
+        })
+        setAvaliadosIds(jaAvaliados)
       })
       .catch((err) => {
         if (isActive)
@@ -243,7 +348,7 @@ function TeacherBookingsView() {
     return () => {
       isActive = false
     }
-  }, [])
+  }, [user?.name])
 
   async function responder(id: string, acao: 'aprovar' | 'recusar') {
     setError(null)
@@ -285,9 +390,13 @@ function TeacherBookingsView() {
                 className="flex flex-col gap-3 rounded-lg border border-paper-200 bg-white px-4 py-3.5 dark:border-white/10 dark:bg-night-700 sm:flex-row sm:items-center sm:justify-between"
               >
                 <div className="flex flex-col gap-1">
-                  <span className="font-medium text-ink-900 dark:text-white">
+                  <Link
+                    to={`/alunos/${agendamento.studentId}`}
+                    className="font-medium text-ink-900 underline decoration-paper-300 underline-offset-2 transition-colors hover:text-ocre-600 hover:decoration-ocre-400 dark:text-white dark:decoration-white/20 dark:hover:text-ocre-400"
+                    onClick={(e) => e.stopPropagation()}
+                  >
                     {agendamento.studentName}
-                  </span>
+                  </Link>
                   <SlotInfo agendamento={agendamento} />
                 </div>
 
@@ -317,12 +426,51 @@ function TeacherBookingsView() {
                 ) : (
                   <div className="flex items-center gap-2">
                     <StatusChip status={agendamento.status} />
+                    {agendamento.status === 'CONFIRMADO' && !avaliadosIds.has(agendamento.id) && (
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        fullWidth={false}
+                        className="px-3 py-1.5 text-xs"
+                        icon={<Star className="size-4" />}
+                        onClick={() => setAvaliacaoAlvo(agendamento)}
+                      >
+                        Avaliar
+                      </Button>
+                    )}
                     <ChatDaAula agendamento={agendamento} nome={agendamento.studentName} />
                   </div>
                 )}
               </li>
             ))}
           </ul>
+        </div>
+      )}
+
+      {avaliacaoAlvo && (
+        <AvaliacaoDialog
+          open
+          onClose={() => setAvaliacaoAlvo(null)}
+          avaliadoId={avaliacaoAlvo.alunoUsuarioId}
+          avaliadoNome={avaliacaoAlvo.studentName}
+          agendamentoId={avaliacaoAlvo.id}
+          onSuccess={() => {
+            setAvaliadosIds((prev) => new Set(prev).add(avaliacaoAlvo.id))
+            setAvaliacaoAlvo(null)
+            setToast({ variant: 'success', message: 'Avaliação enviada com sucesso!' })
+          }}
+          onError={(msg) => setToast({ variant: 'error', message: msg })}
+        />
+      )}
+
+      {toast && (
+        <div
+          className={cn(
+            'fixed bottom-6 left-1/2 z-50 -translate-x-1/2 rounded-lg px-5 py-3 text-sm font-medium shadow-lg',
+            toast.variant === 'success' ? 'bg-sage-600 text-white' : 'bg-red-600 text-white',
+          )}
+        >
+          {toast.message}
         </div>
       )}
     </PageChrome>

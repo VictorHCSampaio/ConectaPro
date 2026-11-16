@@ -14,6 +14,7 @@ import { ProfilePage } from '@/pages/ProfilePage'
 import { ProfileViewPage } from '@/pages/ProfileViewPage'
 import { ResetPasswordPage } from '@/pages/ResetPasswordPage'
 import { SearchTeachersPage } from '@/pages/SearchTeachersPage'
+import { StudentPublicProfilePage } from '@/pages/StudentPublicProfilePage'
 import { TeacherProfilePage } from '@/pages/TeacherProfilePage'
 
 function App() {
@@ -80,6 +81,14 @@ function App() {
         element={
           <RequireAuth>
             <AgendamentosPage />
+          </RequireAuth>
+        }
+      />
+      <Route
+        path="/alunos/:id"
+        element={
+          <RequireAuth>
+            <StudentPublicProfilePage />
           </RequireAuth>
         }
       />

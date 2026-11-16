@@ -75,6 +75,7 @@ public class ProfessorService {
     private final LocalizacaoService localizacaoService;
     private final EnderecoService enderecoService;
     private final AuditoriaService auditoriaService;
+    private final AvaliacaoService avaliacaoService;
 
     public ProfessorService(UsuarioRepository usuarioRepository,
                             ProfessorRepository professorRepository,
@@ -84,7 +85,8 @@ public class ProfessorService {
                             EnderecoRepository enderecoRepository,
                             LocalizacaoService localizacaoService,
                             EnderecoService enderecoService,
-                            AuditoriaService auditoriaService) {
+                            AuditoriaService auditoriaService,
+                            AvaliacaoService avaliacaoService) {
         this.usuarioRepository = usuarioRepository;
         this.professorRepository = professorRepository;
         this.materiaRepository = materiaRepository;
@@ -94,6 +96,7 @@ public class ProfessorService {
         this.localizacaoService = localizacaoService;
         this.enderecoService = enderecoService;
         this.auditoriaService = auditoriaService;
+        this.avaliacaoService = avaliacaoService;
     }
 
     @Transactional
@@ -131,6 +134,10 @@ public class ProfessorService {
         professor.setPrecoHoraEscola(paraInstituicoes ? preco : null);
         professor.setCep(request.address().cep());
         professor.setEndereco(formatarEndereco(request.address()));
+        professor.setAntecedenciaMinHoras(
+                request.advanceNoticeHours() != null && request.advanceNoticeHours() >= 0
+                        ? request.advanceNoticeHours()
+                        : null);
         professor.setAtualizadoEm(OffsetDateTime.now());
 
         Professor salvo = professorRepository.save(professor);
@@ -184,7 +191,8 @@ public class ProfessorService {
                 modalidadesDoProfessor(professor),
                 preco == null ? null : preco.doubleValue(),
                 endereco,
-                disponibilidade
+                disponibilidade,
+                professor.getAntecedenciaMinHoras()
         );
     }
 
@@ -300,14 +308,15 @@ public class ProfessorService {
         }
 
         BigDecimal preco = precoHora(professor);
+        double[] ratingDoProfessor = avaliacaoService.calcularMedia(professor.getUsuario().getId());
 
         return new ProfessorResumoResponse(
                 professor.getId().toString(),
                 nome,
                 gerarIniciais(nome),
                 materias,
-                0,
-                0,
+                ratingDoProfessor[0],
+                (int) ratingDoProfessor[1],
                 modalidades,
                 preco == null ? 0d : preco.doubleValue(),
                 Boolean.TRUE.equals(professor.getVerificado()),
