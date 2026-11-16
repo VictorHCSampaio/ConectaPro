@@ -19,6 +19,11 @@ export type Teacher = {
   city?: string | null
   distanceKm?: number | null
   usuarioId: string
+  verificado?: boolean
+  tipoVerificacao?: 'CERTIFICADO' | 'ADMIN' | null
+  certificadoDisponivel?: boolean
+  certificadoNome?: string | null
+  statusComprovacao?: string | null
 }
 
 export type TeacherStats = {

@@ -1,5 +1,6 @@
 import { BadgeCheck, Video } from 'lucide-react'
 import { Link } from 'react-router-dom'
+import { SeloVerificado } from '@/components/teacher/SeloVerificado'
 import { StarRating } from '@/components/ui/StarRating'
 import { formatRating } from '@/lib/formatTeacher'
 import type { Teacher } from '@/types/teacher'
@@ -70,8 +71,13 @@ export function FeaturedPanel({ teachers, isLoading, obscure = false }: Featured
                       Cadastre-se para ver
                     </p>
                   ) : (
-                    <p className="truncate text-sm font-semibold text-ink-900 dark:text-white">
-                      {teacher.name}
+                    <p className="flex min-w-0 items-center gap-2">
+                      <span className="truncate text-sm font-semibold text-ink-900 dark:text-white">
+                        {teacher.name}
+                      </span>
+                      {(teacher.verified || teacher.verificado) && (
+                        <SeloVerificado tipo={teacher.tipoVerificacao} />
+                      )}
                     </p>
                   )}
                   <p className="truncate text-xs text-paper-600 dark:text-zinc-400">

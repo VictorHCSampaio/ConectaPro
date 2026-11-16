@@ -17,6 +17,7 @@ type ChatState = {
   nome?: string
   avatarUrl?: string | null
   voltarPara?: string
+  rascunho?: string
 }
 
 const PAGE_SHELL =
@@ -82,6 +83,7 @@ export function ChatPage() {
   const [enviando, setEnviando] = useState(false)
   const [toast, setToast] = useState<{ message: string; variant: 'success' | 'error' } | null>(null)
   const listaRef = useRef<HTMLDivElement>(null)
+  const rascunhoAplicado = useRef(false)
   const ultimaId = mensagens.at(-1)?.id
 
   const fecharToast = useCallback(() => setToast(null), [])
@@ -96,6 +98,14 @@ export function ChatPage() {
   useEffect(() => {
     window.scrollTo({ top: 0, behavior: 'instant' })
   }, [])
+
+  useEffect(() => {
+    if (rascunhoAplicado.current || !estado.rascunho) {
+      return
+    }
+    rascunhoAplicado.current = true
+    setTexto(estado.rascunho)
+  }, [estado.rascunho])
 
   useEffect(() => {
     const lista = listaRef.current

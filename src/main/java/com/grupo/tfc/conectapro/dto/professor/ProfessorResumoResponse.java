@@ -19,6 +19,11 @@ public record ProfessorResumoResponse(
         String neighborhood,
         String city,
         Double distanceKm,
-        String usuarioId
+        String usuarioId,
+        boolean verificado,
+        String tipoVerificacao,
+        boolean certificadoDisponivel,
+        String certificadoNome,
+        String statusComprovacao
 ) {
 }

@@ -82,6 +82,14 @@ public class ArmazenamentoS3Service {
         logger.info("Certificado enviado para o S3. professorId={} tipo={}", professorId, contentType);
     }
 
+    public void removerCertificado(UUID professorId) {
+        s3Client.deleteObject(DeleteObjectRequest.builder()
+                .bucket(properties.bucketCertificados())
+                .key(PREFIXO_CERTIFICADO + professorId)
+                .build());
+        logger.info("Certificado removido do S3. professorId={}", professorId);
+    }
+
     public String gerarUrlCertificado(UUID professorId) {
         GetObjectRequest getObjectRequest = GetObjectRequest.builder()
                 .bucket(properties.bucketCertificados())

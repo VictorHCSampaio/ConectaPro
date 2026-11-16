@@ -2,6 +2,7 @@ package com.grupo.tfc.conectapro.service;
 
 import com.grupo.tfc.conectapro.dto.EnderecoRequest;
 import com.grupo.tfc.conectapro.dto.professor.AvatarResponse;
+import com.grupo.tfc.conectapro.dto.professor.CertificadoVisualizacaoResponse;
 import com.grupo.tfc.conectapro.dto.professor.DisponibilidadeRequest;
 import com.grupo.tfc.conectapro.dto.professor.EnderecoProfessorRequest;
 import com.grupo.tfc.conectapro.dto.professor.MateriaProfessorRequest;
@@ -15,6 +16,7 @@ import com.grupo.tfc.conectapro.model.Materia;
 import com.grupo.tfc.conectapro.model.Professor;
 import com.grupo.tfc.conectapro.model.ProfessorDisponibilidade;
 import com.grupo.tfc.conectapro.model.ProfessorMateria;
+import com.grupo.tfc.conectapro.model.StatusComprovacao;
 import com.grupo.tfc.conectapro.model.StatusConta;
 import com.grupo.tfc.conectapro.model.TipoUsuario;
 import com.grupo.tfc.conectapro.model.Usuario;
@@ -215,20 +217,16 @@ public class ProfessorService {
     @Transactional
     public void enviarCertificado(UUID usuarioId, MultipartFile arquivo) {
         Usuario usuario = buscarUsuario(usuarioId);
-        if (usuario.getTipo() != TipoUsuario.PROFESSOR) {
-            throw new ResponseStatusException(FORBIDDEN, "Apenas professores podem enviar certificado");
-        }
-        if (usuario.getStatusConta() != StatusConta.EM_ANALISE
-                && usuario.getStatusConta() != StatusConta.REJEITADO) {
-            throw new ResponseStatusException(FORBIDDEN, "O certificado so pode ser enviado durante a analise do cadastro");
-        }
+        exigirProfessorPodeEnviarComprovacao(usuario, "enviar certificado");
 
         Professor professor = obterOuCriarProfessor(usuario);
         armazenamentoS3Service.enviarCertificado(professor.getId(), arquivo);
         professor.setCertificadoNome(nomeArquivo(arquivo));
         professor.setJustificativaSemCertificado(null);
+        marcarComprovacaoPendente(professor);
         professor.setAtualizadoEm(OffsetDateTime.now());
         professorRepository.save(professor);
+        limparMotivoRejeicao(usuario);
 
         auditoriaService.registrar(AcaoAuditoria.CERTIFICADO_ENVIADO, usuarioId, "PROFESSOR", professor.getId().toString(), null);
         logger.info("Certificado enviado. usuarioId={} professorId={}", usuarioId, professor.getId());
@@ -237,18 +235,18 @@ public class ProfessorService {
     @Transactional
     public void enviarJustificativa(UUID usuarioId, String justificativa) {
         Usuario usuario = buscarUsuario(usuarioId);
-        if (usuario.getTipo() != TipoUsuario.PROFESSOR) {
-            throw new ResponseStatusException(FORBIDDEN, "Apenas professores podem enviar justificativa");
-        }
-        if (usuario.getStatusConta() != StatusConta.EM_ANALISE
-                && usuario.getStatusConta() != StatusConta.REJEITADO) {
-            throw new ResponseStatusException(FORBIDDEN, "A justificativa so pode ser enviada durante a analise do cadastro");
-        }
+        exigirProfessorPodeEnviarComprovacao(usuario, "enviar justificativa");
 
         Professor professor = obterOuCriarProfessor(usuario);
+        if (textoPreenchido(professor.getCertificadoNome())) {
+            armazenamentoS3Service.removerCertificado(professor.getId());
+            professor.setCertificadoNome(null);
+        }
         professor.setJustificativaSemCertificado(justificativa.trim());
+        marcarComprovacaoPendente(professor);
         professor.setAtualizadoEm(OffsetDateTime.now());
         professorRepository.save(professor);
+        limparMotivoRejeicao(usuario);
 
         logger.info("Justificativa de ausencia de certificado enviada. usuarioId={} professorId={}", usuarioId, professor.getId());
     }
@@ -261,6 +259,12 @@ public class ProfessorService {
         }
         if (usuario.getStatusConta() != StatusConta.REJEITADO) {
             throw new ResponseStatusException(BAD_REQUEST, "O cadastro nao esta rejeitado");
+        }
+
+        Professor professor = professorRepository.findByUsuarioId(usuarioId).orElse(null);
+        if (!comprovacaoInformada(professor)) {
+            throw new ResponseStatusException(BAD_REQUEST,
+                    "É obrigatório enviar o certificado ou solicitar uma conversa com o administrador antes de enviar para análise.");
         }
 
         usuario.setStatusConta(StatusConta.EM_ANALISE);
@@ -279,10 +283,32 @@ public class ProfessorService {
 
         return new StatusCadastroResponse(
                 usuario.getStatusConta().name(),
-                certificadoNome != null,
+                textoPreenchido(certificadoNome),
                 certificadoNome,
                 justificativa,
-                usuario.getMotivoRejeicao());
+                usuario.getMotivoRejeicao(),
+                solicitarConversaAdmin(professor),
+                !comprovacaoInformada(professor));
+    }
+
+    private boolean solicitarConversaAdmin(Professor professor) {
+        if (professor == null) {
+            return false;
+        }
+        return !textoPreenchido(professor.getCertificadoNome())
+                && textoPreenchido(professor.getJustificativaSemCertificado());
+    }
+
+    private boolean comprovacaoInformada(Professor professor) {
+        if (professor == null) {
+            return false;
+        }
+        return textoPreenchido(professor.getCertificadoNome())
+                || textoPreenchido(professor.getJustificativaSemCertificado());
+    }
+
+    private boolean textoPreenchido(String valor) {
+        return valor != null && !valor.isBlank();
     }
 
     private Professor obterOuCriarProfessor(Usuario usuario) {
@@ -342,8 +368,78 @@ public class ProfessorService {
                 preco == null ? null : preco.doubleValue(),
                 endereco,
                 disponibilidade,
-                professor.getAntecedenciaMinHoras()
+                professor.getAntecedenciaMinHoras(),
+                textoPreenchido(professor.getCertificadoNome()),
+                professor.getCertificadoNome(),
+                professor.getJustificativaSemCertificado(),
+                solicitarConversaAdmin(professor),
+                professor.isComprovacaoVerificada(),
+                tipoVerificacao(professor),
+                textoPreenchido(professor.getCertificadoNome()),
+                nomeStatusComprovacao(professor)
         );
+    }
+
+    @Transactional(readOnly = true)
+    public CertificadoVisualizacaoResponse visualizarCertificado(UUID id) {
+        Professor professor = professorRepository.findById(id)
+                .or(() -> professorRepository.findByUsuarioId(id))
+                .filter(this::certificadoPublico)
+                .orElseThrow(() -> new ResponseStatusException(NOT_FOUND, "Certificado nao encontrado"));
+
+        return new CertificadoVisualizacaoResponse(
+                armazenamentoS3Service.gerarUrlCertificado(professor.getId()),
+                professor.getCertificadoNome());
+    }
+
+    private void marcarComprovacaoPendente(Professor professor) {
+        professor.setStatusComprovacao(StatusComprovacao.PENDENTE);
+        professor.setComprovacaoVerificada(false);
+        professor.setVerificado(false);
+    }
+
+    private void limparMotivoRejeicao(Usuario usuario) {
+        usuario.setMotivoRejeicao(null);
+        usuarioRepository.save(usuario);
+    }
+
+    private boolean certificadoPublico(Professor professor) {
+        if (!textoPreenchido(professor.getCertificadoNome()) || professor.getUsuario() == null) {
+            return false;
+        }
+        Usuario usuario = professor.getUsuario();
+        if (usuario.administrador() || usuario.getTipo() != TipoUsuario.PROFESSOR) {
+            return false;
+        }
+        return usuario.getStatusConta() != StatusConta.BANIDO
+                && usuario.getStatusConta() != StatusConta.EXCLUIDO;
+    }
+
+    private String tipoVerificacao(Professor professor) {
+        if (professor == null || !professor.isComprovacaoVerificada()) {
+            return null;
+        }
+        if (textoPreenchido(professor.getCertificadoNome())) {
+            return "CERTIFICADO";
+        }
+        return "ADMIN";
+    }
+
+    private String nomeStatusComprovacao(Professor professor) {
+        if (professor == null || professor.getStatusComprovacao() == null) {
+            return StatusComprovacao.NENHUM.name();
+        }
+        return professor.getStatusComprovacao().name();
+    }
+
+    private void exigirProfessorPodeEnviarComprovacao(Usuario usuario, String acao) {
+        if (usuario.getTipo() != TipoUsuario.PROFESSOR) {
+            throw new ResponseStatusException(FORBIDDEN, "Apenas professores podem " + acao);
+        }
+        if (usuario.getStatusConta() == StatusConta.BANIDO
+                || usuario.getStatusConta() == StatusConta.EXCLUIDO) {
+            throw new ResponseStatusException(FORBIDDEN, "Esta conta não pode enviar comprovação");
+        }
     }
 
     @Transactional(readOnly = true)
@@ -422,7 +518,12 @@ public class ProfessorService {
                 resumo.neighborhood(),
                 resumo.city(),
                 resumo.distanceKm(),
-                resumo.usuarioId());
+                resumo.usuarioId(),
+                resumo.verificado(),
+                resumo.tipoVerificacao(),
+                resumo.certificadoDisponivel(),
+                resumo.certificadoNome(),
+                resumo.statusComprovacao());
     }
 
     private boolean podeManterPerfil(Usuario usuario) {
@@ -490,7 +591,7 @@ public class ProfessorService {
                 (int) ratingDoProfessor[1],
                 modalidades,
                 preco == null ? 0d : preco.doubleValue(),
-                Boolean.TRUE.equals(professor.getVerificado()),
+                professor.isComprovacaoVerificada(),
                 professor.getBiografia(),
                 slots.stream().map(ProfessorDisponibilidade::getHorario).distinct().sorted().toList(),
                 DIAS_SEMANA.entrySet().stream()
@@ -500,7 +601,12 @@ public class ProfessorService {
                 endereco == null ? null : endereco.getBairro(),
                 endereco == null ? null : endereco.getCidade(),
                 distanciaAte(professor, endereco, origem),
-                professor.getUsuario().getId().toString()
+                professor.getUsuario().getId().toString(),
+                professor.isComprovacaoVerificada(),
+                tipoVerificacao(professor),
+                textoPreenchido(professor.getCertificadoNome()),
+                professor.getCertificadoNome(),
+                nomeStatusComprovacao(professor)
         );
     }
 

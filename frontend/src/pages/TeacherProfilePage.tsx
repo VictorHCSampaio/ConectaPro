@@ -3,6 +3,8 @@ import { useCallback, useEffect, useState } from 'react'
 import type { ReactNode } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import { BookingDialog } from '@/components/booking/BookingDialog'
+import { CartaoCertificado } from '@/components/teacher/CartaoCertificado'
+import { SeloVerificado } from '@/components/teacher/SeloVerificado'
 import { DenunciaDialog } from '@/components/denuncia/DenunciaDialog'
 import { SiteFooter } from '@/components/landing/SiteFooter'
 import { SiteHeader } from '@/components/landing/SiteHeader'
@@ -271,11 +273,8 @@ export function TeacherProfilePage() {
                       <h1 className="text-2xl font-semibold tracking-tight text-ink-900 dark:text-white">
                         {teacher.name}
                       </h1>
-                      {teacher.verified && (
-                        <span className="flex items-center gap-1 rounded-full border border-sage-600/20 bg-sage-50 px-2.5 py-1 text-xs font-medium text-sage-600 dark:border-emerald-800/50 dark:bg-emerald-900/30 dark:text-emerald-400">
-                          <BadgeCheck className="size-3.5" />
-                          Verificado
-                        </span>
+                      {(teacher.verified || teacher.verificado) && (
+                        <SeloVerificado tipo={teacher.tipoVerificacao} />
                       )}
                     </div>
 
@@ -362,6 +361,17 @@ export function TeacherProfilePage() {
         <div className="mt-6 grid gap-6 md:grid-cols-3">
           <Reveal delay={0.06} className="md:col-span-2">
             <div className={CARD}>
+              {(teacher.certificadoDisponivel || teacher.certificadoNome) && teacher.id && (
+                <div className="border-b border-paper-200 px-5 py-5 dark:border-white/10">
+                  <CartaoCertificado
+                    professorId={teacher.id}
+                    nome={teacher.certificadoNome}
+                    verificado={teacher.verified || teacher.verificado}
+                    tipoVerificacao={teacher.tipoVerificacao}
+                  />
+                </div>
+              )}
+
               {teacher.bio && (
                 <Block title="Sobre mim">
                   <div className="flex flex-col gap-2.5">

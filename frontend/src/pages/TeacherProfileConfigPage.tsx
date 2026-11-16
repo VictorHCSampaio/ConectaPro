@@ -1,16 +1,20 @@
-import { useCallback, useEffect, useId, useRef, useState } from 'react'
+import { useCallback, useEffect, useId, useRef, useState, type ChangeEvent } from 'react'
 import { AnimatePresence, motion } from 'framer-motion'
 import {
+  AlertTriangle,
   ArrowLeft,
+  BadgeCheck,
   CheckCircle2,
   Clock,
   DollarSign,
   Loader2,
   MapPin,
+  MessageSquareText,
   Phone,
   Search,
   Shield,
   ShieldCheck,
+  Upload,
   User,
 } from 'lucide-react'
 import { Link } from 'react-router-dom'
@@ -33,7 +37,11 @@ import { ativarTotp, obterConfigTotp, obterStatusTotp } from '@/lib/authService'
 import { buscarEnderecoPorCep } from '@/lib/enderecoService'
 import { cn } from '@/lib/cn'
 import { maskCep } from '@/lib/masks'
-import { chaveUsuarioCache, gravarPerfilProfessor } from '@/lib/perfilCache'
+import {
+  enviarCertificadoProfessor,
+  enviarJustificativaSemCertificado,
+} from '@/lib/certificadoService'
+import { chaveUsuarioCache, gravarPerfilProfessor, lerPerfilProfessor } from '@/lib/perfilCache'
 import {
   buscarPerfilProfessor,
   enviarAvatarProfessor,
@@ -305,7 +313,15 @@ function TextareaField({
   )
 }
 
-function SuccessToast({ onDismiss }: { onDismiss: () => void }) {
+function SuccessToast({
+  onDismiss,
+  titulo = 'Perfil atualizado!',
+  detalhe = 'Suas informações foram salvas com sucesso.',
+}: {
+  onDismiss: () => void
+  titulo?: string
+  detalhe?: string
+}) {
   return (
     <motion.div
       key="toast"
@@ -319,10 +335,8 @@ function SuccessToast({ onDismiss }: { onDismiss: () => void }) {
     >
       <CheckCircle2 className="size-5 shrink-0 text-sage-600 dark:text-emerald-400" />
       <div className="flex flex-col">
-        <p className="text-sm font-semibold text-sage-600 dark:text-emerald-400">
-          Perfil atualizado!
-        </p>
-        <p className="text-xs text-sage-600/70">Suas informações foram salvas com sucesso.</p>
+        <p className="text-sm font-semibold text-sage-600 dark:text-emerald-400">{titulo}</p>
+        <p className="text-xs text-sage-600/70">{detalhe}</p>
       </div>
       <button
         type="button"
@@ -480,9 +494,17 @@ export function TeacherProfileConfigPage() {
   const [touched, setTouched] = useState<Partial<Record<keyof TeacherProfileErrors, boolean>>>({})
   const [submitted, setSubmitted] = useState(false)
   const [isSubmitting, setIsSubmitting] = useState(false)
-  const [showSuccess, setShowSuccess] = useState(false)
+  const [toast, setToast] = useState<{ titulo: string; detalhe: string } | null>(null)
   const [isLoading, setIsLoading] = useState(true)
   const [submitError, setSubmitError] = useState<string | null>(null)
+  const certificadoInputRef = useRef<HTMLInputElement>(null)
+  const [certificadoNome, setCertificadoNome] = useState<string | null>(null)
+  const [justificativaSalva, setJustificativaSalva] = useState<string | null>(null)
+  const [solicitarConversa, setSolicitarConversa] = useState(false)
+  const [semCertificado, setSemCertificado] = useState(false)
+  const [justificativa, setJustificativa] = useState('')
+  const [enviandoComprovacao, setEnviandoComprovacao] = useState(false)
+  const [comprovacaoErro, setComprovacaoErro] = useState<string | null>(null)
 
   const [cepLoading, setCepLoading] = useState(false)
   const [cepFetchError, setCepFetchError] = useState<string | null>(null)
@@ -494,6 +516,7 @@ export function TeacherProfileConfigPage() {
       .then((profile) => {
         if (isActive && profile) {
           setForm(buildFormFromPayload(profile))
+          aplicarComprovacao(profile)
         }
       })
       .finally(() => {
@@ -504,6 +527,111 @@ export function TeacherProfileConfigPage() {
       isActive = false
     }
   }, [])
+
+  function mostrarToast(titulo: string, detalhe: string) {
+    setToast({ titulo, detalhe })
+    window.setTimeout(() => setToast(null), 5000)
+  }
+
+  function aplicarComprovacao(profile: TeacherProfilePayload) {
+    const nome = profile.certificadoNome ?? null
+    const texto = profile.justificativaSemCertificado ?? null
+    const conversa = Boolean(profile.solicitarConversaAdmin)
+    setCertificadoNome(nome)
+    setJustificativaSalva(texto)
+    setSolicitarConversa(conversa)
+    if (conversa || texto) {
+      setSemCertificado(true)
+      setJustificativa(texto ?? '')
+    }
+  }
+
+  function guardarComprovacaoNoCache(parcial: Partial<TeacherProfilePayload>) {
+    const chave = chaveUsuarioCache()
+    const atual = lerPerfilProfessor(chave)
+    if (!atual) {
+      return
+    }
+    gravarPerfilProfessor(chave, { ...atual, ...parcial })
+  }
+
+  async function handleSelecionarCertificado(event: ChangeEvent<HTMLInputElement>) {
+    setComprovacaoErro(null)
+    const file = event.target.files?.[0]
+    event.target.value = ''
+    if (!file) {
+      return
+    }
+    if (!['image/png', 'image/jpeg'].includes(file.type)) {
+      setComprovacaoErro('Formato inválido. Use PNG ou JPG.')
+      return
+    }
+    if (file.size > 5 * 1024 * 1024) {
+      setComprovacaoErro('Arquivo muito grande. Máx. 5 MB.')
+      return
+    }
+
+    setEnviandoComprovacao(true)
+    try {
+      await enviarCertificadoProfessor(file)
+      const parcial = {
+        certificadoEnviado: true,
+        certificadoNome: file.name,
+        justificativaSemCertificado: null,
+        solicitarConversaAdmin: false,
+      }
+      setCertificadoNome(file.name)
+      setJustificativaSalva(null)
+      setSolicitarConversa(false)
+      setSemCertificado(false)
+      guardarComprovacaoNoCache(parcial)
+      const atualizado = await buscarPerfilProfessor()
+      if (atualizado) {
+        aplicarComprovacao(atualizado)
+        gravarPerfilProfessor(chaveUsuarioCache(), atualizado)
+      }
+      mostrarToast('Certificado enviado!', 'Seu comprovante foi atualizado.')
+    } catch (error) {
+      setComprovacaoErro(extractErrorMessage(error, 'Não foi possível enviar o certificado.'))
+    } finally {
+      setEnviandoComprovacao(false)
+    }
+  }
+
+  async function handleEnviarJustificativa() {
+    setComprovacaoErro(null)
+    if (justificativa.trim().length < 10) {
+      setComprovacaoErro('A justificativa deve ter no mínimo 10 caracteres.')
+      return
+    }
+    setEnviandoComprovacao(true)
+    try {
+      const texto = justificativa.trim()
+      await enviarJustificativaSemCertificado(texto)
+      setCertificadoNome(null)
+      setJustificativaSalva(texto)
+      setSolicitarConversa(true)
+      guardarComprovacaoNoCache({
+        certificadoEnviado: false,
+        certificadoNome: null,
+        justificativaSemCertificado: texto,
+        solicitarConversaAdmin: true,
+      })
+      const atualizado = await buscarPerfilProfessor()
+      if (atualizado) {
+        aplicarComprovacao(atualizado)
+        gravarPerfilProfessor(chaveUsuarioCache(), atualizado)
+      }
+      mostrarToast(
+        'Conversa solicitada!',
+        'Sua justificativa foi enviada para avaliação da equipe.',
+      )
+    } catch (error) {
+      setComprovacaoErro(extractErrorMessage(error, 'Não foi possível enviar a justificativa.'))
+    } finally {
+      setEnviandoComprovacao(false)
+    }
+  }
 
   function setAddressField(key: keyof TeacherAddress, value: string) {
     setForm((prev) => ({
@@ -644,11 +772,11 @@ export function TeacherProfileConfigPage() {
 
       const perfilAtualizado = { ...saved, avatarUrl }
       setForm(buildFormFromPayload(perfilAtualizado))
+      aplicarComprovacao(perfilAtualizado)
       gravarPerfilProfessor(chaveUsuarioCache(), perfilAtualizado)
       updateUser({ avatarUrl })
 
-      setShowSuccess(true)
-      setTimeout(() => setShowSuccess(false), 5000)
+      mostrarToast('Perfil atualizado!', 'Suas informações foram salvas com sucesso.')
     } catch (error) {
       setSubmitError(
         extractErrorMessage(error, 'Não foi possível salvar seu perfil. Tente novamente.'),
@@ -663,7 +791,13 @@ export function TeacherProfileConfigPage() {
       <SiteHeader />
 
       <AnimatePresence>
-        {showSuccess && <SuccessToast onDismiss={() => setShowSuccess(false)} />}
+        {toast && (
+          <SuccessToast
+            titulo={toast.titulo}
+            detalhe={toast.detalhe}
+            onDismiss={() => setToast(null)}
+          />
+        )}
       </AnimatePresence>
 
       <main className="mx-auto w-full max-w-3xl flex-1 px-4 py-10 sm:px-6">
@@ -714,6 +848,102 @@ export function TeacherProfileConfigPage() {
               onRemove={handleAvatarRemove}
             />
           </FormSection>
+
+          {!ehAdmin && (
+            <FormSection
+              title="Certificado / Comprovação para dar aulas"
+              description="Envie seu diploma ou solicite uma conversa de avaliação com um administrador."
+            >
+              <div className="flex flex-col gap-3">
+                {certificadoNome ? (
+                  <p className="inline-flex items-center gap-2 text-sm text-sage-600 dark:text-emerald-400">
+                    <BadgeCheck className="size-4" />
+                    Certificado enviado{certificadoNome ? `: ${certificadoNome}` : ''}
+                  </p>
+                ) : solicitarConversa ? (
+                  <p className="inline-flex items-center gap-2 text-sm text-ocre-700 dark:text-ocre-200">
+                    <MessageSquareText className="size-4" />
+                    Conversa de avaliação solicitada com Admin
+                  </p>
+                ) : (
+                  <p className="inline-flex items-center gap-2 text-sm text-ink-600 dark:text-zinc-400">
+                    <AlertTriangle className="size-4 text-ocre-500" />
+                    Nenhum certificado enviado
+                  </p>
+                )}
+
+                {justificativaSalva && (
+                  <p className="whitespace-pre-line rounded-md border border-ocre-200 bg-ocre-50 p-3 text-sm text-ink-800 dark:border-ocre-500/20 dark:bg-ocre-500/5 dark:text-zinc-200">
+                    {justificativaSalva}
+                  </p>
+                )}
+
+                {comprovacaoErro && (
+                  <p className="text-xs font-medium text-alert-600 dark:text-alert-200">
+                    {comprovacaoErro}
+                  </p>
+                )}
+
+                <label className="inline-flex items-start gap-2 text-sm text-ink-700 dark:text-zinc-300">
+                  <input
+                    type="checkbox"
+                    checked={semCertificado}
+                    onChange={(event) => {
+                      setSemCertificado(event.target.checked)
+                      setComprovacaoErro(null)
+                    }}
+                    className="mt-0.5 size-4 shrink-0 rounded border-paper-300 text-ocre-500 focus:ring-ocre-400 dark:border-white/20 dark:bg-night-800"
+                  />
+                  Não possuo certificado — quero solicitar uma conversa com um administrador para
+                  avaliação
+                </label>
+
+                {semCertificado ? (
+                  <>
+                    <textarea
+                      value={justificativa}
+                      onChange={(event) => setJustificativa(event.target.value)}
+                      rows={4}
+                      placeholder="Explique brevemente sua experiência na matéria e informe os melhores dias, horários ou um contato para a conversa com o administrador."
+                      className="w-full rounded-md border border-paper-300 bg-white px-3 py-2 text-sm text-ink-900 outline-none focus:border-ocre-400 dark:border-white/10 dark:bg-night-800 dark:text-zinc-100"
+                    />
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      fullWidth={false}
+                      onClick={handleEnviarJustificativa}
+                      isLoading={enviandoComprovacao}
+                    >
+                      <MessageSquareText className="size-4" />
+                      {solicitarConversa
+                        ? 'Atualizar solicitação de conversa'
+                        : 'Solicitar conversa e enviar justificativa'}
+                    </Button>
+                  </>
+                ) : (
+                  <>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      fullWidth={false}
+                      onClick={() => certificadoInputRef.current?.click()}
+                      isLoading={enviandoComprovacao}
+                    >
+                      <Upload className="size-4" />
+                      {certificadoNome ? 'Trocar certificado' : 'Enviar certificado'}
+                    </Button>
+                    <input
+                      ref={certificadoInputRef}
+                      type="file"
+                      accept="image/png,image/jpeg"
+                      className="hidden"
+                      onChange={handleSelecionarCertificado}
+                    />
+                  </>
+                )}
+              </div>
+            </FormSection>
+          )}
 
           <FormSection title="Dados Pessoais" description="Informações de contato e apresentação.">
             <div className="flex flex-col gap-5">

@@ -7,7 +7,10 @@ import com.grupo.tfc.conectapro.dto.professor.PerfilProfessorRequest;
 import com.grupo.tfc.conectapro.dto.professor.ProfessorResumoResponse;
 import com.grupo.tfc.conectapro.model.AcaoAuditoria;
 import com.grupo.tfc.conectapro.model.Materia;
+import com.grupo.tfc.conectapro.dto.professor.StatusCadastroResponse;
 import com.grupo.tfc.conectapro.model.Professor;
+import com.grupo.tfc.conectapro.model.StatusComprovacao;
+import com.grupo.tfc.conectapro.model.StatusConta;
 import com.grupo.tfc.conectapro.model.TipoUsuario;
 import com.grupo.tfc.conectapro.model.Usuario;
 import com.grupo.tfc.conectapro.repository.EnderecoRepository;
@@ -24,6 +27,7 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.http.HttpStatus;
+import org.springframework.mock.web.MockMultipartFile;
 import org.springframework.web.server.ResponseStatusException;
 
 import java.math.BigDecimal;
@@ -215,6 +219,98 @@ class ProfessorServiceTest {
         List<ProfessorResumoResponse> resultado = professorService.listarProfessores(UUID.randomUUID());
 
         assertThat(resultado).extracting(ProfessorResumoResponse::name).containsExactly("Ana Paula Silva");
+    }
+
+    @Test
+    void enviarCertificado_professorAtivo_atualizaNome() {
+        usuarioProfessor.setStatusConta(StatusConta.ATIVO);
+        when(usuarioRepository.findById(usuarioId)).thenReturn(Optional.of(usuarioProfessor));
+        when(professorRepository.findByUsuarioId(usuarioId)).thenReturn(Optional.of(professorExistente));
+        when(professorRepository.save(any(Professor.class))).thenAnswer(invocation -> invocation.getArgument(0));
+        MockMultipartFile arquivo = new MockMultipartFile("file", "diploma.jpg", "image/jpeg", new byte[] {1, 2, 3});
+
+        professorService.enviarCertificado(usuarioId, arquivo);
+
+        assertThat(professorExistente.getCertificadoNome()).isEqualTo("diploma.jpg");
+        assertThat(professorExistente.getJustificativaSemCertificado()).isNull();
+        assertThat(professorExistente.getStatusComprovacao()).isEqualTo(StatusComprovacao.PENDENTE);
+        assertThat(professorExistente.isComprovacaoVerificada()).isFalse();
+        verify(armazenamentoS3Service).enviarCertificado(professorExistente.getId(), arquivo);
+        verify(usuarioRepository).save(usuarioProfessor);
+    }
+
+    @Test
+    void enviarCertificado_contaBanida_retorna403() {
+        usuarioProfessor.setStatusConta(StatusConta.BANIDO);
+        when(usuarioRepository.findById(usuarioId)).thenReturn(Optional.of(usuarioProfessor));
+
+        ResponseStatusException excecao = assertThrows(
+                ResponseStatusException.class,
+                () -> professorService.enviarCertificado(usuarioId, new MockMultipartFile("file", new byte[] {1}))
+        );
+
+        assertThat(excecao.getStatusCode()).isEqualTo(HttpStatus.FORBIDDEN);
+        verify(armazenamentoS3Service, never()).enviarCertificado(any(), any());
+    }
+
+    @Test
+    void enviarJustificativa_limpaCertificadoNomeERemoveArquivoDoS3() {
+        usuarioProfessor.setStatusConta(StatusConta.EM_ANALISE);
+        professorExistente.setCertificadoNome("diploma.png");
+        when(usuarioRepository.findById(usuarioId)).thenReturn(Optional.of(usuarioProfessor));
+        when(professorRepository.findByUsuarioId(usuarioId)).thenReturn(Optional.of(professorExistente));
+        when(professorRepository.save(any(Professor.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+        professorService.enviarJustificativa(usuarioId, "Tenho experiência e quero conversar com o administrador.");
+
+        assertThat(professorExistente.getCertificadoNome()).isNull();
+        assertThat(professorExistente.getJustificativaSemCertificado())
+                .isEqualTo("Tenho experiência e quero conversar com o administrador.");
+        verify(armazenamentoS3Service).removerCertificado(professorExistente.getId());
+    }
+
+    @Test
+    void reenviarParaAnalise_semCertificadoNemJustificativa_retorna400() {
+        usuarioProfessor.setStatusConta(StatusConta.REJEITADO);
+        when(usuarioRepository.findById(usuarioId)).thenReturn(Optional.of(usuarioProfessor));
+        when(professorRepository.findByUsuarioId(usuarioId)).thenReturn(Optional.of(professorExistente));
+
+        ResponseStatusException excecao = assertThrows(
+                ResponseStatusException.class,
+                () -> professorService.reenviarParaAnalise(usuarioId)
+        );
+
+        assertThat(excecao.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
+        assertThat(excecao.getReason()).isEqualTo(
+                "É obrigatório enviar o certificado ou solicitar uma conversa com o administrador antes de enviar para análise.");
+        verify(usuarioRepository, never()).save(any());
+    }
+
+    @Test
+    void statusCadastro_comJustificativaSemCertificado_marcaSolicitarConversaAdmin() {
+        usuarioProfessor.setStatusConta(StatusConta.EM_ANALISE);
+        professorExistente.setCertificadoNome(null);
+        professorExistente.setJustificativaSemCertificado("Quero uma conversa de avaliação com a equipe.");
+        when(usuarioRepository.findById(usuarioId)).thenReturn(Optional.of(usuarioProfessor));
+        when(professorRepository.findByUsuarioId(usuarioId)).thenReturn(Optional.of(professorExistente));
+
+        StatusCadastroResponse status = professorService.statusCadastro(usuarioId);
+
+        assertThat(status.certificadoEnviado()).isFalse();
+        assertThat(status.solicitarConversaAdmin()).isTrue();
+        assertThat(status.comprovacaoPendente()).isFalse();
+    }
+
+    @Test
+    void statusCadastro_semCertificadoNemJustificativa_marcaComprovacaoPendente() {
+        usuarioProfessor.setStatusConta(StatusConta.EM_ANALISE);
+        when(usuarioRepository.findById(usuarioId)).thenReturn(Optional.of(usuarioProfessor));
+        when(professorRepository.findByUsuarioId(usuarioId)).thenReturn(Optional.empty());
+
+        StatusCadastroResponse status = professorService.statusCadastro(usuarioId);
+
+        assertThat(status.solicitarConversaAdmin()).isFalse();
+        assertThat(status.comprovacaoPendente()).isTrue();
     }
 
     

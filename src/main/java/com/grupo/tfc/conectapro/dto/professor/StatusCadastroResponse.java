@@ -5,6 +5,8 @@ public record StatusCadastroResponse(
         boolean certificadoEnviado,
         String certificadoNome,
         String justificativaSemCertificado,
-        String motivoRejeicao
+        String motivoRejeicao,
+        boolean solicitarConversaAdmin,
+        boolean comprovacaoPendente
 ) {
 }

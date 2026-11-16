@@ -7,6 +7,8 @@ export type ProfessorPendente = {
   certificadoEnviado: boolean
   certificadoNome: string | null
   justificativaSemCertificado: string | null
+  solicitarConversaAdmin: boolean
+  statusConta: string
   cadastradoEm: string
 }
 

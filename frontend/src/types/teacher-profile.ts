@@ -86,6 +86,14 @@ export type TeacherProfilePayload = {
   }
   availability: Array<{ day: WeekDay; time: HourSlot | ShiftSlot }>
   advanceNoticeHours: number | null
+  certificadoEnviado?: boolean
+  certificadoNome?: string | null
+  justificativaSemCertificado?: string | null
+  solicitarConversaAdmin?: boolean
+  verificado?: boolean
+  tipoVerificacao?: 'CERTIFICADO' | 'ADMIN' | null
+  certificadoDisponivel?: boolean
+  statusComprovacao?: string | null
 }
 
 export type EnderecoCep = {

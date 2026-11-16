@@ -1,5 +1,6 @@
-import { BadgeCheck, MapPin } from 'lucide-react'
+import { MapPin } from 'lucide-react'
 import { Link } from 'react-router-dom'
+import { SeloVerificado } from '@/components/teacher/SeloVerificado'
 import { StarRating } from '@/components/ui/StarRating'
 import { formatDistance, formatModalities, formatRating } from '@/lib/formatTeacher'
 import type { Teacher } from '@/types/teacher'
@@ -30,11 +31,8 @@ export function TeacherResultCard({ teacher }: TeacherResultCardProps) {
         <div className="flex flex-col gap-1">
           <div className="flex flex-wrap items-center gap-2">
             <h3 className="font-semibold text-ink-900 dark:text-white">{teacher.name}</h3>
-            {teacher.verified && (
-              <span className="flex items-center gap-1 rounded-full border border-sage-600/20 bg-sage-50 px-2 py-0.5 text-xs font-medium text-sage-600 dark:border-emerald-800/50 dark:bg-emerald-900/30 dark:text-emerald-400">
-                <BadgeCheck className="size-3.5" />
-                Verificado
-              </span>
+            {(teacher.verified || teacher.verificado) && (
+              <SeloVerificado tipo={teacher.tipoVerificacao} />
             )}
           </div>
 

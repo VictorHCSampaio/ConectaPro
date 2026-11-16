@@ -146,6 +146,19 @@ export function CadastroStatusPage() {
                 </p>
               </div>
 
+              {status.status === 'EM_ANALISE' && status.comprovacaoPendente && (
+                <div className="mt-5 rounded-lg border border-ocre-300 bg-ocre-50 p-4 dark:border-ocre-500/30 dark:bg-ocre-500/10">
+                  <p className="text-sm font-semibold text-ocre-700 dark:text-ocre-200">
+                    Envio de comprovação obrigatório
+                  </p>
+                  <p className="mt-1 text-sm text-ink-800 dark:text-zinc-200">
+                    Para que os administradores avaliem seu perfil, você precisa enviar seu
+                    certificado/diploma. Caso não possua certificado, marque a opção abaixo para
+                    solicitar uma conversa de avaliação com um administrador.
+                  </p>
+                </div>
+              )}
+
               {rejeitado && status.motivoRejeicao && (
                 <div className="mt-5 rounded-lg border border-alert-200 bg-alert-50 p-4 dark:border-alert-200/30 dark:bg-alert-200/5">
                   <p className="text-xs font-semibold uppercase tracking-wide text-alert-600 dark:text-alert-200">
@@ -181,10 +194,10 @@ export function CadastroStatusPage() {
 
                 <p className="text-xs text-ink-600 dark:text-zinc-400">
                   O envio do certificado é obrigatório. Caso não possua um, marque a opção
-                  abaixo e explique o motivo. O administrador também analisará sua justificativa.
+                  abaixo para solicitar uma conversa de avaliação com um administrador.
                 </p>
 
-                <label className="inline-flex items-center gap-2 text-sm text-ink-700 dark:text-zinc-300">
+                <label className="inline-flex items-start gap-2 text-sm text-ink-700 dark:text-zinc-300">
                   <input
                     type="checkbox"
                     checked={semCertificado}
@@ -192,9 +205,10 @@ export function CadastroStatusPage() {
                       setSemCertificado(event.target.checked)
                       setError(null)
                     }}
-                    className="size-4 rounded border-paper-300 text-ocre-500 focus:ring-ocre-400 dark:border-white/20 dark:bg-night-800"
+                    className="mt-0.5 size-4 shrink-0 rounded border-paper-300 text-ocre-500 focus:ring-ocre-400 dark:border-white/20 dark:bg-night-800"
                   />
-                  Não tenho certificado
+                  Não possuo certificado — quero solicitar uma conversa com um administrador para
+                  avaliação
                 </label>
 
                 {semCertificado ? (
@@ -203,13 +217,13 @@ export function CadastroStatusPage() {
                       value={justificativa}
                       onChange={(event) => setJustificativa(event.target.value)}
                       rows={4}
-                      placeholder="Descreva sua experiência e o motivo de não possuir um certificado…"
+                      placeholder="Explique brevemente sua experiência na matéria e informe os melhores dias, horários ou um contato para a conversa com o administrador."
                       className="w-full rounded-md border border-paper-300 bg-white px-3 py-2 text-sm text-ink-900 outline-none focus:border-ocre-400 dark:border-white/10 dark:bg-night-800 dark:text-zinc-100"
                     />
-                    {status.justificativaSemCertificado && (
-                      <p className="inline-flex items-center gap-2 text-xs text-sage-600 dark:text-emerald-400">
-                        <MessageSquareText className="size-3.5" />
-                        Justificativa enviada para análise.
+                    {status.solicitarConversaAdmin && (
+                      <p className="inline-flex items-center gap-2 rounded-md border border-ocre-300 bg-ocre-50 px-3 py-2 text-xs font-medium text-ocre-700 dark:border-ocre-500/30 dark:bg-ocre-500/10 dark:text-ocre-200">
+                        <MessageSquareText className="size-3.5 shrink-0" />
+                        Conversa com administrador solicitada — Aguardando contato/avaliação da equipe.
                       </p>
                     )}
                     <Button
@@ -219,9 +233,9 @@ export function CadastroStatusPage() {
                       isLoading={enviando}
                     >
                       <MessageSquareText className="size-4" />
-                      {status.justificativaSemCertificado
-                        ? 'Atualizar justificativa'
-                        : 'Enviar justificativa'}
+                      {status.solicitarConversaAdmin
+                        ? 'Atualizar solicitação de conversa'
+                        : 'Solicitar conversa e enviar justificativa'}
                     </Button>
                   </>
                 ) : (
@@ -246,9 +260,22 @@ export function CadastroStatusPage() {
                 )}
 
                 {rejeitado && (
-                  <Button type="button" onClick={handleReenviar} isLoading={enviando}>
-                    Reenviar para análise
-                  </Button>
+                  <div className="flex flex-col gap-2">
+                    <Button
+                      type="button"
+                      onClick={handleReenviar}
+                      isLoading={enviando}
+                      disabled={status.comprovacaoPendente}
+                    >
+                      Reenviar para análise
+                    </Button>
+                    {status.comprovacaoPendente && (
+                      <p className="text-xs text-ink-600 dark:text-zinc-400">
+                        Envie o certificado ou solicite a conversa com o administrador antes de
+                        reenviar.
+                      </p>
+                    )}
+                  </div>
                 )}
               </div>
             </div>

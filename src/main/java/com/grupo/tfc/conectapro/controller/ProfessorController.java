@@ -2,6 +2,7 @@ package com.grupo.tfc.conectapro.controller;
 
 import com.grupo.tfc.conectapro.config.UsuarioAutenticado;
 import com.grupo.tfc.conectapro.dto.professor.AvatarResponse;
+import com.grupo.tfc.conectapro.dto.professor.CertificadoVisualizacaoResponse;
 import com.grupo.tfc.conectapro.dto.professor.JustificativaRequest;
 import com.grupo.tfc.conectapro.dto.professor.PerfilProfessorRequest;
 import com.grupo.tfc.conectapro.dto.professor.PerfilProfessorResponse;
@@ -45,6 +46,11 @@ public class ProfessorController {
   public ResponseEntity<PerfilProfessorResponse> meuPerfil() {
     UUID usuarioId = UsuarioAutenticado.exigirUsuarioId();
     return ResponseEntity.ok(professorService.buscarPerfil(usuarioId));
+  }
+
+  @GetMapping("/{id}/certificado")
+  public ResponseEntity<CertificadoVisualizacaoResponse> certificadoPublico(@PathVariable UUID id) {
+    return ResponseEntity.ok(professorService.visualizarCertificado(id));
   }
 
   @GetMapping("/{id}")

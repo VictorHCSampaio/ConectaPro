@@ -9,6 +9,8 @@ public record ProfessorPendenteResponse(
         boolean certificadoEnviado,
         String certificadoNome,
         String justificativaSemCertificado,
+        boolean solicitarConversaAdmin,
+        String statusConta,
         OffsetDateTime cadastradoEm
 ) {
 }

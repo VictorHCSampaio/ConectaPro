@@ -13,6 +13,14 @@ public record PerfilProfessorResponse(
         Double pricePerHour,
         EnderecoProfessorRequest address,
         List<DisponibilidadeRequest> availability,
-        Integer advanceNoticeHours
+        Integer advanceNoticeHours,
+        boolean certificadoEnviado,
+        String certificadoNome,
+        String justificativaSemCertificado,
+        boolean solicitarConversaAdmin,
+        boolean verificado,
+        String tipoVerificacao,
+        boolean certificadoDisponivel,
+        String statusComprovacao
 ) {
 }

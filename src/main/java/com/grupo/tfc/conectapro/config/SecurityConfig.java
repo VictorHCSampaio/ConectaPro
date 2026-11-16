@@ -52,7 +52,9 @@ public class SecurityConfig {
                         .requestMatchers("/health").permitAll()
                         .requestMatchers("/auth/register", "/auth/login", "/auth/2fa/verify").permitAll()
                         .requestMatchers("/auth/password-reset/**").permitAll()
-                        .requestMatchers(HttpMethod.GET, "/professores", "/professores/{id}").permitAll()
+                        .requestMatchers(HttpMethod.GET,
+                                "/professores", "/professores/{id}", "/professores/{id}/certificado")
+                        .permitAll()
                         .requestMatchers(HttpMethod.GET, "/materias", "/materias/{id}").permitAll()
                         .requestMatchers(HttpMethod.GET, "/enderecos/{cep}").permitAll()
                         .requestMatchers("/pagamentos/webhook/mercadopago").permitAll()
