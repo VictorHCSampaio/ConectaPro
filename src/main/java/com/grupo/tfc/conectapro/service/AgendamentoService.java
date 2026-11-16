@@ -1,6 +1,5 @@
 package com.grupo.tfc.conectapro.service;
 
-import com.grupo.tfc.conectapro.config.UsuarioAutenticado;
 import com.grupo.tfc.conectapro.dto.agendamento.AgendamentoResponse;
 import com.grupo.tfc.conectapro.dto.agendamento.AgendarRequest;
 import com.grupo.tfc.conectapro.dto.agendamento.HorarioDisponivelResponse;
