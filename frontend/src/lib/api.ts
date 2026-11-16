@@ -5,7 +5,7 @@ const IGNORED_UNAUTHORIZED_URLS = ['/auth/login', '/auth/logout', '/auth/2fa/ver
 let onUnauthorized: (() => void) | null = null
 const TOKEN_KEY = 'access_token'
 let accessToken: string | null = (() => {
-  try { return localStorage.getItem(TOKEN_KEY) } catch { return null }
+  try { return localStorage.getItem(TOKEN_KEY) ?? sessionStorage.getItem(TOKEN_KEY) } catch { return null }
 })()
 
 export const api = axios.create({
@@ -32,11 +32,18 @@ api.interceptors.response.use(
   },
 )
 
-export function setAccessToken(token: string | null) {
+export function setAccessToken(token: string | null, persist = true) {
   accessToken = token
   try {
-    if (token) localStorage.setItem(TOKEN_KEY, token)
-    else localStorage.removeItem(TOKEN_KEY)
+    if (token) {
+      const principal = persist ? localStorage : sessionStorage
+      const secundario = persist ? sessionStorage : localStorage
+      principal.setItem(TOKEN_KEY, token)
+      secundario.removeItem(TOKEN_KEY)
+    } else {
+      localStorage.removeItem(TOKEN_KEY)
+      sessionStorage.removeItem(TOKEN_KEY)
+    }
   } catch { /* private browsing */ }
 }
 

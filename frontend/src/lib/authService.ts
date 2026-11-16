@@ -11,19 +11,21 @@ import type {
 } from '@/types/auth'
 
 let preAuthToken: string | null = null
+let lembrarUsuario = true
 
 export async function registerUsuario(payload: RegisterRequestPayload) {
   const { data } = await api.post<TotpSetupResponse>('/auth/register', payload)
   return data
 }
 
-export async function loginUsuario(payload: LoginRequestPayload) {
+export async function loginUsuario(payload: LoginRequestPayload, lembrar = true) {
+  lembrarUsuario = lembrar
   const { data } = await api.post<LoginResponse>('/auth/login', payload)
 
   if (data.status === 'TOTP_REQUIRED' && data.token) {
     preAuthToken = data.token
   } else if (data.status === 'AUTHENTICATED' && data.token) {
-    setAccessToken(data.token)
+    setAccessToken(data.token, lembrar)
     preAuthToken = null
   }
 
@@ -36,7 +38,7 @@ export async function verificarTotp(payload: TotpVerifyPayload) {
   })
 
   if (data.status === 'AUTHENTICATED' && data.token) {
-    setAccessToken(data.token)
+    setAccessToken(data.token, lembrarUsuario)
     preAuthToken = null
   }
 

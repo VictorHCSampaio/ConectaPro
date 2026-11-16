@@ -54,7 +54,10 @@ export function LoginForm() {
   const onSubmit = handleSubmit(async (formValues) => {
     setSubmitError(null)
     try {
-      const response = await loginUsuario({ email: formValues.email, senha: formValues.password })
+      const response = await loginUsuario(
+        { email: formValues.email, senha: formValues.password },
+        formValues.rememberMe,
+      )
 
       if (response.status === 'TOTP_REQUIRED') {
         setTotpStep(true)
