@@ -27,11 +27,13 @@ import { Radio } from '@/components/ui/Radio'
 import { SiteFooter } from '@/components/landing/SiteFooter'
 import { SiteHeader } from '@/components/landing/SiteHeader'
 import { useAuth } from '@/hooks/useAuth'
+import { ehContaAdmin } from '@/types/auth'
 import { extractErrorMessage } from '@/lib/api'
 import { ativarTotp, obterConfigTotp, obterStatusTotp } from '@/lib/authService'
 import { buscarEnderecoPorCep } from '@/lib/enderecoService'
 import { cn } from '@/lib/cn'
 import { maskCep } from '@/lib/masks'
+import { chaveUsuarioCache, gravarPerfilProfessor } from '@/lib/perfilCache'
 import {
   buscarPerfilProfessor,
   enviarAvatarProfessor,
@@ -82,7 +84,7 @@ function parseCurrencyToFloat(formatted: string): number {
 const BIO_MIN = 50
 const BIO_MAX = 500
 
-function validateProfile(data: TeacherProfileFormData): TeacherProfileErrors {
+function validateProfile(data: TeacherProfileFormData, incluirEnsino = true): TeacherProfileErrors {
   const errors: TeacherProfileErrors = {}
 
   if (!data.fullName.trim()) {
@@ -105,11 +107,11 @@ function validateProfile(data: TeacherProfileFormData): TeacherProfileErrors {
     errors.bio = `Mínimo ${BIO_MIN} caracteres (faltam ${BIO_MIN - bioLength})`
   }
 
-  if (data.subjects.length === 0) {
+  if (incluirEnsino && data.subjects.length === 0) {
     errors.subjects = 'Adicione ao menos uma matéria'
   }
 
-  if (!parseCurrencyToFloat(data.pricePerHour)) {
+  if (incluirEnsino && !parseCurrencyToFloat(data.pricePerHour)) {
     errors.pricePerHour = 'Informe um valor por aula'
   }
 
@@ -133,15 +135,28 @@ const TEACHING_MODEL_MAP: Record<string, ApiTeachingModel> = {
   instituicoes: 'INSTITUICOES',
 }
 
-function buildPayload(data: TeacherProfileFormData): TeacherProfilePayload {
+const MATERIA_ADMIN_PADRAO = {
+  id: 'perfil-administrativo',
+  name: 'Perfil administrativo',
+  observation: '',
+  level: 'Iniciante' as const,
+}
+
+function buildPayload(data: TeacherProfileFormData, contaAdmin = false): TeacherProfilePayload {
   const hours = data.advanceNoticeHours ? parseInt(data.advanceNoticeHours, 10) : null
+  const subjects = contaAdmin && data.subjects.length === 0 ? [MATERIA_ADMIN_PADRAO] : data.subjects
+  const modalities = data.modalities.length > 0 ? data.modalities : ['online' as const]
   return {
     fullName: data.fullName.trim(),
     phone: data.phone,
     bio: data.bio.trim(),
-    subjects: data.subjects,
-    teachingModel: data.teachingModel ? TEACHING_MODEL_MAP[data.teachingModel] : null,
-    modalities: data.modalities.map((modality) => MODALITY_MAP[modality]),
+    subjects,
+    teachingModel: data.teachingModel
+      ? TEACHING_MODEL_MAP[data.teachingModel]
+      : contaAdmin
+        ? 'PARTICULARES'
+        : null,
+    modalities: modalities.map((modality) => MODALITY_MAP[modality]),
     pricePerHour: parseCurrencyToFloat(data.pricePerHour),
     address: {
       cep: data.address.cep.replace(/\D/g, ''),
@@ -454,7 +469,7 @@ function SecuritySection() {
 export function TeacherProfileConfigPage() {
   const bioId = useId()
   const prevAvatarUrlRef = useRef<string | null>(null)
-  const { user } = useAuth()
+  const { user, updateUser } = useAuth()
 
   const [form, setForm] = useState<TeacherProfileFormData>(() => ({
     ...INITIAL_FORM,
@@ -505,8 +520,10 @@ export function TeacherProfileConfigPage() {
     return touched[field] || submitted ? errors[field] : undefined
   }
 
+  const ehAdmin = ehContaAdmin(user)
+
   function revalidate(next: TeacherProfileFormData) {
-    setErrors(validateProfile(next))
+    setErrors(validateProfile(next, !ehAdmin))
   }
 
   function handleAvatarSelect(file: File, previewUrl: string) {
@@ -598,7 +615,7 @@ export function TeacherProfileConfigPage() {
     event.preventDefault()
     setSubmitted(true)
 
-    const currentErrors = validateProfile(form)
+    const currentErrors = validateProfile(form, !ehAdmin)
     setErrors(currentErrors)
 
     if (Object.keys(currentErrors).length > 0) {
@@ -610,7 +627,7 @@ export function TeacherProfileConfigPage() {
     setIsSubmitting(true)
     setSubmitError(null)
     try {
-      const saved = await salvarPerfilProfessor(buildPayload(form))
+      const saved = await salvarPerfilProfessor(buildPayload(form, ehAdmin))
 
       let avatarUrl = saved.avatarUrl ?? null
       if (form.avatarFile) {
@@ -625,7 +642,10 @@ export function TeacherProfileConfigPage() {
         prevAvatarUrlRef.current = null
       }
 
-      setForm(buildFormFromPayload({ ...saved, avatarUrl }))
+      const perfilAtualizado = { ...saved, avatarUrl }
+      setForm(buildFormFromPayload(perfilAtualizado))
+      gravarPerfilProfessor(chaveUsuarioCache(), perfilAtualizado)
+      updateUser({ avatarUrl })
 
       setShowSuccess(true)
       setTimeout(() => setShowSuccess(false), 5000)
@@ -660,8 +680,15 @@ export function TeacherProfileConfigPage() {
           <h1 className="mt-2 text-3xl font-semibold tracking-tight text-ink-900 dark:text-white">
             Configurar Perfil
           </h1>
+          {ehAdmin && (
+            <span className="mt-3 inline-flex w-fit items-center rounded-full border border-ocre-400/40 bg-ocre-50 px-2.5 py-1 text-xs font-semibold text-ocre-700 dark:bg-ocre-400/10 dark:text-ocre-300">
+              Administrador
+            </span>
+          )}
           <p className="mt-1 text-sm text-ink-600 dark:text-zinc-400">
-            Mantenha seus dados atualizados para aparecer nos resultados de busca.
+            {ehAdmin
+              ? 'Atualize nome, biografia e foto do perfil administrativo.'
+              : 'Mantenha seus dados atualizados para aparecer nos resultados de busca.'}
           </p>
 
           {isLoading && (
@@ -675,7 +702,11 @@ export function TeacherProfileConfigPage() {
         <form onSubmit={handleSubmit} noValidate className="flex flex-col gap-6">
           <FormSection
             title="Foto de Perfil"
-            description="Uma boa foto aumenta a confiança dos alunos."
+            description={
+              ehAdmin
+                ? 'Foto do perfil administrativo.'
+                : 'Uma boa foto aumenta a confiança dos alunos.'
+            }
           >
             <AvatarUpload
               previewUrl={form.avatarPreviewUrl}
@@ -718,7 +749,11 @@ export function TeacherProfileConfigPage() {
               <TextareaField
                 id={bioId}
                 label="Biografia / Sobre Mim"
-                placeholder="Apresente-se: sua formação, experiência, metodologia de ensino e o que te diferencia como professor..."
+                placeholder={
+                  ehAdmin
+                    ? 'Apresente a conta administrativa.'
+                    : 'Apresente-se: sua formação, experiência, metodologia de ensino e o que te diferencia como professor...'
+                }
                 value={form.bio}
                 maxLength={BIO_MAX}
                 rows={6}
@@ -733,6 +768,7 @@ export function TeacherProfileConfigPage() {
             </div>
           </FormSection>
 
+          {!ehAdmin && (
           <FormSection
             title="Informações Didáticas"
             description="O que, como e por quanto você ensina."
@@ -841,6 +877,7 @@ export function TeacherProfileConfigPage() {
               />
             </div>
           </FormSection>
+          )}
 
           <FormSection
             title="Localização"
@@ -935,13 +972,16 @@ export function TeacherProfileConfigPage() {
             </div>
           </FormSection>
 
+          {!ehAdmin && (
           <FormSection
             title="Disponibilidade"
             description="Selecione os dias e turnos em que você costuma dar aulas."
           >
             <AvailabilityGrid selected={form.availability} onToggle={toggleAvailability} />
           </FormSection>
+          )}
 
+          {!ehAdmin && (
           <FormSection
             title="Antecedência para Agendamento"
             description="Defina o tempo mínimo de antecedência que o aluno deve ter para marcar uma aula."
@@ -965,6 +1005,7 @@ export function TeacherProfileConfigPage() {
               </p>
             </div>
           </FormSection>
+          )}
 
           <SecuritySection />
 

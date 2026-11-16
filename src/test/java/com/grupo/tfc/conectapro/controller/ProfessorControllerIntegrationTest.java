@@ -1,5 +1,7 @@
 package com.grupo.tfc.conectapro.controller;
 
+import com.grupo.tfc.conectapro.model.Professor;
+import com.grupo.tfc.conectapro.model.StatusConta;
 import com.grupo.tfc.conectapro.model.TipoUsuario;
 import com.grupo.tfc.conectapro.model.Usuario;
 import com.grupo.tfc.conectapro.repository.EnderecoRepository;
@@ -21,7 +23,11 @@ import org.springframework.web.context.WebApplicationContext;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.security.test.web.servlet.setup.SecurityMockMvcConfigurers.springSecurity;
+import static org.hamcrest.Matchers.containsString;
+import static org.hamcrest.Matchers.not;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 @SpringBootTest
@@ -105,6 +111,37 @@ class ProfessorControllerIntegrationTest {
 
         // Assert — nenhum perfil de professor criado no banco
         assertThat(professorRepository.findByUsuarioId(aluno.getId())).isEmpty();
+    }
+
+    @Test
+    void listar_naoIncluiContaAdmin() throws Exception {
+        Usuario professor = usuarioRepository.save(Usuario.builder()
+                .nomeCompleto("Professor Visivel")
+                .email("visivel." + System.nanoTime() + "@conectapro.com")
+                .tipo(TipoUsuario.PROFESSOR)
+                .statusConta(StatusConta.ATIVO)
+                .admin(false)
+                .build());
+        Professor perfilProfessor = new Professor();
+        perfilProfessor.setUsuario(professor);
+        perfilProfessor = professorRepository.save(perfilProfessor);
+
+        Usuario admin = usuarioRepository.save(Usuario.builder()
+                .nomeCompleto("Admin Oculto")
+                .email("oculto." + System.nanoTime() + "@conectapro.com")
+                .tipo(TipoUsuario.PROFESSOR)
+                .statusConta(StatusConta.ATIVO)
+                .admin(true)
+                .build());
+        Professor perfilAdmin = new Professor();
+        perfilAdmin.setUsuario(admin);
+        perfilAdmin = professorRepository.save(perfilAdmin);
+
+        mockMvc.perform(get("/professores"))
+                .andExpect(status().isOk())
+                .andExpect(content().string(containsString(perfilProfessor.getId().toString())))
+                .andExpect(content().string(not(containsString(perfilAdmin.getId().toString()))))
+                .andExpect(content().string(not(containsString(admin.getId().toString()))));
     }
 
 

@@ -6,6 +6,7 @@ import { SiteFooter } from '@/components/landing/SiteFooter'
 import { SiteHeader } from '@/components/landing/SiteHeader'
 import { Button } from '@/components/ui/Button'
 import { useAuth } from '@/hooks/useAuth'
+import { ehContaAdmin } from '@/types/auth'
 import { extractErrorMessage } from '@/lib/api'
 import {
   aprovarAgendamento,
@@ -52,7 +53,10 @@ function StatusChip({ status }: { status: AgendamentoStatus }) {
 function ChatDaAula({ agendamento, nome }: { agendamento: Agendamento; nome: string }) {
   const { user } = useAuth()
   const navigate = useNavigate()
-  const alvoId = user?.role === 'PROFESSOR' ? agendamento.alunoUsuarioId : agendamento.professorUsuarioId
+  const alvoId =
+    user?.role === 'PROFESSOR' && !ehContaAdmin(user)
+      ? agendamento.alunoUsuarioId
+      : agendamento.professorUsuarioId
 
   if (!alvoId) return null
 
@@ -546,5 +550,6 @@ function TeacherBookingsView() {
 
 export function AgendamentosPage() {
   const { user } = useAuth()
-  return user?.role === 'PROFESSOR' ? <TeacherBookingsView /> : <StudentBookingsView />
+  const ehProfessor = user?.role === 'PROFESSOR' && !ehContaAdmin(user)
+  return ehProfessor ? <TeacherBookingsView /> : <StudentBookingsView />
 }

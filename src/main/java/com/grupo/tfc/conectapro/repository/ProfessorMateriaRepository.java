@@ -11,7 +11,8 @@ import java.util.List;
 import java.util.UUID;
 
 public interface ProfessorMateriaRepository extends JpaRepository<ProfessorMateria, UUID> {
-    List<ProfessorMateria> findByProfessorId(UUID professorId);
+    @Query("SELECT pm FROM ProfessorMateria pm JOIN FETCH pm.materia WHERE pm.professor.id = :professorId")
+    List<ProfessorMateria> findByProfessorId(@Param("professorId") UUID professorId);
 
     @Query("SELECT pm FROM ProfessorMateria pm JOIN FETCH pm.materia WHERE pm.professor.id IN :ids")
     List<ProfessorMateria> findByProfessorIdIn(@Param("ids") Collection<UUID> ids);

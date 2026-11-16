@@ -6,9 +6,11 @@ import com.grupo.tfc.conectapro.dto.auth.LoginResponse;
 import com.grupo.tfc.conectapro.dto.auth.RegisterRequest;
 import com.grupo.tfc.conectapro.dto.auth.TotpConfiguracaoResponse;
 import com.grupo.tfc.conectapro.model.AcaoAuditoria;
+import com.grupo.tfc.conectapro.model.Professor;
 import com.grupo.tfc.conectapro.model.StatusConta;
 import com.grupo.tfc.conectapro.model.TipoUsuario;
 import com.grupo.tfc.conectapro.model.Usuario;
+import com.grupo.tfc.conectapro.repository.ProfessorRepository;
 import com.grupo.tfc.conectapro.repository.UsuarioRepository;
 import com.auth0.jwt.interfaces.DecodedJWT;
 import org.slf4j.Logger;
@@ -35,16 +37,19 @@ public class AuthenticationService {
     private final AuditoriaService auditoriaService;
     private final JwtService jwtService;
     private final SecurityAuthenticationProperties authProperties;
+    private final ProfessorRepository professorRepository;
 
     public AuthenticationService(UsuarioRepository usuarioRepository, TotpService totpService,
                                  SenhaService senhaService, AuditoriaService auditoriaService,
-                                 JwtService jwtService, SecurityAuthenticationProperties authProperties) {
+                                 JwtService jwtService, SecurityAuthenticationProperties authProperties,
+                                 ProfessorRepository professorRepository) {
         this.usuarioRepository = usuarioRepository;
         this.totpService = totpService;
         this.senhaService = senhaService;
         this.auditoriaService = auditoriaService;
         this.jwtService = jwtService;
         this.authProperties = authProperties;
+        this.professorRepository = professorRepository;
     }
 
     public TotpConfiguracaoResponse register(RegisterRequest request) {
@@ -52,9 +57,8 @@ public class AuthenticationService {
             throw new ResponseStatusException(BAD_REQUEST, "Email ja cadastrado");
         });
 
-        String secret = totpService.gerarSegredo();
-
         TipoUsuario tipo = resolverTipo(request.role());
+        String secret = totpService.gerarSegredo();
 
         Usuario usuario = Usuario.builder()
                 .nomeCompleto(request.nome())
@@ -81,11 +85,38 @@ public class AuthenticationService {
         if (role == null || role.isBlank()) {
             return TipoUsuario.ALUNO;
         }
-        try {
-            return TipoUsuario.valueOf(role.trim().toUpperCase());
-        } catch (IllegalArgumentException exception) {
+        String normalizado = role.trim().toUpperCase();
+        if ("ADMIN".equals(normalizado)) {
             throw new ResponseStatusException(BAD_REQUEST, "Tipo de usuário inválido");
         }
+        if (!"ALUNO".equals(normalizado) && !"PROFESSOR".equals(normalizado)) {
+            throw new ResponseStatusException(BAD_REQUEST, "Tipo de usuário inválido");
+        }
+        return TipoUsuario.valueOf(normalizado);
+    }
+
+    private LoginResponse sessaoAutenticada(Usuario usuario) {
+        boolean admin = usuario.administrador();
+        String papel = admin ? TipoUsuario.ADMIN.name() : usuario.getTipo().name();
+        TipoUsuario tipo = admin ? TipoUsuario.ADMIN : usuario.getTipo();
+        String token = jwtService.gerarToken(usuario.getId(), papel, admin);
+        return LoginResponse.authenticated(
+                token, usuario.getNomeCompleto(), tipo, admin, usuario.getStatusConta(), resolverAvatar(usuario));
+    }
+
+    public String resolverAvatar(Usuario usuario) {
+        String doProfessor = professorRepository.findByUsuarioId(usuario.getId())
+                .map(Professor::getAvatarUrl)
+                .filter(url -> url != null && !url.isBlank())
+                .orElse(null);
+        if (doProfessor != null) {
+            return doProfessor;
+        }
+        String doUsuario = usuario.getAvatarUrl();
+        if (doUsuario == null || doUsuario.isBlank()) {
+            return null;
+        }
+        return doUsuario;
     }
 
     public LoginResponse login(String email, String senha) {
@@ -123,10 +154,9 @@ public class AuthenticationService {
             return LoginResponse.totpRequired(preAuthToken);
         }
 
-        String token = jwtService.gerarToken(usuario.getId(), usuario.getTipo().name(), usuario.isAdmin());
         logger.info("Login realizado com sucesso");
         auditoriaService.registrar(AcaoAuditoria.LOGIN_SUCESSO, usuario.getId(), "USUARIO", usuario.getId().toString(), null);
-        return LoginResponse.authenticated(token, usuario.getNomeCompleto(), usuario.getTipo(), usuario.isAdmin(), usuario.getStatusConta());
+        return sessaoAutenticada(usuario);
     }
 
     private void verificarBloqueio(Usuario usuario) {
@@ -193,11 +223,10 @@ public class AuthenticationService {
             throw new ResponseStatusException(UNAUTHORIZED, "Código TOTP inválido");
         }
 
-        String token = jwtService.gerarToken(usuario.getId(), usuario.getTipo().name(), usuario.isAdmin());
         logger.info("TOTP verificado com sucesso. usuarioId={}", usuario.getId());
         auditoriaService.registrar(AcaoAuditoria.TOTP_VERIFICADO, usuario.getId(), "USUARIO", usuario.getId().toString(), null);
         auditoriaService.registrar(AcaoAuditoria.LOGIN_SUCESSO, usuario.getId(), "USUARIO", usuario.getId().toString(), "login com 2FA");
-        return LoginResponse.authenticated(token, usuario.getNomeCompleto(), usuario.getTipo(), usuario.isAdmin(), usuario.getStatusConta());
+        return sessaoAutenticada(usuario);
     }
 
     public void ativarTotp(UUID usuarioId, int totpCode) {

@@ -103,6 +103,10 @@ public class AgendamentoService {
             throw new ResponseStatusException(BAD_REQUEST, "Não é possível agendar com você mesmo");
         }
 
+        if (professor.getUsuario().administrador()) {
+            throw new ResponseStatusException(NOT_FOUND, "Professor não encontrado");
+        }
+
         OffsetDateTime dataHoraInicio = request.dataHoraInicio();
         ZonedDateTime zdtBrasil = dataHoraInicio.atZoneSameInstant(FUSO_BRASIL);
         String dia = DIA_SIGLA.get(zdtBrasil.getDayOfWeek());

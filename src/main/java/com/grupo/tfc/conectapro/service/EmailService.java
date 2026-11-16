@@ -143,10 +143,19 @@ public class EmailService {
     }
 
     private String rotuloPerfil(Usuario usuario) {
-        if (usuario == null || usuario.getTipo() == null) {
+        if (usuario == null) {
             return null;
         }
-        return usuario.getTipo() == TipoUsuario.ALUNO ? "Aluno" : "Professor";
+        if (usuario.administrador() || usuario.getTipo() == TipoUsuario.ADMIN) {
+            return "Administrador";
+        }
+        if (usuario.getTipo() == null) {
+            return null;
+        }
+        if (usuario.getTipo() == TipoUsuario.ALUNO) {
+            return "Aluno";
+        }
+        return "Professor";
     }
 
     private String rotuloMotivo(MotivoDenuncia motivo) {

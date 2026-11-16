@@ -25,4 +25,7 @@ public interface UsuarioRepository extends JpaRepository<Usuario, UUID> {
 
     @Query("select u.id from Usuario u where u.criadoEm is null")
     List<UUID> findIdsComCriadoEmNulo();
+
+    @Query("select min(u.criadoEm) from Usuario u")
+    OffsetDateTime buscarMenorCriadoEm();
 }

@@ -1,5 +1,6 @@
 package com.grupo.tfc.conectapro.config;
 
+import com.grupo.tfc.conectapro.model.TipoUsuario;
 import com.grupo.tfc.conectapro.model.Usuario;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
@@ -12,7 +13,7 @@ import java.util.UUID;
 
 /**
  * Adapta o usuário autenticado para o Spring Security.
- * O papel de administrador sai exclusivamente do booleano {@code isAdmin}.
+ * Administrador é quem tem {@code isAdmin} ou {@code tipo == ADMIN}, e a authority é {@code ROLE_ADMIN}.
  */
 public final class UsuarioUserDetails implements UserDetails {
 
@@ -27,8 +28,16 @@ public final class UsuarioUserDetails implements UserDetails {
     }
 
     public static UsuarioUserDetails from(Usuario usuario) {
-        String role = usuario.getTipo() == null ? null : usuario.getTipo().name();
-        return new UsuarioUserDetails(usuario.getId(), role, usuario.isAdmin());
+        boolean contaAdmin = usuario.administrador();
+        String role;
+        if (contaAdmin) {
+            role = TipoUsuario.ADMIN.name();
+        } else if (usuario.getTipo() == null) {
+            role = null;
+        } else {
+            role = usuario.getTipo().name();
+        }
+        return new UsuarioUserDetails(usuario.getId(), role, contaAdmin);
     }
 
     @Override
@@ -39,7 +48,7 @@ public final class UsuarioUserDetails implements UserDetails {
         } else {
             authorities.add(new SimpleGrantedAuthority("ROLE_USER"));
         }
-        if (admin) {
+        if (admin && !"ADMIN".equals(role)) {
             authorities.add(new SimpleGrantedAuthority("ROLE_ADMIN"));
         }
         return List.copyOf(authorities);

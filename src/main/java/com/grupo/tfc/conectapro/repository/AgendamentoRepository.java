@@ -2,6 +2,7 @@ package com.grupo.tfc.conectapro.repository;
 
 import com.grupo.tfc.conectapro.model.Agendamento;
 import com.grupo.tfc.conectapro.model.StatusAgendamento;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -23,6 +24,15 @@ public interface AgendamentoRepository extends JpaRepository<Agendamento, UUID> 
 
     List<Agendamento> findTop5ByOrderByCriadoEmDesc();
 
+    @Query("""
+            select agendamento from Agendamento agendamento
+            join fetch agendamento.aluno
+            join fetch agendamento.professor professor
+            join fetch professor.usuario
+            order by agendamento.criadoEm desc
+            """)
+    List<Agendamento> buscarUltimasComParticipantes(Pageable pageable);
+
     long countByStatusAndCriadoEmGreaterThanEqualAndCriadoEmLessThan(
             StatusAgendamento status, OffsetDateTime inicio, OffsetDateTime fim);
 
@@ -36,4 +46,9 @@ public interface AgendamentoRepository extends JpaRepository<Agendamento, UUID> 
     List<Agendamento> buscarPorStatusComParticipantes(@Param("status") StatusAgendamento status);
 
     List<Agendamento> findByAlunoIdOrderByCriadoEmDesc(UUID alunoId);
+
+    long countByAlunoIdAndStatus(UUID alunoId, StatusAgendamento status);
+
+    @Query("select min(a.criadoEm) from Agendamento a")
+    OffsetDateTime buscarMenorCriadoEm();
 }

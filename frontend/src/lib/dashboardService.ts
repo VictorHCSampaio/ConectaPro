@@ -37,6 +37,29 @@ export type DashboardResumo = {
   atividadesRecentes: AtividadeRecente[]
 }
 
+const PERIODO_DESDE_O_INICIO = 0
+
+const resumosEmCache = new Map<number, DashboardResumo>()
+
+export function chavePeriodoDashboard(dias: number): number {
+  if (dias <= 0) {
+    return PERIODO_DESDE_O_INICIO
+  }
+  return dias
+}
+
+export function lerResumoDashboard(dias: number): DashboardResumo | null {
+  return resumosEmCache.get(chavePeriodoDashboard(dias)) ?? null
+}
+
+export function gravarResumoDashboard(dias: number, resumo: DashboardResumo) {
+  resumosEmCache.set(chavePeriodoDashboard(dias), resumo)
+}
+
+export function limparCacheDashboard() {
+  resumosEmCache.clear()
+}
+
 export async function obterResumoDashboard(dias: number): Promise<DashboardResumo> {
   const token = getAccessToken()
   const { data } = await api.get<DashboardResumo>('/dashboard/resumo', {

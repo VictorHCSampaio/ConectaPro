@@ -15,9 +15,11 @@ import {
 import { useState } from 'react'
 import { Link, NavLink, useNavigate } from 'react-router-dom'
 import { Brand } from '@/components/Brand'
+import { UserAvatar } from '@/components/ui/UserAvatar'
 import { NavDropdown } from '@/components/landing/NavDropdown'
 import { SininhoNotificacoes } from '@/components/notificacoes/SininhoNotificacoes'
 import { useAuth } from '@/hooks/useAuth'
+import { ehContaAdmin, type UserRole } from '@/types/auth'
 import { useNotificacoes } from '@/hooks/useNotificacoes'
 import { useTheme } from '@/contexts/ThemeContext'
 import { cn } from '@/lib/cn'
@@ -36,12 +38,24 @@ const NAV_LINK_CLASS =
 const DROPDOWN_ITEM_CLASS =
   'flex w-full items-center gap-2 px-3 py-2 text-left text-sm text-ink-700 transition-colors hover:bg-paper-100 hover:text-ink-900 dark:text-zinc-300 dark:hover:bg-white/5 dark:hover:text-white'
 
-function iniciais(nome?: string) {
-  if (!nome) return '?'
-  const partes = nome.trim().split(/\s+/)
-  const primeira = partes[0]?.[0] ?? ''
-  const ultima = partes.length > 1 ? (partes.at(-1)?.[0] ?? '') : ''
-  return (primeira + ultima).toUpperCase() || '?'
+function rotuloConta(role: UserRole | null | undefined, isAdmin?: boolean) {
+  if (ehContaAdmin({ role, isAdmin })) {
+    return 'Administrador'
+  }
+  if (role === 'PROFESSOR') {
+    return 'Professor'
+  }
+  if (role === 'ALUNO') {
+    return 'Aluno'
+  }
+  return null
+}
+
+function rotuloAulas(role: UserRole | null | undefined, isAdmin?: boolean) {
+  if (role === 'PROFESSOR' && !isAdmin) {
+    return 'Aulas recebidas'
+  }
+  return 'Minhas aulas'
 }
 
 export function SiteHeader() {
@@ -63,9 +77,9 @@ export function SiteHeader() {
 
   return (
     <header className="sticky top-0 z-40 border-b border-paper-200 bg-paper-50/85 backdrop-blur-sm transition-colors duration-300 dark:border-white/10 dark:bg-night-900/80 dark:backdrop-blur-md">
-      <div className="mx-auto flex h-16 max-w-6xl items-center justify-between px-4 sm:px-6">
-        <Link to="/" onClick={closeMenu}>
-          <Brand />
+      <div className="mx-auto flex h-16 max-w-6xl items-center justify-between gap-2 px-4 sm:gap-3 sm:px-6">
+        <Link to="/" onClick={closeMenu} className="min-w-0 shrink">
+          <Brand administrador={ehContaAdmin(user)} />
         </Link>
 
         <nav className="hidden items-center gap-1 text-sm md:flex">
@@ -124,7 +138,7 @@ export function SiteHeader() {
 
               <Link to="/aulas" className={NAV_LINK_CLASS}>
                 <CalendarDays className="size-4" />
-                {user?.role === 'PROFESSOR' ? 'Aulas recebidas' : 'Minhas aulas'}
+                {rotuloAulas(user?.role, user?.isAdmin)}
               </Link>
 
               <button
@@ -143,9 +157,11 @@ export function SiteHeader() {
                 triggerClassName="flex items-center gap-1 rounded-full pl-0.5 outline-none transition-opacity hover:opacity-90 focus-visible:ring-2 focus-visible:ring-ocre-400"
                 trigger={
                   <>
-                    <span className="flex size-9 items-center justify-center rounded-full bg-ink-800 text-xs font-semibold text-paper-50 dark:bg-white/10 dark:text-white">
-                      {iniciais(user?.name)}
-                    </span>
+                    <UserAvatar
+                      name={user?.name}
+                      src={user?.avatarUrl}
+                      className="size-9 border border-paper-300 text-xs dark:border-white/15"
+                    />
                     <ChevronDown className="size-4 text-ink-500 dark:text-zinc-500" />
                   </>
                 }
@@ -156,9 +172,9 @@ export function SiteHeader() {
                       <p className="truncate text-sm font-semibold text-ink-900 dark:text-white">
                         {user?.name}
                       </p>
-                      {user?.role && (
+                      {rotuloConta(user?.role, user?.isAdmin) && (
                         <p className="text-xs text-ink-500 dark:text-zinc-500">
-                          {user.role === 'PROFESSOR' ? 'Professor' : 'Aluno'}
+                          {rotuloConta(user?.role, user?.isAdmin)}
                         </p>
                       )}
                     </div>
@@ -291,7 +307,7 @@ export function SiteHeader() {
                   className="flex items-center justify-center gap-2 rounded-md border border-paper-300 bg-white dark:border-white/10 dark:bg-night-700 px-3 py-2.5 text-center text-ink-800 dark:text-zinc-100"
                 >
                   <CalendarDays className="size-4" />
-                  {user?.role === 'PROFESSOR' ? 'Aulas recebidas' : 'Minhas aulas'}
+                  {rotuloAulas(user?.role, user?.isAdmin)}
                 </Link>
                 {isAuthenticated && (
                   <Link

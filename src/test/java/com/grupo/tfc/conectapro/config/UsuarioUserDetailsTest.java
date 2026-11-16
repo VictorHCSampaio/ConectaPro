@@ -21,12 +21,22 @@ class UsuarioUserDetailsTest {
     }
 
     @Test
-    void getAuthorities_quandoEhAdmin_incluiRoleAdmin() {
+    void getAuthorities_quandoEhAdmin_autenticaSomenteComoRoleAdmin() {
         Usuario usuario = usuario(true);
 
         assertThat(UsuarioUserDetails.from(usuario).getAuthorities())
                 .extracting(GrantedAuthority::getAuthority)
-                .containsExactlyInAnyOrder("ROLE_ALUNO", "ROLE_ADMIN");
+                .containsExactly("ROLE_ADMIN");
+    }
+
+    @Test
+    void getAuthorities_quandoTipoEhAdmin_autenticaComoRoleAdmin() {
+        Usuario usuario = usuario(false);
+        usuario.setTipo(TipoUsuario.ADMIN);
+
+        assertThat(UsuarioUserDetails.from(usuario).getAuthorities())
+                .extracting(GrantedAuthority::getAuthority)
+                .containsExactly("ROLE_ADMIN");
     }
 
     @Test

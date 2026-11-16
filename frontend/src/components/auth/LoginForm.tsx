@@ -11,7 +11,7 @@ import { useForm } from '@/hooks/useForm'
 import { extractErrorMessage } from '@/lib/api'
 import { loginUsuario, verificarTotp } from '@/lib/authService'
 import { validateLoginForm } from '@/lib/validation'
-import type { LoginFormValues, StatusConta, UserRole } from '@/types/auth'
+import { ehContaAdmin, type LoginFormValues, type StatusConta, type UserRole } from '@/types/auth'
 
 const INITIAL_VALUES: LoginFormValues = {
   email: '',
@@ -19,10 +19,19 @@ const INITIAL_VALUES: LoginFormValues = {
   rememberMe: false,
 }
 
-function destinoAposLogin(tipo?: UserRole, status?: StatusConta): string {
-  if (tipo !== 'PROFESSOR') return '/'
-  if (status === 'EM_ANALISE' || status === 'REJEITADO') return '/cadastro-status'
-  if (status === 'PENDENTE_PAGAMENTO') return '/pagamento'
+function destinoAposLogin(tipo?: UserRole, status?: StatusConta, isAdmin?: boolean): string {
+  if (ehContaAdmin({ role: tipo, isAdmin })) {
+    return '/'
+  }
+  if (tipo !== 'PROFESSOR') {
+    return '/'
+  }
+  if (status === 'EM_ANALISE' || status === 'REJEITADO') {
+    return '/cadastro-status'
+  }
+  if (status === 'PENDENTE_PAGAMENTO') {
+    return '/pagamento'
+  }
   return '/profile/edit'
 }
 
@@ -61,10 +70,11 @@ export function LoginForm() {
         role: response.tipo!,
         isAdmin: response.isAdmin!,
         statusConta: response.statusConta,
+        avatarUrl: response.avatarUrl ?? null,
       })
 
       setWasSubmitted(true)
-      const destino = destinoAposLogin(response.tipo, response.statusConta)
+      const destino = destinoAposLogin(response.tipo, response.statusConta, response.isAdmin)
       setTimeout(() => navigate(destino), 900)
     } catch (error) {
       setSubmitError(extractErrorMessage(error, 'Não foi possível entrar. Tente novamente.'))
@@ -88,10 +98,11 @@ export function LoginForm() {
         role: response.tipo!,
         isAdmin: response.isAdmin!,
         statusConta: response.statusConta,
+        avatarUrl: response.avatarUrl ?? null,
       })
 
       setWasSubmitted(true)
-      const destino = destinoAposLogin(response.tipo, response.statusConta)
+      const destino = destinoAposLogin(response.tipo, response.statusConta, response.isAdmin)
       setTimeout(() => navigate(destino), 900)
     } catch (error) {
       setTotpError(extractErrorMessage(error, 'Código inválido. Tente novamente.'))

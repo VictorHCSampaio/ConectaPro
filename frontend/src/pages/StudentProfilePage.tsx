@@ -5,6 +5,7 @@ import { SiteHeader } from '@/components/landing/SiteHeader'
 import { AvatarUpload } from '@/components/teacher-config/AvatarUpload'
 import { FormSection } from '@/components/teacher-config/FormSection'
 import { Button } from '@/components/ui/Button'
+import { UserAvatar } from '@/components/ui/UserAvatar'
 import { Input } from '@/components/ui/Input'
 import { LgpdSection } from '@/components/ui/LgpdSection'
 import { useAuth } from '@/hooks/useAuth'
@@ -16,7 +17,8 @@ import {
   type EnderecoPayload,
 } from '@/lib/enderecoService'
 import { maskCep } from '@/lib/masks'
-import { buscarMeuPerfilAluno, salvarMeuPerfilAluno } from '@/lib/usuarioService'
+import { chaveUsuarioCache, gravarPerfilAluno, lerPerfilAluno } from '@/lib/perfilCache'
+import { buscarMeuPerfilAluno, salvarMeuPerfilAluno, type PerfilAluno } from '@/lib/usuarioService'
 
 const ENDERECO_VAZIO: EnderecoPayload = {
   cep: '',
@@ -26,14 +28,27 @@ const ENDERECO_VAZIO: EnderecoPayload = {
   state: '',
 }
 
+function estadoInicialAluno() {
+  const cache = lerPerfilAluno(chaveUsuarioCache())
+  return {
+    temCache: cache != null,
+    biografia: cache?.perfil.biografia ?? '',
+    avatar: cache?.perfil.avatarUrl ?? null,
+    endereco: cache?.endereco
+      ? { ...cache.endereco, cep: maskCep(cache.endereco.cep ?? '') }
+      : ENDERECO_VAZIO,
+  }
+}
+
 export function StudentProfilePage() {
-  const { user } = useAuth()
+  const { user, updateUser } = useAuth()
+  const [inicial] = useState(() => estadoInicialAluno())
 
-  const [biografia, setBiografia] = useState('')
-  const [avatarPreviewUrl, setAvatarPreviewUrl] = useState<string | null>(null)
+  const [biografia, setBiografia] = useState(inicial.biografia)
+  const [avatarPreviewUrl, setAvatarPreviewUrl] = useState<string | null>(inicial.avatar)
 
-  const [endereco, setEndereco] = useState<EnderecoPayload>(ENDERECO_VAZIO)
-  const [isLoading, setIsLoading] = useState(true)
+  const [endereco, setEndereco] = useState<EnderecoPayload>(inicial.endereco)
+  const [isLoading, setIsLoading] = useState(!inicial.temCache)
   const [isSaving, setIsSaving] = useState(false)
   const [cepLoading, setCepLoading] = useState(false)
   const [cepError, setCepError] = useState<string | null>(null)
@@ -45,22 +60,41 @@ export function StudentProfilePage() {
 
     Promise.all([buscarMeuPerfilAluno(), buscarMeuEndereco()])
       .then(([perfil, end]) => {
-        if (!isActive) return
-        setBiografia(perfil.biografia ?? '')
-        setAvatarPreviewUrl(perfil.avatarUrl ?? null)
-        if (end) {
-          setEndereco({ ...end, cep: maskCep(end.cep ?? '') })
+        if (!isActive) {
+          return
         }
+        const enderecoCarregado = end ? { ...end, cep: maskCep(end.cep ?? '') } : null
+        setBiografia((atual) => (atual === inicial.biografia ? (perfil.biografia ?? '') : atual))
+        setAvatarPreviewUrl((atual) =>
+          atual === inicial.avatar ? (perfil.avatarUrl ?? null) : atual,
+        )
+        if (enderecoCarregado) {
+          setEndereco((atual) => {
+            const intacto =
+              atual.cep === inicial.endereco.cep &&
+              atual.street === inicial.endereco.street &&
+              atual.neighborhood === inicial.endereco.neighborhood &&
+              atual.city === inicial.endereco.city &&
+              atual.state === inicial.endereco.state
+            return intacto ? enderecoCarregado : atual
+          })
+        }
+        gravarPerfilAluno(chaveUsuarioCache(), {
+          perfil,
+          endereco: enderecoCarregado,
+        })
       })
       .catch(() => {})
       .finally(() => {
-        if (isActive) setIsLoading(false)
+        if (isActive) {
+          setIsLoading(false)
+        }
       })
 
     return () => {
       isActive = false
     }
-  }, [])
+  }, [inicial])
 
   const buscarCep = useCallback(async (digitos: string) => {
     setCepLoading(true)
@@ -98,16 +132,21 @@ export function StudentProfilePage() {
     setError(null)
 
     try {
-      await salvarMeuPerfilAluno({
+      const salvo: PerfilAluno = await salvarMeuPerfilAluno({
         biografia: biografia.trim(),
         avatarUrl: avatarPreviewUrl ?? undefined,
       })
 
       const digitos = endereco.cep.replace(/\D/g, '')
+      let enderecoSalvo: EnderecoPayload | null = endereco
       if (digitos.length === 8) {
-        await salvarMeuEndereco({ ...endereco, cep: digitos })
+        const salvoEndereco = await salvarMeuEndereco({ ...endereco, cep: digitos })
+        enderecoSalvo = { ...salvoEndereco, cep: maskCep(salvoEndereco.cep ?? '') }
+        setEndereco(enderecoSalvo)
       }
 
+      gravarPerfilAluno(chaveUsuarioCache(), { perfil: salvo, endereco: enderecoSalvo })
+      updateUser({ avatarUrl: avatarPreviewUrl })
       setFeedback('Perfil salvo com sucesso!')
     } catch (err) {
       setError(extractErrorMessage(err, 'Não foi possível salvar o perfil.'))
@@ -121,13 +160,22 @@ export function StudentProfilePage() {
       <SiteHeader />
 
       <main className="mx-auto w-full max-w-3xl flex-1 px-6 py-10">
-        <p className="label-mono text-paper-600 dark:text-zinc-500">Conta</p>
-        <h1 className="mt-2 text-3xl font-semibold tracking-tight text-ink-900 dark:text-white">
-          Meu perfil
-        </h1>
-        <p className="mt-2 text-sm text-ink-600 dark:text-zinc-400">
-          {user?.name} · {user?.email}
-        </p>
+        <div className="flex items-start gap-4">
+          <UserAvatar
+            name={user?.name}
+            src={avatarPreviewUrl ?? user?.avatarUrl}
+            className="size-20 border border-paper-300 text-lg dark:border-white/15"
+          />
+          <div className="min-w-0">
+            <p className="label-mono text-paper-600 dark:text-zinc-500">Conta</p>
+            <h1 className="mt-2 text-3xl font-semibold tracking-tight text-ink-900 dark:text-white">
+              Meu perfil
+            </h1>
+            <p className="mt-2 text-sm text-ink-600 dark:text-zinc-400">
+              {user?.name} · {user?.email}
+            </p>
+          </div>
+        </div>
 
         {isLoading ? (
           <div className="mt-8 flex items-center gap-2 text-sm text-paper-600 dark:text-zinc-400">

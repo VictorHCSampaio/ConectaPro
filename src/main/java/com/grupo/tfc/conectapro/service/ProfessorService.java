@@ -109,16 +109,18 @@ public class ProfessorService {
     @Transactional
     public PerfilProfessorResponse salvarPerfil(UUID usuarioId, PerfilProfessorRequest request) {
         Usuario usuario = buscarUsuario(usuarioId);
-        if (usuario.getTipo() != TipoUsuario.PROFESSOR) {
+        if (!podeManterPerfil(usuario)) {
             auditoriaService.registrar(AcaoAuditoria.ACESSO_NEGADO, usuarioId, "PROFESSOR", null, "configuração de perfil por usuário que não é professor");
             throw new ResponseStatusException(FORBIDDEN, "Apenas professores podem configurar este perfil");
         }
-        if (usuario.getStatusConta() == StatusConta.EM_ANALISE
-                || usuario.getStatusConta() == StatusConta.REJEITADO) {
-            throw new ResponseStatusException(FORBIDDEN, "Seu cadastro precisa ser aprovado antes de configurar o perfil");
-        }
-        if (usuario.getStatusConta() == StatusConta.PENDENTE_PAGAMENTO) {
-            throw new ResponseStatusException(FORBIDDEN, "Efetue o pagamento para editar seu perfil");
+        if (!usuario.administrador()) {
+            if (usuario.getStatusConta() == StatusConta.EM_ANALISE
+                    || usuario.getStatusConta() == StatusConta.REJEITADO) {
+                throw new ResponseStatusException(FORBIDDEN, "Seu cadastro precisa ser aprovado antes de configurar o perfil");
+            }
+            if (usuario.getStatusConta() == StatusConta.PENDENTE_PAGAMENTO) {
+                throw new ResponseStatusException(FORBIDDEN, "Efetue o pagamento para editar seu perfil");
+            }
         }
         usuario.setNomeCompleto(request.fullName().trim());
         usuarioRepository.save(usuario);
@@ -166,18 +168,25 @@ public class ProfessorService {
     @Transactional
     public AvatarResponse enviarAvatar(UUID usuarioId, MultipartFile arquivo) {
         Usuario usuario = buscarUsuario(usuarioId);
-        if (usuario.getTipo() != TipoUsuario.PROFESSOR) {
+        if (!podeManterPerfil(usuario)) {
             auditoriaService.registrar(AcaoAuditoria.ACESSO_NEGADO, usuarioId, "PROFESSOR", null, "envio de foto por usuario que nao e professor");
             throw new ResponseStatusException(FORBIDDEN, "Apenas professores podem enviar foto de perfil");
         }
 
-        Professor professor = professorRepository.findByUsuarioId(usuarioId)
-                .orElseThrow(() -> new ResponseStatusException(NOT_FOUND, "Configure e salve seu perfil antes de enviar a foto"));
+        Professor professor;
+        if (usuario.administrador()) {
+            professor = obterOuCriarProfessor(usuario);
+        } else {
+            professor = professorRepository.findByUsuarioId(usuarioId)
+                    .orElseThrow(() -> new ResponseStatusException(NOT_FOUND, "Configure e salve seu perfil antes de enviar a foto"));
+        }
 
         String url = armazenamentoS3Service.enviarAvatar(professor.getId(), arquivo);
         professor.setAvatarUrl(url);
         professor.setAtualizadoEm(OffsetDateTime.now());
         professorRepository.save(professor);
+        usuario.setAvatarUrl(url);
+        usuarioRepository.save(usuario);
 
         logger.info("Foto de perfil atualizada. usuarioId={} professorId={}", usuarioId, professor.getId());
         return new AvatarResponse(url);
@@ -194,6 +203,11 @@ public class ProfessorService {
         professor.setAvatarUrl(null);
         professor.setAtualizadoEm(OffsetDateTime.now());
         professorRepository.save(professor);
+        Usuario usuario = professor.getUsuario();
+        if (usuario != null) {
+            usuario.setAvatarUrl(null);
+            usuarioRepository.save(usuario);
+        }
 
         logger.info("Foto de perfil removida. usuarioId={} professorId={}", usuarioId, professor.getId());
     }
@@ -334,7 +348,9 @@ public class ProfessorService {
 
     @Transactional(readOnly = true)
     public List<ProfessorResumoResponse> listarProfessores(UUID usuarioId) {
-        List<Professor> professores = professorRepository.findAtivosComUsuario();
+        List<Professor> professores = professorRepository.findAtivosComUsuario().stream()
+                .filter(this::visivelNaBuscaPublica)
+                .toList();
         List<UUID> professorIds = professores.stream().map(Professor::getId).toList();
         Map<UUID, List<String>> materiasPorProfessor = carregarMaterias(professorIds);
         Map<UUID, List<ProfessorDisponibilidade>> horariosPorProfessor = carregarHorarios(professorIds);
@@ -362,6 +378,11 @@ public class ProfessorService {
     public ProfessorResumoResponse buscarProfessor(UUID professorId, UUID usuarioId) {
         Professor professor = professorRepository.findById(professorId)
                 .orElseThrow(() -> new ResponseStatusException(NOT_FOUND, "Professor não encontrado"));
+
+        if (professor.getUsuario().administrador()
+                && (usuarioId == null || !professor.getUsuario().getId().equals(usuarioId))) {
+            throw new ResponseStatusException(NOT_FOUND, "Professor não encontrado");
+        }
 
         if (professor.getUsuario().getStatusConta() == StatusConta.PENDENTE_PAGAMENTO
                 && !professor.getUsuario().getId().equals(usuarioId)) {
@@ -402,6 +423,18 @@ public class ProfessorService {
                 resumo.city(),
                 resumo.distanceKm(),
                 resumo.usuarioId());
+    }
+
+    private boolean podeManterPerfil(Usuario usuario) {
+        return usuario.getTipo() == TipoUsuario.PROFESSOR || usuario.administrador();
+    }
+
+    private boolean visivelNaBuscaPublica(Professor professor) {
+        Usuario usuario = professor.getUsuario();
+        if (usuario == null) {
+            return false;
+        }
+        return !usuario.isAdmin() && usuario.getTipo() == TipoUsuario.PROFESSOR;
     }
 
     private Usuario buscarUsuario(UUID usuarioId) {

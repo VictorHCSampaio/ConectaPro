@@ -11,6 +11,7 @@ import com.grupo.tfc.conectapro.model.StatusAgendamento;
 import com.grupo.tfc.conectapro.model.StatusConta;
 import com.grupo.tfc.conectapro.model.Usuario;
 import com.grupo.tfc.conectapro.repository.AgendamentoRepository;
+import com.grupo.tfc.conectapro.repository.AvaliacaoAgregado;
 import com.grupo.tfc.conectapro.repository.AvaliacaoRepository;
 import com.grupo.tfc.conectapro.repository.DenunciaRepository;
 import com.grupo.tfc.conectapro.repository.EnderecoRepository;
@@ -64,9 +65,7 @@ public class UsuarioService {
 
         Endereco endereco = enderecoRepository.findFirstByUsuarioId(id).orElse(null);
 
-        int totalAulas = (int) agendamentoRepository.findByAlunoIdOrderByCriadoEmDesc(id).stream()
-                .filter(a -> a.getStatus() == StatusAgendamento.CONFIRMADO)
-                .count();
+        int totalAulas = (int) agendamentoRepository.countByAlunoIdAndStatus(id, StatusAgendamento.CONFIRMADO);
 
         double[] ratingInfo = calcularRating(id);
 
@@ -224,11 +223,11 @@ public class UsuarioService {
     }
 
     private double[] calcularRating(UUID usuarioId) {
-        List<Avaliacao> avaliacoes = avaliacaoRepository.findByAvaliadoIdOrderByCriadoEmDesc(usuarioId);
-        if (avaliacoes.isEmpty()) {
+        AvaliacaoAgregado agregado = avaliacaoRepository.agregarPorAvaliado(usuarioId);
+        if (agregado == null || agregado.quantidade() == 0) {
             return new double[]{0, 0};
         }
-        double media = avaliacoes.stream().mapToInt(Avaliacao::getNota).average().orElse(0);
-        return new double[]{Math.round(media * 10.0) / 10.0, avaliacoes.size()};
+        double media = (double) agregado.soma() / agregado.quantidade();
+        return new double[]{Math.round(media * 10.0) / 10.0, agregado.quantidade()};
     }
 }

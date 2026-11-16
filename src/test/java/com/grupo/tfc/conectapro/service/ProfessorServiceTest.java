@@ -199,6 +199,24 @@ class ProfessorServiceTest {
                 .containsExactlyInAnyOrder("A", "JO", "AS");
     }
 
+    @Test
+    void listarProfessores_ocultaContaAdmin() {
+        Professor professor = criarProfessor("Ana Paula Silva");
+        Professor admin = criarProfessor("Admin Oculto");
+        admin.getUsuario().setAdmin(true);
+
+        when(professorRepository.findAtivosComUsuario()).thenReturn(List.of(professor, admin));
+        when(enderecoRepository.findByUsuarioIdIn(any())).thenReturn(List.of());
+        when(localizacaoService.buscarCoordenada(nullable(String.class))).thenReturn(Optional.empty());
+        when(professorMateriaRepository.findByProfessorIdIn(any())).thenReturn(List.of());
+        when(disponibilidadeRepository.findByProfessorIdIn(any())).thenReturn(List.of());
+        when(avaliacaoService.calcularMedia(any())).thenReturn(new double[]{0.0, 0});
+
+        List<ProfessorResumoResponse> resultado = professorService.listarProfessores(UUID.randomUUID());
+
+        assertThat(resultado).extracting(ProfessorResumoResponse::name).containsExactly("Ana Paula Silva");
+    }
+
     
     // Helpers privados
     

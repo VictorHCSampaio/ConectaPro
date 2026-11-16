@@ -84,4 +84,8 @@ public class Usuario {
             criadoEm = OffsetDateTime.now();
         }
     }
+
+    public boolean administrador() {
+        return admin || tipo == TipoUsuario.ADMIN;
+    }
 }

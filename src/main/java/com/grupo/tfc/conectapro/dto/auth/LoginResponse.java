@@ -12,13 +12,28 @@ public record LoginResponse(
         String nomeCompleto,
         TipoUsuario tipo,
         Boolean isAdmin,
-        StatusConta statusConta
+        StatusConta statusConta,
+        String avatarUrl
 ) {
     public static LoginResponse totpRequired(String preAuthToken) {
-        return new LoginResponse("TOTP_REQUIRED", "Senha validada. Envie o código 2FA.", preAuthToken, null, null, null, null);
+        return new LoginResponse("TOTP_REQUIRED", "Senha validada. Envie o código 2FA.", preAuthToken, null, null, null, null, null);
     }
 
-    public static LoginResponse authenticated(String token, String nomeCompleto, TipoUsuario tipo, boolean isAdmin, StatusConta statusConta) {
-        return new LoginResponse("AUTHENTICATED", "Autenticação concluída com sucesso.", token, nomeCompleto, tipo, isAdmin, statusConta);
+    public static LoginResponse authenticated(
+            String token,
+            String nomeCompleto,
+            TipoUsuario tipo,
+            boolean isAdmin,
+            StatusConta statusConta,
+            String avatarUrl) {
+        return new LoginResponse(
+                "AUTHENTICATED",
+                "Autenticação concluída com sucesso.",
+                token,
+                nomeCompleto,
+                tipo,
+                isAdmin,
+                statusConta,
+                avatarUrl);
     }
 }

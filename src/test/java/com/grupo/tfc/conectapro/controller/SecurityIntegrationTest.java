@@ -52,6 +52,22 @@ class SecurityIntegrationTest {
                 .build();
     }
 
+    @Test
+    void register_comRoleAdmin_deveRetornar400() {
+        ResponseEntity<String> response = client.post().uri("/auth/register")
+                .contentType(MediaType.APPLICATION_JSON)
+                .body(Map.of(
+                        "nome", "Admin Invasor",
+                        "email", "admin.invasor" + System.nanoTime() + "@test.com",
+                        "password", "senha12345",
+                        "role", "ADMIN",
+                        "acceptTerms", true))
+                .retrieve()
+                .toEntity(String.class);
+
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
+    }
+
     // --- (d) GET /auditoria: comum → 403, admin → 200 ---
 
     @Test
@@ -120,6 +136,21 @@ class SecurityIntegrationTest {
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
         assertThat(response.getBody()).contains("\"totalAlunos\"");
         assertThat(response.getBody()).contains("\"totalProfessores\"");
+
+        ResponseEntity<String> noventaDias = client.get().uri("/dashboard/resumo?dias=90")
+                .header("Authorization", "Bearer " + token)
+                .retrieve()
+                .toEntity(String.class);
+        assertThat(noventaDias.getStatusCode()).isEqualTo(HttpStatus.OK);
+        assertThat(noventaDias.getBody()).contains("\"novosUsuarios\"");
+
+        ResponseEntity<String> desdeOInicio = client.get().uri("/dashboard/resumo?dias=0")
+                .header("Authorization", "Bearer " + token)
+                .retrieve()
+                .toEntity(String.class);
+        assertThat(desdeOInicio.getStatusCode()).isEqualTo(HttpStatus.OK);
+        assertThat(desdeOInicio.getBody()).contains("\"aulasConfirmadasNoMes\"");
+        assertThat(desdeOInicio.getBody()).contains("\"professoresPorMateria\"");
     }
 
     @Test

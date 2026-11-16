@@ -24,7 +24,7 @@ public class DashboardController {
     }
 
     @GetMapping("/resumo")
-    public ResponseEntity<DashboardResumoDTO> resumo(@RequestParam(defaultValue = "30") int dias) {
+    public ResponseEntity<DashboardResumoDTO> resumo(@RequestParam(defaultValue = "90") int dias) {
         return ResponseEntity.ok(dashboardService.resumo(dias));
     }
 }

@@ -1,4 +1,15 @@
-export type UserRole = 'ALUNO' | 'PROFESSOR'
+export type UserRole = 'ALUNO' | 'PROFESSOR' | 'ADMIN'
+
+export function ehContaAdmin(user: { role?: UserRole | null; isAdmin?: boolean } | null | undefined) {
+  return Boolean(user?.isAdmin || user?.role === 'ADMIN')
+}
+
+export function normalizarAuthUser<T extends { role: UserRole | null; isAdmin: boolean }>(user: T): T {
+  if (!ehContaAdmin(user)) {
+    return user
+  }
+  return { ...user, role: 'ADMIN', isAdmin: true }
+}
 
 export type LoginFormValues = {
   email: string
@@ -39,6 +50,7 @@ export type MensagemAutenticacaoResponse = {
   tipo: UserRole
   isAdmin: boolean
   statusConta?: StatusConta
+  avatarUrl?: string | null
 }
 
 export type StatusConta = 'EM_ANALISE' | 'REJEITADO' | 'PENDENTE_PAGAMENTO' | 'ATIVO'
@@ -51,6 +63,7 @@ export type LoginResponse = {
   tipo?: UserRole
   isAdmin?: boolean
   statusConta?: StatusConta
+  avatarUrl?: string | null
 }
 
 export type TotpVerifyPayload = {
@@ -71,4 +84,5 @@ export type AuthUser = {
   role: UserRole | null
   isAdmin: boolean
   statusConta?: StatusConta
+  avatarUrl?: string | null
 }
