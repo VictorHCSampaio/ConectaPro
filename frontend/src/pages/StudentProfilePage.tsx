@@ -192,6 +192,7 @@ export function StudentProfilePage() {
                     Foto de perfil
                   </span>
                   <AvatarUpload
+                    name={user?.name}
                     previewUrl={avatarPreviewUrl}
                     onFileSelect={(_file, url) => setAvatarPreviewUrl(url)}
                     onRemove={() => setAvatarPreviewUrl(null)}

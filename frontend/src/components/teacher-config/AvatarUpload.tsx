@@ -1,9 +1,10 @@
 import { useCallback, useRef, useState } from 'react'
-import { Camera, Trash2, Upload } from 'lucide-react'
+import { Camera, Trash2 } from 'lucide-react'
 import { cn } from '@/lib/cn'
 
 type AvatarUploadProps = {
   previewUrl: string | null
+  name?: string | null
   onFileSelect: (file: File, previewUrl: string) => void
   onRemove: () => void
 }
@@ -11,10 +12,26 @@ type AvatarUploadProps = {
 const ACCEPTED_TYPES = ['image/png', 'image/jpeg', 'image/webp']
 const MAX_SIZE_MB = 5
 
-export function AvatarUpload({ previewUrl, onFileSelect, onRemove }: AvatarUploadProps) {
+function fotoValida(src?: string | null): src is string {
+  if (typeof src !== 'string') {
+    return false
+  }
+  const valor = src.trim()
+  return valor.length > 0 && valor !== 'null' && valor !== 'undefined'
+}
+
+function inicial(nome?: string | null) {
+  const letra = nome?.trim().charAt(0)
+  return letra ? letra.toUpperCase() : '?'
+}
+
+export function AvatarUpload({ previewUrl, name, onFileSelect, onRemove }: AvatarUploadProps) {
   const inputRef = useRef<HTMLInputElement>(null)
   const [isDragging, setIsDragging] = useState(false)
   const [sizeError, setSizeError] = useState<string | null>(null)
+  const foto = fotoValida(previewUrl) ? previewUrl.trim() : null
+  const [fotoQuebrada, setFotoQuebrada] = useState<string | null>(null)
+  const mostrarFoto = foto != null && fotoQuebrada !== foto
 
   const processFile = useCallback(
     (file: File) => {
@@ -65,40 +82,37 @@ export function AvatarUpload({ previewUrl, onFileSelect, onRemove }: AvatarUploa
       <div
         role="button"
         tabIndex={0}
-        aria-label={previewUrl ? 'Alterar foto de perfil' : 'Carregar foto de perfil'}
+        aria-label={mostrarFoto ? 'Alterar foto de perfil' : 'Carregar foto de perfil'}
         onClick={openFilePicker}
         onKeyDown={(e) => e.key === 'Enter' && openFilePicker()}
         onDragOver={handleDragOver}
         onDragLeave={handleDragLeave}
         onDrop={handleDrop}
         className={cn(
-          'group relative flex size-28 shrink-0 cursor-pointer select-none items-center justify-center overflow-hidden rounded-full',
+          'group relative flex size-28 shrink-0 cursor-pointer select-none items-center justify-center overflow-hidden rounded-full text-xl font-semibold',
           'border-2 transition-all duration-200 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ocre-500',
           isDragging
             ? 'scale-105 border-ocre-400 bg-ocre-100/60'
-            : previewUrl
+            : mostrarFoto
               ? 'border-paper-200 dark:border-white/10'
-              : 'border-dashed border-paper-300 dark:border-white/10 bg-paper-100 dark:bg-white/5 hover:border-paper-400 dark:hover:border-white/20 hover:bg-paper-200/60',
+              : 'border-transparent bg-ink-800 text-paper-50 dark:bg-white/10 dark:text-white',
         )}
       >
-        {previewUrl ? (
+        {mostrarFoto ? (
           <>
-            <img src={previewUrl} alt="Prévia do avatar" className="size-full object-cover" />
+            <img
+              src={foto}
+              alt=""
+              className="size-full object-cover"
+              onError={() => setFotoQuebrada(foto)}
+            />
             <div className="absolute inset-0 flex flex-col items-center justify-center gap-1 bg-ink-900/50 opacity-0 transition-opacity duration-200 group-hover:opacity-100">
               <Camera className="size-5 text-white" />
               <span className="text-[10px] font-semibold text-white">Alterar</span>
             </div>
           </>
         ) : (
-          <div className="flex flex-col items-center gap-2">
-            <Upload
-              className={cn(
-                'size-6 transition-colors',
-                isDragging ? 'text-ocre-400' : 'text-paper-400 dark:text-zinc-600',
-              )}
-            />
-            <span className="text-[10px] font-medium text-paper-400 dark:text-zinc-600">Foto</span>
-          </div>
+          inicial(name)
         )}
       </div>
 
@@ -131,10 +145,10 @@ export function AvatarUpload({ previewUrl, onFileSelect, onRemove }: AvatarUploa
             onClick={openFilePicker}
             className="rounded-md border border-paper-300 dark:border-white/10 bg-white dark:bg-night-700 px-3 py-1.5 text-xs font-semibold text-ink-800 dark:text-zinc-100 raised transition-transform duration-150 hover:border-paper-400 dark:hover:border-white/20 active:translate-y-0.5 active:shadow-none"
           >
-            {previewUrl ? 'Trocar foto' : 'Escolher foto'}
+            {foto ? 'Trocar foto' : 'Escolher foto'}
           </button>
 
-          {previewUrl && (
+          {foto && (
             <button
               type="button"
               onClick={onRemove}

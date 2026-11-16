@@ -1,4 +1,4 @@
-import { BadgeCheck, Video } from 'lucide-react'
+import { Video } from 'lucide-react'
 import { Link } from 'react-router-dom'
 import { SeloVerificado } from '@/components/teacher/SeloVerificado'
 import { StarRating } from '@/components/ui/StarRating'
@@ -33,7 +33,6 @@ function FeaturedSkeleton() {
 
 export function FeaturedPanel({ teachers, isLoading, obscure = false }: FeaturedPanelProps) {
   const featured = teachers.slice(0, 3)
-  const hasVerified = featured.some((teacher) => teacher.verified)
   const hasBothModalities = featured.some(
     (teacher) => teacher.modalities.includes('online') && teacher.modalities.includes('presencial'),
   )
@@ -76,7 +75,9 @@ export function FeaturedPanel({ teachers, isLoading, obscure = false }: Featured
                         {teacher.name}
                       </span>
                       {(teacher.verified || teacher.verificado) && (
-                        <SeloVerificado tipo={teacher.tipoVerificacao} />
+                        <span className="shrink-0">
+                          <SeloVerificado tipo={teacher.tipoVerificacao} />
+                        </span>
                       )}
                     </p>
                   )}
@@ -126,14 +127,6 @@ export function FeaturedPanel({ teachers, isLoading, obscure = false }: Featured
         </div>
       )}
 
-      {hasVerified && (
-        <div className="pointer-events-none absolute -top-3 -right-4 hidden items-center gap-1.5 rounded-full border border-sage-600/20 bg-sage-50 px-3 py-1.5 shadow-[0_8px_18px_-10px_rgba(18,38,63,0.5)] dark:border-emerald-800/50 dark:bg-emerald-900/40 dark:text-emerald-400 dark:shadow-[0_8px_18px_-10px_rgba(0,0,0,0.9)] lg:flex">
-          <BadgeCheck className="size-3.5 text-sage-600 dark:text-emerald-400" />
-          <span className="text-xs font-medium text-sage-600 dark:text-emerald-400">
-            Verificado
-          </span>
-        </div>
-      )}
     </div>
   )
 }

@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import { cn } from '@/lib/cn'
 
 type UserAvatarProps = {
@@ -6,17 +7,24 @@ type UserAvatarProps = {
   className?: string
 }
 
-function iniciais(nome?: string | null) {
-  if (!nome) {
-    return '?'
+function fotoValida(src?: string | null): src is string {
+  if (typeof src !== 'string') {
+    return false
   }
-  const partes = nome.trim().split(/\s+/)
-  const primeira = partes[0]?.[0] ?? ''
-  const ultima = partes.length > 1 ? (partes.at(-1)?.[0] ?? '') : ''
-  return (primeira + ultima).toUpperCase() || '?'
+  const valor = src.trim()
+  return valor.length > 0 && valor !== 'null' && valor !== 'undefined'
+}
+
+function inicial(nome?: string | null) {
+  const letra = nome?.trim().charAt(0)
+  return letra ? letra.toUpperCase() : '?'
 }
 
 export function UserAvatar({ name, src, className }: UserAvatarProps) {
+  const foto = fotoValida(src) ? src.trim() : null
+  const [fotoQuebrada, setFotoQuebrada] = useState<string | null>(null)
+  const mostrarFoto = foto != null && fotoQuebrada !== foto
+
   return (
     <span
       className={cn(
@@ -24,7 +32,16 @@ export function UserAvatar({ name, src, className }: UserAvatarProps) {
         className,
       )}
     >
-      {src ? <img src={src} alt="" className="size-full object-cover" /> : iniciais(name)}
+      {mostrarFoto ? (
+        <img
+          src={foto}
+          alt=""
+          className="size-full object-cover"
+          onError={() => setFotoQuebrada(foto)}
+        />
+      ) : (
+        inicial(name)
+      )}
     </span>
   )
 }

@@ -843,6 +843,7 @@ export function TeacherProfileConfigPage() {
             }
           >
             <AvatarUpload
+              name={form.fullName || user?.name}
               previewUrl={form.avatarPreviewUrl}
               onFileSelect={handleAvatarSelect}
               onRemove={handleAvatarRemove}
