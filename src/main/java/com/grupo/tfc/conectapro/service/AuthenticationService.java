@@ -21,6 +21,7 @@ import java.util.Objects;
 import java.util.UUID;
 
 import static org.springframework.http.HttpStatus.BAD_REQUEST;
+import static org.springframework.http.HttpStatus.FORBIDDEN;
 import static org.springframework.http.HttpStatus.UNAUTHORIZED;
 
 @Service
@@ -101,6 +102,12 @@ public class AuthenticationService {
             throw new ResponseStatusException(UNAUTHORIZED, "Esta conta foi excluída.");
         }
 
+        if (usuario.getStatusConta() == StatusConta.BANIDO) {
+            auditoriaService.registrar(AcaoAuditoria.LOGIN_FALHA, usuario.getId(), "USUARIO",
+                    usuario.getId().toString(), "conta banida");
+            throw new ResponseStatusException(FORBIDDEN, "Conta banida");
+        }
+
         verificarBloqueio(usuario);
 
         if (!senhaService.match(senha, usuario.getSenhaHash())) {
@@ -130,8 +137,7 @@ public class AuthenticationService {
         if (OffsetDateTime.now().isBefore(usuario.getBloqueadoAte())) {
             logger.warn("Login bloqueado temporariamente. usuarioId={}", usuario.getId());
             auditoriaService.registrar(AcaoAuditoria.LOGIN_FALHA, usuario.getId(), "USUARIO", usuario.getId().toString(), "conta bloqueada temporariamente");
-            throw new ResponseStatusException(UNAUTHORIZED,
-                    "Conta bloqueada temporariamente. Tente novamente em " + authProperties.tempoDuracao() + " minutos.");
+            throw new ResponseStatusException(UNAUTHORIZED, "Conta bloqueada temporariamente.");
         }
 
         usuario.setTentativasLoginFalha(0);

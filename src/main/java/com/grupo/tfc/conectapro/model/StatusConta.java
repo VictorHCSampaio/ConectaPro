@@ -5,5 +5,6 @@ public enum StatusConta {
     REJEITADO,
     PENDENTE_PAGAMENTO,
     ATIVO,
-    EXCLUIDO
+    EXCLUIDO,
+    BANIDO
 }

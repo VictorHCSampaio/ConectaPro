@@ -273,6 +273,11 @@ public class DashboardService {
             case DENUNCIA_REGISTRADA -> "registrou uma denúncia";
             case CONTA_EXCLUIDA -> "excluiu a conta";
             case DADOS_EXPORTADOS -> "exportou seus dados";
+            case DENUNCIA_CONSULTADA -> "consultou denúncias";
+            case DENUNCIA_STATUS_ATUALIZADO -> "atualizou o estado de uma denúncia";
+            case DENUNCIA_BO_RECOMENDADO -> "recomendou boletim de ocorrência";
+            case USUARIO_BANIDO -> "baniu um usuário";
+            case USUARIO_TIMEOUT -> "aplicou um bloqueio temporário";
         };
     }
 }

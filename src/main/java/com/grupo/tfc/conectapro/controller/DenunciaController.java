@@ -2,6 +2,7 @@ package com.grupo.tfc.conectapro.controller;
 
 import com.grupo.tfc.conectapro.dto.denuncia.DenunciaResponse;
 import com.grupo.tfc.conectapro.dto.denuncia.RegistrarDenunciaRequest;
+import com.grupo.tfc.conectapro.model.TipoUsuario;
 import com.grupo.tfc.conectapro.service.DenunciaService;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
@@ -29,6 +30,18 @@ public class DenunciaController {
     @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<List<DenunciaResponse>> listar() {
         return ResponseEntity.ok(denunciaService.listar());
+    }
+
+    @GetMapping("/alunos")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<List<DenunciaResponse>> listarAlunos() {
+        return ResponseEntity.ok(denunciaService.listarPorPapel(TipoUsuario.ALUNO));
+    }
+
+    @GetMapping("/professores")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<List<DenunciaResponse>> listarProfessores() {
+        return ResponseEntity.ok(denunciaService.listarPorPapel(TipoUsuario.PROFESSOR));
     }
 
     @PostMapping
