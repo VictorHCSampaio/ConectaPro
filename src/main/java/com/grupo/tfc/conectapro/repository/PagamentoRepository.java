@@ -26,4 +26,7 @@ public interface PagamentoRepository extends JpaRepository<Pagamento, UUID> {
               and p.criadoEm < :fim
             """)
     BigDecimal somarReceitaAprovadaNoMes(@Param("inicio") OffsetDateTime inicio, @Param("fim") OffsetDateTime fim);
+
+    @Query("select min(p.criadoEm) from Pagamento p")
+    OffsetDateTime buscarMenorCriadoEm();
 }

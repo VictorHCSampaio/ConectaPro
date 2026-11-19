@@ -18,6 +18,7 @@ import com.grupo.tfc.conectapro.repository.PagamentoRepository;
 import com.grupo.tfc.conectapro.repository.ProfessorMateriaRepository;
 import com.grupo.tfc.conectapro.repository.ProfessorRepository;
 import com.grupo.tfc.conectapro.repository.UsuarioRepository;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -25,6 +26,7 @@ import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.OffsetDateTime;
 import java.time.ZoneId;
+import java.time.temporal.ChronoUnit;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -41,7 +43,7 @@ public class DashboardService {
 
     private static final ZoneId ZONA = ZoneId.of("America/Sao_Paulo");
     private static final DateTimeFormatter ROTULO_DIA = DateTimeFormatter.ofPattern("dd/MM");
-    private static final int JANELA_PADRAO = 30;
+    private static final int JANELA_PADRAO = 90;
 
     private final UsuarioRepository usuarioRepository;
     private final AgendamentoRepository agendamentoRepository;
@@ -66,20 +68,68 @@ public class DashboardService {
 
     @Transactional(readOnly = true)
     public DashboardResumoDTO resumo(int dias) {
-        int janela = dias == 7 || dias == 30 || dias == 90 ? dias : JANELA_PADRAO;
         OffsetDateTime fim = OffsetDateTime.now(ZONA);
-        OffsetDateTime inicio = fim.minusDays(janela);
+        Intervalo intervalo = resolverIntervalo(dias, fim);
 
         return new DashboardResumoDTO(
                 usuarioRepository.countByTipo(TipoUsuario.ALUNO),
                 professorRepository.countByUsuario_StatusConta(StatusConta.ATIVO),
-                contarConfirmadas(inicio, fim),
-                receitaAssinaturas(inicio, fim),
-                novosUsuarios(inicio, fim, janela),
-                professoresPorMateria(inicio, fim),
+                contarConfirmadas(intervalo.inicio(), fim),
+                receitaAssinaturas(intervalo.inicio(), fim),
+                novosUsuarios(intervalo.inicio(), fim, intervalo.diasGrafico()),
+                professoresPorMateria(intervalo.inicio(), fim),
                 ultimasAulas(),
                 atividadesRecentes()
         );
+    }
+
+    private Intervalo resolverIntervalo(int dias, OffsetDateTime fim) {
+        if (dias <= 0) {
+            return intervaloDesdeOInicio(fim);
+        }
+        int janela = dias == 7 || dias == 30 || dias == 90 ? dias : JANELA_PADRAO;
+        return new Intervalo(fim.minusDays(janela), janela);
+    }
+
+    private Intervalo intervaloDesdeOInicio(OffsetDateTime fim) {
+        OffsetDateTime menor = menorCriadoEm();
+        if (menor == null) {
+            return new Intervalo(fim.minusDays(JANELA_PADRAO), JANELA_PADRAO);
+        }
+        OffsetDateTime inicio = menor.atZoneSameInstant(ZONA).toLocalDate().atStartOfDay(ZONA).toOffsetDateTime();
+        if (!inicio.isBefore(fim)) {
+            inicio = fim.minusDays(1);
+        }
+        long abrangencia = ChronoUnit.DAYS.between(
+                inicio.atZoneSameInstant(ZONA).toLocalDate(),
+                fim.atZoneSameInstant(ZONA).toLocalDate());
+        int diasGrafico = (int) Math.max(abrangencia, 1);
+        return new Intervalo(inicio, diasGrafico);
+    }
+
+    private OffsetDateTime menorCriadoEm() {
+        return maisAntiga(
+                usuarioRepository.buscarMenorCriadoEm(),
+                professorRepository.buscarMenorCriadoEm(),
+                agendamentoRepository.buscarMenorCriadoEm(),
+                pagamentoRepository.buscarMenorCriadoEm(),
+                auditoriaLogRepository.buscarMenorCriadoEmPorAcao(AcaoAuditoria.CADASTRO));
+    }
+
+    private OffsetDateTime maisAntiga(OffsetDateTime... datas) {
+        OffsetDateTime menor = null;
+        for (OffsetDateTime data : datas) {
+            if (data == null) {
+                continue;
+            }
+            if (menor == null || data.isBefore(menor)) {
+                menor = data;
+            }
+        }
+        return menor;
+    }
+
+    private record Intervalo(OffsetDateTime inicio, int diasGrafico) {
     }
 
     private long contarConfirmadas(OffsetDateTime inicio, OffsetDateTime fim) {
@@ -193,7 +243,7 @@ public class DashboardService {
     }
 
     private List<AulaRecenteDTO> ultimasAulas() {
-        return agendamentoRepository.findTop5ByOrderByCriadoEmDesc().stream()
+        return agendamentoRepository.buscarUltimasComParticipantes(Pageable.ofSize(5)).stream()
                 .map(this::paraAula)
                 .toList();
     }
@@ -203,8 +253,7 @@ public class DashboardService {
                 agendamento.getProfessor().getUsuario().getNomeCompleto(),
                 agendamento.getAluno().getNomeCompleto(),
                 agendamento.getMateria(),
-                agendamento.getDiaSemana(),
-                agendamento.getHorario(),
+                agendamento.getDataHoraInicio(),
                 traduzirStatus(agendamento.getStatus()),
                 agendamento.getCriadoEm()
         );
@@ -265,8 +314,20 @@ public class DashboardService {
             case AGENDAMENTO_CRIADO -> "solicitou um agendamento";
             case AGENDAMENTO_CONFIRMADO -> "confirmou um agendamento";
             case AGENDAMENTO_CANCELADO -> "cancelou um agendamento";
+            case CERTIFICADO_ENVIADO -> "enviou um certificado";
+            case CADASTRO_APROVADO -> "teve o cadastro aprovado";
+            case CADASTRO_REJEITADO -> "teve o cadastro rejeitado";
             case RESET_SENHA_SOLICITADO -> "solicitou redefinição de senha";
             case RESET_SENHA_CONFIRMADO -> "redefiniu a senha";
+            case MENSAGEM_ENVIADA -> "enviou uma mensagem";
+            case DENUNCIA_REGISTRADA -> "registrou uma denúncia";
+            case CONTA_EXCLUIDA -> "excluiu a conta";
+            case DADOS_EXPORTADOS -> "exportou seus dados";
+            case DENUNCIA_CONSULTADA -> "consultou denúncias";
+            case DENUNCIA_STATUS_ATUALIZADO -> "atualizou o estado de uma denúncia";
+            case DENUNCIA_BO_RECOMENDADO -> "recomendou boletim de ocorrência";
+            case USUARIO_BANIDO -> "baniu um usuário";
+            case USUARIO_TIMEOUT -> "aplicou um bloqueio temporário";
         };
     }
 }

@@ -1,5 +1,6 @@
 package com.grupo.tfc.conectapro;
 
+import com.grupo.tfc.conectapro.config.AwsS3Properties;
 import com.grupo.tfc.conectapro.config.EmailProperties;
 import com.grupo.tfc.conectapro.config.JwtProperties;
 import com.grupo.tfc.conectapro.config.MercadoPagoProperties;
@@ -8,10 +9,18 @@ import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.scheduling.annotation.EnableAsync;
+import org.springframework.scheduling.annotation.EnableScheduling;
 
 @SpringBootApplication
 @EnableAsync
-@EnableConfigurationProperties({SecurityAuthenticationProperties.class, JwtProperties.class, MercadoPagoProperties.class, EmailProperties.class})
+@EnableScheduling
+@EnableConfigurationProperties({
+		SecurityAuthenticationProperties.class,
+		JwtProperties.class,
+		MercadoPagoProperties.class,
+		EmailProperties.class,
+		AwsS3Properties.class
+})
 public class ConectaproApplication {
 
 	public static void main(String[] args) {

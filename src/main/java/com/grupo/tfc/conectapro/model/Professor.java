@@ -2,6 +2,8 @@ package com.grupo.tfc.conectapro.model;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
@@ -66,4 +68,20 @@ public class Professor {
 
     @Column
     private Boolean verificado;
+
+    @Column(name = "antecedencia_min_horas")
+    private Integer antecedenciaMinHoras;
+
+    @Column(name = "certificado_nome")
+    private String certificadoNome;
+
+    @Column(name = "justificativa_sem_certificado", columnDefinition = "text")
+    private String justificativaSemCertificado;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "status_comprovacao", length = 30)
+    private StatusComprovacao statusComprovacao = StatusComprovacao.NENHUM;
+
+    @Column(name = "comprovacao_verificada", nullable = false)
+    private boolean comprovacaoVerificada = false;
 }

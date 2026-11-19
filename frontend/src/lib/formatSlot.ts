@@ -40,3 +40,20 @@ export const AGENDAMENTO_STATUS_LABEL: Record<AgendamentoStatus, string> = {
   CONFIRMADO: 'Confirmado',
   CANCELADO: 'Recusado',
 }
+
+export function formatDataHoraInicio(iso: string | null | undefined): string {
+  if (!iso) return ''
+  const d = new Date(iso)
+  if (Number.isNaN(d.getTime())) return ''
+  return d.toLocaleDateString('pt-BR', {
+    timeZone: 'America/Sao_Paulo',
+    weekday: 'short',
+    day: '2-digit',
+    month: '2-digit',
+    year: 'numeric',
+  }) + ' às ' + d.toLocaleTimeString('pt-BR', {
+    timeZone: 'America/Sao_Paulo',
+    hour: '2-digit',
+    minute: '2-digit',
+  })
+}

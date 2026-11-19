@@ -54,6 +54,7 @@ export type TeacherProfileFormData = {
   pricePerHour: string
   address: TeacherAddress
   availability: Set<string>
+  advanceNoticeHours: string
 }
 
 export type TeacherProfileErrors = Partial<{
@@ -71,6 +72,7 @@ export type TeacherProfilePayload = {
   fullName: string
   phone: string
   bio: string
+  avatarUrl?: string | null
   subjects: SubjectExperience[]
   teachingModel: ApiTeachingModel | null
   modalities: ApiModality[]
@@ -83,6 +85,15 @@ export type TeacherProfilePayload = {
     state: string
   }
   availability: Array<{ day: WeekDay; time: HourSlot | ShiftSlot }>
+  advanceNoticeHours: number | null
+  certificadoEnviado?: boolean
+  certificadoNome?: string | null
+  justificativaSemCertificado?: string | null
+  solicitarConversaAdmin?: boolean
+  verificado?: boolean
+  tipoVerificacao?: 'CERTIFICADO' | 'ADMIN' | null
+  certificadoDisponivel?: boolean
+  statusComprovacao?: string | null
 }
 
 export type EnderecoCep = {

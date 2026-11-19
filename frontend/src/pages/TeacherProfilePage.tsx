@@ -1,16 +1,23 @@
-import { ArrowLeft, BadgeCheck, BookOpen, CalendarDays, Clock, MapPin, Monitor } from 'lucide-react'
-import { useEffect, useState } from 'react'
+import { ArrowLeft, BadgeCheck, BookOpen, CalendarDays, Clock, Flag, MapPin, MessageCircle, Monitor } from 'lucide-react'
+import { useCallback, useEffect, useState } from 'react'
 import type { ReactNode } from 'react'
-import { Link, useParams } from 'react-router-dom'
+import { Link, useNavigate, useParams } from 'react-router-dom'
 import { BookingDialog } from '@/components/booking/BookingDialog'
+import { CartaoCertificado } from '@/components/teacher/CartaoCertificado'
+import { SeloVerificado } from '@/components/teacher/SeloVerificado'
+import { DenunciaDialog } from '@/components/denuncia/DenunciaDialog'
 import { SiteFooter } from '@/components/landing/SiteFooter'
 import { SiteHeader } from '@/components/landing/SiteHeader'
 import { Reveal } from '@/components/motion/Reveal'
 import { Button } from '@/components/ui/Button'
 import { StarRating } from '@/components/ui/StarRating'
+import { Toast } from '@/components/ui/Toast'
 import { useAuth } from '@/hooks/useAuth'
+import { ehContaAdmin } from '@/types/auth'
 import { cn } from '@/lib/cn'
+import { listarAvaliacoes, type Avaliacao } from '@/lib/avaliacaoService'
 import { buscarProfessor } from '@/lib/professorService'
+import { idUsuarioLogado } from '@/lib/session'
 import { formatDistance, formatModalities, formatRating } from '@/lib/formatTeacher'
 import type { Teacher } from '@/types/teacher'
 
@@ -127,11 +134,31 @@ function ProfileSkeleton() {
 export function TeacherProfilePage() {
   const { id } = useParams<{ id: string }>()
   const [teacher, setTeacher] = useState<Teacher | null>(null)
+  const [avaliacoes, setAvaliacoes] = useState<Avaliacao[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [isError, setIsError] = useState(false)
   const [isBookingOpen, setIsBookingOpen] = useState(false)
+  const [denunciaAberta, setDenunciaAberta] = useState(false)
+  const [toast, setToast] = useState<{ message: string; variant: 'success' | 'error' } | null>(null)
+  const fecharToast = useCallback(() => setToast(null), [])
+  const fecharDenuncia = useCallback(() => setDenunciaAberta(false), [])
 
   const { user } = useAuth()
+  const navigate = useNavigate()
+  const meuId = idUsuarioLogado()
+  const perfilProprio = Boolean(teacher && meuId && teacher.usuarioId === meuId)
+  const professorNaoAgenda = user?.role === 'PROFESSOR' && !ehContaAdmin(user)
+
+  function abrirConversa() {
+    if (!teacher?.usuarioId) return
+    navigate(`/chat/${teacher.usuarioId}`, {
+      state: {
+        nome: teacher.name,
+        avatarUrl: teacher.avatarUrl ?? null,
+        voltarPara: `/professores/${teacher.id}`,
+      },
+    })
+  }
 
   useEffect(() => {
     if (!id) return
@@ -143,7 +170,12 @@ export function TeacherProfilePage() {
 
     buscarProfessor(id)
       .then((found) => {
-        if (isActive) setTeacher(found)
+        if (isActive) {
+          setTeacher(found)
+          listarAvaliacoes(found.usuarioId)
+            .then((avs) => { if (isActive) setAvaliacoes(avs) })
+            .catch(() => {})
+        }
       })
       .catch(() => {
         if (isActive) setIsError(true)
@@ -223,23 +255,28 @@ export function TeacherProfilePage() {
             <div className="px-5 py-5">
               <div className="flex flex-col items-center gap-4 sm:flex-row sm:items-center sm:justify-between">
                 <div className="flex flex-col items-center gap-4 sm:flex-row sm:items-center">
-                  <span
-                    aria-hidden="true"
-                    className="flex size-20 shrink-0 items-center justify-center rounded-full bg-ink-800 text-xl font-semibold text-paper-50 shadow-[inset_0_1px_0_rgba(255,255,255,0.18),0_4px_0_var(--color-ink-950)] dark:shadow-[inset_0_1px_0_rgba(255,255,255,0.14)] dark:ring-1 dark:ring-white/10"
-                  >
-                    {teacher.initials}
-                  </span>
+                  {teacher.avatarUrl ? (
+                    <img
+                      src={teacher.avatarUrl}
+                      alt={`Foto de ${teacher.name}`}
+                      className="size-20 shrink-0 rounded-full object-cover shadow-[inset_0_1px_0_rgba(255,255,255,0.18),0_4px_0_var(--color-ink-950)] dark:ring-1 dark:ring-white/10"
+                    />
+                  ) : (
+                    <span
+                      aria-hidden="true"
+                      className="flex size-20 shrink-0 items-center justify-center rounded-full bg-ink-800 text-xl font-semibold text-paper-50 shadow-[inset_0_1px_0_rgba(255,255,255,0.18),0_4px_0_var(--color-ink-950)] dark:shadow-[inset_0_1px_0_rgba(255,255,255,0.14)] dark:ring-1 dark:ring-white/10"
+                    >
+                      {teacher.initials}
+                    </span>
+                  )}
 
                   <div className="flex min-w-0 flex-col items-center gap-1.5 sm:items-start">
                     <div className="flex flex-wrap items-center justify-center gap-2 sm:justify-start">
                       <h1 className="text-2xl font-semibold tracking-tight text-ink-900 dark:text-white">
                         {teacher.name}
                       </h1>
-                      {teacher.verified && (
-                        <span className="flex items-center gap-1 rounded-full border border-sage-600/20 bg-sage-50 px-2.5 py-1 text-xs font-medium text-sage-600 dark:border-emerald-800/50 dark:bg-emerald-900/30 dark:text-emerald-400">
-                          <BadgeCheck className="size-3.5" />
-                          Verificado
-                        </span>
+                      {(teacher.verified || teacher.verificado) && (
+                        <SeloVerificado tipo={teacher.tipoVerificacao} />
                       )}
                     </div>
 
@@ -264,7 +301,19 @@ export function TeacherProfilePage() {
                   </div>
                 </div>
 
-                <div className="flex w-full items-center justify-end gap-4 sm:w-auto">
+                <div className="flex w-full flex-col items-stretch gap-3 sm:w-auto sm:items-end">
+                  {!perfilProprio && teacher.usuarioId && (
+                    <Button
+                      type="button"
+                      variant="secondary"
+                      fullWidth={false}
+                      icon={<MessageCircle className="size-4" />}
+                      onClick={abrirConversa}
+                      className="w-full sm:w-auto"
+                    >
+                      Conversar
+                    </Button>
+                  )}
                   <p className="leading-tight text-right">
                     <span className="tnum text-2xl font-semibold text-ink-900 dark:text-white">
                       R$ {teacher.pricePerHour}
@@ -314,6 +363,17 @@ export function TeacherProfilePage() {
         <div className="mt-6 grid gap-6 md:grid-cols-3">
           <Reveal delay={0.06} className="md:col-span-2">
             <div className={CARD}>
+              {(teacher.certificadoDisponivel || teacher.certificadoNome) && teacher.id && (
+                <div className="border-b border-paper-200 px-5 py-5 dark:border-white/10">
+                  <CartaoCertificado
+                    professorId={teacher.id}
+                    nome={teacher.certificadoNome}
+                    verificado={teacher.verified || teacher.verificado}
+                    tipoVerificacao={teacher.tipoVerificacao}
+                  />
+                </div>
+              )}
+
               {teacher.bio && (
                 <Block title="Sobre mim">
                   <div className="flex flex-col gap-2.5">
@@ -386,6 +446,39 @@ export function TeacherProfilePage() {
                   </div>
                 </Block>
               )}
+
+              {avaliacoes.length > 0 && (
+                <Block
+                  title="Avaliações"
+                  meta={
+                    <span className="text-xs text-paper-500 dark:text-zinc-500">
+                      {avaliacoes.length} {avaliacoes.length === 1 ? 'avaliação' : 'avaliações'}
+                    </span>
+                  }
+                >
+                  <ul className="flex flex-col gap-4">
+                    {avaliacoes.map((av) => (
+                      <li
+                        key={av.id}
+                        className="flex flex-col gap-1 border-b border-paper-100 pb-4 last:border-0 last:pb-0 dark:border-white/5"
+                      >
+                        <div className="flex items-center gap-2">
+                          <StarRating rating={av.nota} />
+                          <span className="text-sm font-medium text-ink-900 dark:text-white">
+                            {av.avaliadorNome}
+                          </span>
+                        </div>
+                        {av.comentario && (
+                          <p className="text-sm text-ink-600 dark:text-zinc-400">{av.comentario}</p>
+                        )}
+                        <span className="text-xs text-paper-500 dark:text-zinc-600">
+                          {new Date(av.criadoEm).toLocaleDateString('pt-BR')}
+                        </span>
+                      </li>
+                    ))}
+                  </ul>
+                </Block>
+              )}
             </div>
           </Reveal>
 
@@ -439,10 +532,46 @@ export function TeacherProfilePage() {
                   />
                 </dl>
 
-                <div className="mt-5">
-                  <Button variant="primary" fullWidth onClick={() => setIsBookingOpen(true)}>
+                <div className="mt-5 flex flex-col gap-2.5">
+                  {!perfilProprio && teacher.usuarioId && (
+                    <Button
+                      type="button"
+                      variant="secondary"
+                      fullWidth
+                      icon={<MessageCircle className="size-4" />}
+                      onClick={abrirConversa}
+                    >
+                      Conversar
+                    </Button>
+                  )}
+                  <Button
+                    variant="primary"
+                    fullWidth
+                    disabled={professorNaoAgenda}
+                    onClick={() => {
+                      if (professorNaoAgenda) {
+                        return
+                      }
+                      setIsBookingOpen(true)
+                    }}
+                  >
                     Agendar aula
                   </Button>
+                  {professorNaoAgenda && (
+                    <p className="text-center text-xs text-ink-600 dark:text-zinc-400">
+                      Contas de professor não podem agendar aulas particulares na plataforma.
+                    </p>
+                  )}
+                  {!perfilProprio && (
+                    <button
+                      type="button"
+                      onClick={() => setDenunciaAberta(true)}
+                      className="mx-auto mt-3 inline-flex items-center gap-1.5 rounded-md px-2.5 py-1 text-xs font-medium text-red-600 transition-colors hover:bg-red-50 hover:text-red-700 dark:text-red-400 dark:hover:bg-red-950/40 dark:hover:text-red-300"
+                    >
+                      <Flag className="size-3.5 text-current" />
+                      Denunciar
+                    </button>
+                  )}
                   <p className="mt-2.5 text-center text-xs text-paper-500 dark:text-zinc-500">
                     Escolha um horário disponível e envie a solicitação ao professor.
                   </p>
@@ -461,6 +590,22 @@ export function TeacherProfilePage() {
         modalities={teacher.modalities}
         subjects={teacher.subjects}
       />
+
+      <DenunciaDialog
+        open={denunciaAberta}
+        onClose={fecharDenuncia}
+        denunciadoId={teacher.usuarioId}
+        denunciadoNome={teacher.name}
+        onSuccess={() =>
+          setToast({
+            variant: 'success',
+            message: 'Denúncia registrada e enviada para análise',
+          })
+        }
+        onError={(mensagem) => setToast({ variant: 'error', message: mensagem })}
+      />
+
+      {toast && <Toast message={toast.message} variant={toast.variant} onDismiss={fecharToast} />}
 
       <SiteFooter />
     </div>

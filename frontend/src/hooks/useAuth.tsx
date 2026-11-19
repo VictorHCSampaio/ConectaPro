@@ -2,12 +2,15 @@ import { createContext, useCallback, useContext, useEffect, useMemo, useState } 
 import type { ReactNode } from 'react'
 import { getAccessToken, setAccessToken, setUnauthorizedHandler } from '@/lib/api'
 import { getUsuarioAutenticado, logoutUsuario } from '@/lib/authService'
-import type { AuthUser } from '@/types/auth'
+import { limparCacheDashboard } from '@/lib/dashboardService'
+import { limparCachePerfil } from '@/lib/perfilCache'
+import { normalizarAuthUser, type AuthUser } from '@/types/auth'
 
 type AuthContextValue = {
   user: AuthUser | null
   isAuthenticated: boolean
   signIn: (user: AuthUser) => void
+  updateUser: (patch: Partial<AuthUser>) => void
   signOut: () => void
 }
 
@@ -20,13 +23,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     if (getAccessToken()) {
       getUsuarioAutenticado()
         .then((data) =>
-          setUser({
-            name: data.nomeCompleto,
-            email: '',
-            role: data.tipo,
-            isAdmin: data.isAdmin,
-            statusConta: data.statusConta,
-          }),
+          setUser(
+            normalizarAuthUser({
+              name: data.nomeCompleto,
+              email: '',
+              role: data.tipo,
+              isAdmin: data.isAdmin,
+              statusConta: data.statusConta,
+              avatarUrl: data.avatarUrl ?? null,
+            }),
+          ),
         )
         .catch(() => {
           setAccessToken(null)
@@ -39,22 +45,30 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setUnauthorizedHandler(() => {
       setAccessToken(null)
       setUser(null)
+      limparCachePerfil()
+      limparCacheDashboard()
     })
     return () => setUnauthorizedHandler(null)
   }, [])
 
   const signIn = useCallback((nextUser: AuthUser) => {
-    setUser(nextUser)
+    setUser(normalizarAuthUser(nextUser))
+  }, [])
+
+  const updateUser = useCallback((patch: Partial<AuthUser>) => {
+    setUser((atual) => (atual ? normalizarAuthUser({ ...atual, ...patch }) : atual))
   }, [])
 
   const signOut = useCallback(() => {
     setUser(null)
+    limparCachePerfil()
+    limparCacheDashboard()
     logoutUsuario().catch(() => undefined)
   }, [])
 
   const value = useMemo(
-    () => ({ user, isAuthenticated: user !== null, signIn, signOut }),
-    [user, signIn, signOut],
+    () => ({ user, isAuthenticated: user !== null, signIn, updateUser, signOut }),
+    [user, signIn, updateUser, signOut],
   )
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>

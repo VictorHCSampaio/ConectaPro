@@ -1,9 +1,15 @@
 import { Navigate, Route, Routes } from 'react-router-dom'
+import { ChatbotFaq } from '@/components/chatbot/ChatbotFaq'
 import { RequireAdmin } from '@/components/auth/RequireAdmin'
 import { RequireAuth } from '@/components/auth/RequireAuth'
+import { AdminDenunciaResolutionPage } from '@/pages/AdminDenunciaResolutionPage'
 import { AdminMateriasPage } from '@/pages/AdminMateriasPage'
+import { AdminProfessoresPage } from '@/pages/AdminProfessoresPage'
+import { CadastroStatusPage } from '@/pages/CadastroStatusPage'
 import { AgendamentosPage } from '@/pages/AgendamentosPage'
 import { AuthPage } from '@/pages/AuthPage'
+import { ChatPage } from '@/pages/chat/ChatPage'
+import { ConversasPage } from '@/pages/chat/ConversasPage'
 import { Dashboard } from '@/pages/Dashboard'
 import { ForgotPasswordPage } from '@/pages/ForgotPasswordPage'
 import { LandingPage } from '@/pages/LandingPage'
@@ -13,11 +19,13 @@ import { ProfilePage } from '@/pages/ProfilePage'
 import { ProfileViewPage } from '@/pages/ProfileViewPage'
 import { ResetPasswordPage } from '@/pages/ResetPasswordPage'
 import { SearchTeachersPage } from '@/pages/SearchTeachersPage'
+import { StudentPublicProfilePage } from '@/pages/StudentPublicProfilePage'
 import { TeacherProfilePage } from '@/pages/TeacherProfilePage'
 
 function App() {
   return (
-    <Routes>
+    <>
+      <Routes>
       <Route path="/" element={<LandingPage />} />
       <Route
         path="/dashboard"
@@ -40,6 +48,22 @@ function App() {
         element={
           <RequireAuth>
             <TeacherProfilePage />
+          </RequireAuth>
+        }
+      />
+      <Route
+        path="/chat"
+        element={
+          <RequireAuth>
+            <ConversasPage />
+          </RequireAuth>
+        }
+      />
+      <Route
+        path="/chat/:usuarioId"
+        element={
+          <RequireAuth>
+            <ChatPage />
           </RequireAuth>
         }
       />
@@ -75,11 +99,35 @@ function App() {
         }
       />
       <Route
+        path="/alunos/:id"
+        element={
+          <RequireAuth>
+            <StudentPublicProfilePage />
+          </RequireAuth>
+        }
+      />
+      <Route
         path="/profile/edit"
         element={
           <RequireAuth>
             <ProfilePage />
           </RequireAuth>
+        }
+      />
+      <Route
+        path="/admin/denuncias"
+        element={
+          <RequireAdmin>
+            <AdminDenunciaResolutionPage />
+          </RequireAdmin>
+        }
+      />
+      <Route
+        path="/admin/denuncias/:id"
+        element={
+          <RequireAdmin>
+            <AdminDenunciaResolutionPage />
+          </RequireAdmin>
         }
       />
       <Route
@@ -90,8 +138,26 @@ function App() {
           </RequireAdmin>
         }
       />
+      <Route
+        path="/admin/professores"
+        element={
+          <RequireAdmin>
+            <AdminProfessoresPage />
+          </RequireAdmin>
+        }
+      />
+      <Route
+        path="/cadastro-status"
+        element={
+          <RequireAuth>
+            <CadastroStatusPage />
+          </RequireAuth>
+        }
+      />
       <Route path="*" element={<Navigate to="/" replace />} />
-    </Routes>
+      </Routes>
+      <ChatbotFaq />
+    </>
   )
 }
 

@@ -8,15 +8,13 @@ export async function listarHorariosDisponiveis(professorId: string): Promise<Av
 
 export async function agendarAula(
   professorId: string,
-  day: string,
-  time: string,
+  dataHoraInicio: string,
   modality: string,
   subject: string,
 ): Promise<Agendamento> {
   const { data } = await api.post<Agendamento>('/agendamentos', {
     professorId,
-    day,
-    time,
+    dataHoraInicio,
     modality,
     subject,
   })
@@ -40,5 +38,10 @@ export async function aprovarAgendamento(id: string): Promise<Agendamento> {
 
 export async function recusarAgendamento(id: string): Promise<Agendamento> {
   const { data } = await api.post<Agendamento>(`/agendamentos/${id}/recusar`)
+  return data
+}
+
+export async function cancelarAgendamento(id: string): Promise<Agendamento> {
+  const { data } = await api.post<Agendamento>(`/agendamentos/${id}/cancelar`)
   return data
 }

@@ -11,12 +11,28 @@ import { useForm } from '@/hooks/useForm'
 import { extractErrorMessage } from '@/lib/api'
 import { loginUsuario, verificarTotp } from '@/lib/authService'
 import { validateLoginForm } from '@/lib/validation'
-import type { LoginFormValues } from '@/types/auth'
+import { ehContaAdmin, type LoginFormValues, type StatusConta, type UserRole } from '@/types/auth'
 
 const INITIAL_VALUES: LoginFormValues = {
   email: '',
   password: '',
   rememberMe: false,
+}
+
+function destinoAposLogin(tipo?: UserRole, status?: StatusConta, isAdmin?: boolean): string {
+  if (ehContaAdmin({ role: tipo, isAdmin })) {
+    return '/'
+  }
+  if (tipo !== 'PROFESSOR') {
+    return '/'
+  }
+  if (status === 'EM_ANALISE' || status === 'REJEITADO') {
+    return '/cadastro-status'
+  }
+  if (status === 'PENDENTE_PAGAMENTO') {
+    return '/pagamento'
+  }
+  return '/profile/edit'
 }
 
 export function LoginForm() {
@@ -38,7 +54,10 @@ export function LoginForm() {
   const onSubmit = handleSubmit(async (formValues) => {
     setSubmitError(null)
     try {
-      const response = await loginUsuario({ email: formValues.email, senha: formValues.password })
+      const response = await loginUsuario(
+        { email: formValues.email, senha: formValues.password },
+        formValues.rememberMe,
+      )
 
       if (response.status === 'TOTP_REQUIRED') {
         setTotpStep(true)
@@ -54,15 +73,11 @@ export function LoginForm() {
         role: response.tipo!,
         isAdmin: response.isAdmin!,
         statusConta: response.statusConta,
+        avatarUrl: response.avatarUrl ?? null,
       })
 
       setWasSubmitted(true)
-      const destino =
-        response.statusConta === 'PENDENTE_PAGAMENTO'
-          ? '/pagamento'
-          : response.tipo === 'PROFESSOR'
-            ? '/profile/edit'
-            : '/'
+      const destino = destinoAposLogin(response.tipo, response.statusConta, response.isAdmin)
       setTimeout(() => navigate(destino), 900)
     } catch (error) {
       setSubmitError(extractErrorMessage(error, 'Não foi possível entrar. Tente novamente.'))
@@ -86,15 +101,11 @@ export function LoginForm() {
         role: response.tipo!,
         isAdmin: response.isAdmin!,
         statusConta: response.statusConta,
+        avatarUrl: response.avatarUrl ?? null,
       })
 
       setWasSubmitted(true)
-      const destino =
-        response.statusConta === 'PENDENTE_PAGAMENTO'
-          ? '/pagamento'
-          : response.tipo === 'PROFESSOR'
-            ? '/profile/edit'
-            : '/'
+      const destino = destinoAposLogin(response.tipo, response.statusConta, response.isAdmin)
       setTimeout(() => navigate(destino), 900)
     } catch (error) {
       setTotpError(extractErrorMessage(error, 'Código inválido. Tente novamente.'))

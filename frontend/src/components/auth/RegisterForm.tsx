@@ -1,5 +1,5 @@
-import { Mail, User } from 'lucide-react'
-import { useState, type MouseEvent } from 'react'
+import { CheckCircle2, Mail, User } from 'lucide-react'
+import { useCallback, useState, type MouseEvent } from 'react'
 import { FormFeedback } from '@/components/auth/FormFeedback'
 import { LegalTermsModal, type LegalDocumentType } from '@/components/auth/LegalTermsModal'
 import { RoleSelector } from '@/components/auth/RoleSelector'
@@ -27,13 +27,22 @@ const INITIAL_VALUES: RegisterFormValues = {
 }
 
 export function RegisterForm() {
-  const [totpSetup, setTotpSetup] = useState<(TotpSetupResponse & { email: string; password: string }) | null>(null)
+  const [totpSetup, setTotpSetup] = useState<
+    (TotpSetupResponse & { email: string; password: string }) | null
+  >(null)
   const [submitError, setSubmitError] = useState<string | null>(null)
   const [legalDocument, setLegalDocument] = useState<LegalDocumentType | null>(null)
+  const [documentosLidos, setDocumentosLidos] = useState({ terms: false, privacy: false })
   const { values, setField, touchField, fieldError, handleSubmit, isSubmitting } = useForm(
     INITIAL_VALUES,
     validateRegisterForm,
   )
+
+  const marcarComoLido = useCallback((type: LegalDocumentType) => {
+    setDocumentosLidos((atual) => (atual[type] ? atual : { ...atual, [type]: true }))
+  }, [])
+
+  const ambosLidos = documentosLidos.terms && documentosLidos.privacy
 
   function openLegalDocument(documentType: LegalDocumentType) {
     return (event: MouseEvent<HTMLButtonElement>) => {
@@ -51,6 +60,7 @@ export function RegisterForm() {
         email: formValues.email,
         password: formValues.password,
         role: formValues.role ?? 'ALUNO',
+        acceptTerms: formValues.acceptTerms,
       })
 
       setTotpSetup({ ...data, email: formValues.email, password: formValues.password })
@@ -129,32 +139,48 @@ export function RegisterForm() {
           autoComplete="new-password"
         />
 
-        <Checkbox
-          label={
-            <>
-              Concordo com os{' '}
-              <button
-                type="button"
-                className={LEGAL_LINK_CLASS}
-                onClick={openLegalDocument('terms')}
-              >
-                Termos de Uso
-              </button>{' '}
-              e a{' '}
-              <button
-                type="button"
-                className={LEGAL_LINK_CLASS}
-                onClick={openLegalDocument('privacy')}
-              >
-                Política de Privacidade
-              </button>
-            </>
-          }
-          checked={values.acceptTerms}
-          onChange={(event) => setField('acceptTerms', event.target.checked)}
-          onBlur={() => touchField('acceptTerms')}
-          error={fieldError('acceptTerms')}
-        />
+        <div className="flex flex-col gap-1.5">
+          <Checkbox
+            label={
+              <>
+                Concordo com os{' '}
+                <button
+                  type="button"
+                  className={LEGAL_LINK_CLASS}
+                  onClick={openLegalDocument('terms')}
+                >
+                  Termos de Uso
+                </button>
+                {documentosLidos.terms && (
+                  <CheckCircle2 className="ml-1 inline size-3.5 text-sage-600 dark:text-emerald-400" />
+                )}{' '}
+                e a{' '}
+                <button
+                  type="button"
+                  className={LEGAL_LINK_CLASS}
+                  onClick={openLegalDocument('privacy')}
+                >
+                  Política de Privacidade
+                </button>
+                {documentosLidos.privacy && (
+                  <CheckCircle2 className="ml-1 inline size-3.5 text-sage-600 dark:text-emerald-400" />
+                )}
+              </>
+            }
+            checked={values.acceptTerms}
+            onChange={(event) => setField('acceptTerms', event.target.checked)}
+            onBlur={() => touchField('acceptTerms')}
+            error={fieldError('acceptTerms')}
+            disabled={!ambosLidos}
+            className="disabled:cursor-not-allowed disabled:opacity-50"
+          />
+          {!ambosLidos && (
+            <p className="text-xs text-ink-500 dark:text-zinc-500">
+              Abra e role até o fim dos Termos de Uso e da Política de Privacidade para liberar o
+              aceite.
+            </p>
+          )}
+        </div>
 
         <Button type="submit" isLoading={isSubmitting} disabled={!values.acceptTerms}>
           Criar conta
@@ -165,6 +191,7 @@ export function RegisterForm() {
         open={legalDocument !== null}
         onClose={() => setLegalDocument(null)}
         documentType={legalDocument}
+        onReachEnd={marcarComoLido}
       />
     </div>
   )

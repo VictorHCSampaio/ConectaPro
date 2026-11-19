@@ -6,6 +6,7 @@ public record ProfessorResumoResponse(
         String id,
         String name,
         String initials,
+        String avatarUrl,
         List<String> subjects,
         double rating,
         int reviewCount,
@@ -17,6 +18,12 @@ public record ProfessorResumoResponse(
         List<String> weekDays,
         String neighborhood,
         String city,
-        Double distanceKm
+        Double distanceKm,
+        String usuarioId,
+        boolean verificado,
+        String tipoVerificacao,
+        boolean certificadoDisponivel,
+        String certificadoNome,
+        String statusComprovacao
 ) {
 }

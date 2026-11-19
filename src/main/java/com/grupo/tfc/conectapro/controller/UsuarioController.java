@@ -10,6 +10,7 @@ import com.grupo.tfc.conectapro.dto.auth.SolicitarResetSenhaRequest;
 import com.grupo.tfc.conectapro.dto.auth.TotpAtivacaoRequest;
 import com.grupo.tfc.conectapro.dto.auth.TotpConfiguracaoResponse;
 import com.grupo.tfc.conectapro.dto.auth.TotpVerificacaoRequest;
+import com.grupo.tfc.conectapro.model.TipoUsuario;
 import com.grupo.tfc.conectapro.model.Usuario;
 import com.grupo.tfc.conectapro.service.AuthenticationService;
 import com.grupo.tfc.conectapro.service.ResetSenhaService;
@@ -83,12 +84,15 @@ public class UsuarioController {
     @GetMapping("/me")
     public ResponseEntity<MensagemAutenticacaoResponse> me() {
         Usuario usuario = authService.buscarUsuarioAutenticado();
+        boolean admin = usuario.administrador();
+        TipoUsuario tipo = admin ? TipoUsuario.ADMIN : usuario.getTipo();
         return ResponseEntity.ok(new MensagemAutenticacaoResponse(
                 "Autenticado",
                 usuario.getNomeCompleto(),
-                usuario.getTipo(),
-                usuario.isAdmin(),
-                usuario.getStatusConta()
+                tipo,
+                admin,
+                usuario.getStatusConta(),
+                authService.resolverAvatar(usuario)
         ));
     }
 

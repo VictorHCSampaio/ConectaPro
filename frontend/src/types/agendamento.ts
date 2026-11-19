@@ -10,11 +10,15 @@ export type Agendamento = {
   id: string
   professorId: string
   professorName: string
+  studentId: string
   studentName: string
+  dataHoraInicio: string
   day: string
   time: string
   modality: string
   subject: string
   status: AgendamentoStatus
   createdAt: string
+  alunoUsuarioId: string
+  professorUsuarioId: string
 }

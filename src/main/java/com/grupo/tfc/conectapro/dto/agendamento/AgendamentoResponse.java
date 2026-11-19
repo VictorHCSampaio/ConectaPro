@@ -9,12 +9,16 @@ public record AgendamentoResponse(
         UUID id,
         UUID professorId,
         String professorName,
+        UUID studentId,
         String studentName,
+        OffsetDateTime dataHoraInicio,
         String day,
         String time,
         String modality,
         String subject,
         StatusAgendamento status,
-        OffsetDateTime createdAt
+        OffsetDateTime createdAt,
+        UUID alunoUsuarioId,
+        UUID professorUsuarioId
 ) {
 }

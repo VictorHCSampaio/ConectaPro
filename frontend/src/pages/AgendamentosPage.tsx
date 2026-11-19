@@ -1,28 +1,42 @@
-import { BookOpen, CalendarDays, Check, Clock, Loader2, Monitor, X } from 'lucide-react'
+import { Ban, BookOpen, CalendarDays, Check, Loader2, MessageCircle, Monitor, Star, X } from 'lucide-react'
 import { useEffect, useState } from 'react'
+import { Link, useNavigate } from 'react-router-dom'
+import { AvaliacaoDialog } from '@/components/avaliacao/AvaliacaoDialog'
 import { SiteFooter } from '@/components/landing/SiteFooter'
 import { SiteHeader } from '@/components/landing/SiteHeader'
 import { Button } from '@/components/ui/Button'
 import { useAuth } from '@/hooks/useAuth'
+import { ehContaAdmin } from '@/types/auth'
 import { extractErrorMessage } from '@/lib/api'
 import {
   aprovarAgendamento,
+  cancelarAgendamento,
   listarAgendamentosRecebidos,
   listarMeusAgendamentos,
   recusarAgendamento,
 } from '@/lib/agendamentoService'
+import { listarAvaliacoesAgendamento } from '@/lib/avaliacaoService'
 import { AgendamentoDetailsDialog } from '@/components/booking/AgendamentoDetailsDialog'
 import { cn } from '@/lib/cn'
 import {
   AGENDAMENTO_STATUS_LABEL,
+  formatDataHoraInicio,
   formatModality,
-  formatSlotDay,
-  formatSlotTime,
 } from '@/lib/formatSlot'
 import type { Agendamento, AgendamentoStatus } from '@/types/agendamento'
 
 const PAGE_SHELL =
   'flex min-h-screen flex-col bg-paper-50 transition-colors duration-300 dark:bg-night-900'
+
+const ANTECEDENCIA_CANCELAMENTO_MS = 60 * 60 * 1000
+const AVISO_CANCELAMENTO = 'Só é possível cancelar com no mínimo 1 hora de antecedência.'
+
+function podeCancelar(dataHoraInicio?: string | null) {
+  if (!dataHoraInicio) return true
+  const inicio = new Date(dataHoraInicio).getTime()
+  if (Number.isNaN(inicio)) return true
+  return inicio - Date.now() >= ANTECEDENCIA_CANCELAMENTO_MS
+}
 
 const STATUS_CHIP: Record<AgendamentoStatus, string> = {
   SOLICITADO:
@@ -46,6 +60,34 @@ function StatusChip({ status }: { status: AgendamentoStatus }) {
   )
 }
 
+function ChatDaAula({ agendamento, nome }: { agendamento: Agendamento; nome: string }) {
+  const { user } = useAuth()
+  const navigate = useNavigate()
+  const alvoId =
+    user?.role === 'PROFESSOR' && !ehContaAdmin(user)
+      ? agendamento.alunoUsuarioId
+      : agendamento.professorUsuarioId
+
+  if (!alvoId) return null
+
+  return (
+    <Button
+      type="button"
+      variant="ghost"
+      fullWidth={false}
+      className="px-3 py-1.5 text-xs"
+      icon={<MessageCircle className="size-4" />}
+      onClick={() =>
+        navigate(`/chat/${alvoId}`, {
+          state: { nome, voltarPara: '/aulas' },
+        })
+      }
+    >
+      Chat
+    </Button>
+  )
+}
+
 function SlotInfo({ agendamento }: { agendamento: Agendamento }) {
   return (
     <div className="flex flex-col gap-1 text-sm text-ink-600 dark:text-zinc-400">
@@ -63,11 +105,7 @@ function SlotInfo({ agendamento }: { agendamento: Agendamento }) {
       <span className="inline-flex flex-wrap items-center gap-x-3 gap-y-1">
         <span className="inline-flex items-center gap-1.5">
           <CalendarDays className="size-3.5 text-paper-400 dark:text-zinc-500" />
-          {formatSlotDay(agendamento.day)}
-        </span>
-        <span className="inline-flex items-center gap-1.5 tabular-nums">
-          <Clock className="size-3.5 text-paper-400 dark:text-zinc-500" />
-          {formatSlotTime(agendamento.time)}
+          {formatDataHoraInicio(agendamento.dataHoraInicio)}
         </span>
       </span>
     </div>
@@ -118,17 +156,62 @@ function EmptyState({ message }: { message: string }) {
 }
 
 function StudentBookingsView() {
+  const { user } = useAuth()
   const [agendamentos, setAgendamentos] = useState<Agendamento[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [detalhe, setDetalhe] = useState<Agendamento | null>(null)
+  const [avaliadosIds, setAvaliadosIds] = useState<Set<string>>(new Set())
+  const [avaliacaoAlvo, setAvaliacaoAlvo] = useState<Agendamento | null>(null)
+  const [cancellingId, setCancellingId] = useState<string | null>(null)
+  const [toast, setToast] = useState<{ variant: 'success' | 'error'; message: string } | null>(null)
+
+  useEffect(() => {
+    if (toast) {
+      const t = setTimeout(() => setToast(null), 4000)
+      return () => clearTimeout(t)
+    }
+  }, [toast])
+
+  async function handleCancelar(id: string) {
+    setCancellingId(id)
+    try {
+      const atualizado = await cancelarAgendamento(id)
+      setAgendamentos((prev) => prev.map((a) => (a.id === id ? atualizado : a)))
+      setToast({ variant: 'success', message: 'Aula cancelada.' })
+    } catch (err) {
+      setToast({ variant: 'error', message: extractErrorMessage(err, 'Não foi possível cancelar.') })
+    } finally {
+      setCancellingId(null)
+    }
+  }
 
   useEffect(() => {
     let isActive = true
 
     listarMeusAgendamentos()
-      .then((dados) => {
-        if (isActive) setAgendamentos(dados)
+      .then(async (dados) => {
+        if (!isActive) return
+        setAgendamentos(dados)
+
+        const confirmados = dados.filter((a) => a.status === 'CONFIRMADO')
+        if (confirmados.length === 0) return
+
+        const resultados = await Promise.allSettled(
+          confirmados.map((a) => listarAvaliacoesAgendamento(a.id)),
+        )
+        if (!isActive) return
+
+        const jaAvaliados = new Set<string>()
+        resultados.forEach((res, i) => {
+          if (res.status === 'fulfilled') {
+            const minhaAvaliacao = res.value.some(
+              (av) => av.avaliadorNome === user?.name,
+            )
+            if (minhaAvaliacao) jaAvaliados.add(confirmados[i].id)
+          }
+        })
+        setAvaliadosIds(jaAvaliados)
       })
       .catch((err) => {
         if (isActive) setError(extractErrorMessage(err, 'Não foi possível carregar suas aulas.'))
@@ -140,7 +223,7 @@ function StudentBookingsView() {
     return () => {
       isActive = false
     }
-  }, [])
+  }, [user?.name])
 
   return (
     <>
@@ -170,7 +253,43 @@ function StudentBookingsView() {
                     </span>
                     <SlotInfo agendamento={agendamento} />
                   </div>
-                  <StatusChip status={agendamento.status} />
+                  <div className="flex items-center gap-2">
+                    <StatusChip status={agendamento.status} />
+                    {(agendamento.status === 'SOLICITADO' || agendamento.status === 'CONFIRMADO') && (
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        fullWidth={false}
+                        className="px-3 py-1.5 text-xs text-red-600 hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-400/10"
+                        icon={<Ban className="size-4" />}
+                        isLoading={cancellingId === agendamento.id}
+                        disabled={cancellingId !== null || !podeCancelar(agendamento.dataHoraInicio)}
+                        title={podeCancelar(agendamento.dataHoraInicio) ? undefined : AVISO_CANCELAMENTO}
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          handleCancelar(agendamento.id)
+                        }}
+                      >
+                        Cancelar
+                      </Button>
+                    )}
+                    {agendamento.status === 'CONFIRMADO' && !avaliadosIds.has(agendamento.id) && (
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        fullWidth={false}
+                        className="px-3 py-1.5 text-xs"
+                        icon={<Star className="size-4" />}
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          setAvaliacaoAlvo(agendamento)
+                        }}
+                      >
+                        Avaliar
+                      </Button>
+                    )}
+                    <ChatDaAula agendamento={agendamento} nome={agendamento.professorName} />
+                  </div>
                 </button>
               </li>
             ))}
@@ -185,22 +304,94 @@ function StudentBookingsView() {
         counterpartLabel="Professor"
         counterpartName={detalhe?.professorName ?? ''}
       />
+
+      {avaliacaoAlvo && (
+        <AvaliacaoDialog
+          open
+          onClose={() => setAvaliacaoAlvo(null)}
+          avaliadoId={avaliacaoAlvo.professorUsuarioId}
+          avaliadoNome={avaliacaoAlvo.professorName}
+          agendamentoId={avaliacaoAlvo.id}
+          onSuccess={() => {
+            setAvaliadosIds((prev) => new Set(prev).add(avaliacaoAlvo.id))
+            setAvaliacaoAlvo(null)
+            setToast({ variant: 'success', message: 'Avaliação enviada com sucesso!' })
+          }}
+          onError={(msg) => setToast({ variant: 'error', message: msg })}
+        />
+      )}
+
+      {toast && (
+        <div
+          className={cn(
+            'fixed bottom-6 left-1/2 z-50 -translate-x-1/2 rounded-lg px-5 py-3 text-sm font-medium shadow-lg',
+            toast.variant === 'success' ? 'bg-sage-600 text-white' : 'bg-red-600 text-white',
+          )}
+        >
+          {toast.message}
+        </div>
+      )}
     </>
   )
 }
 
 function TeacherBookingsView() {
+  const { user } = useAuth()
   const [agendamentos, setAgendamentos] = useState<Agendamento[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [processingId, setProcessingId] = useState<string | null>(null)
+  const [cancellingId, setCancellingId] = useState<string | null>(null)
+  const [avaliadosIds, setAvaliadosIds] = useState<Set<string>>(new Set())
+  const [avaliacaoAlvo, setAvaliacaoAlvo] = useState<Agendamento | null>(null)
+  const [toast, setToast] = useState<{ variant: 'success' | 'error'; message: string } | null>(null)
+
+  useEffect(() => {
+    if (toast) {
+      const t = setTimeout(() => setToast(null), 4000)
+      return () => clearTimeout(t)
+    }
+  }, [toast])
+
+  async function handleCancelar(id: string) {
+    setCancellingId(id)
+    try {
+      const atualizado = await cancelarAgendamento(id)
+      setAgendamentos((prev) => prev.map((a) => (a.id === id ? atualizado : a)))
+      setToast({ variant: 'success', message: 'Aula cancelada.' })
+    } catch (err) {
+      setToast({ variant: 'error', message: extractErrorMessage(err, 'Não foi possível cancelar.') })
+    } finally {
+      setCancellingId(null)
+    }
+  }
 
   useEffect(() => {
     let isActive = true
 
     listarAgendamentosRecebidos()
-      .then((dados) => {
-        if (isActive) setAgendamentos(dados)
+      .then(async (dados) => {
+        if (!isActive) return
+        setAgendamentos(dados)
+
+        const confirmados = dados.filter((a) => a.status === 'CONFIRMADO')
+        if (confirmados.length === 0) return
+
+        const resultados = await Promise.allSettled(
+          confirmados.map((a) => listarAvaliacoesAgendamento(a.id)),
+        )
+        if (!isActive) return
+
+        const jaAvaliados = new Set<string>()
+        resultados.forEach((res, i) => {
+          if (res.status === 'fulfilled') {
+            const minhaAvaliacao = res.value.some(
+              (av) => av.avaliadorNome === user?.name,
+            )
+            if (minhaAvaliacao) jaAvaliados.add(confirmados[i].id)
+          }
+        })
+        setAvaliadosIds(jaAvaliados)
       })
       .catch((err) => {
         if (isActive)
@@ -213,7 +404,7 @@ function TeacherBookingsView() {
     return () => {
       isActive = false
     }
-  }, [])
+  }, [user?.name])
 
   async function responder(id: string, acao: 'aprovar' | 'recusar') {
     setError(null)
@@ -255,21 +446,25 @@ function TeacherBookingsView() {
                 className="flex flex-col gap-3 rounded-lg border border-paper-200 bg-white px-4 py-3.5 dark:border-white/10 dark:bg-night-700 sm:flex-row sm:items-center sm:justify-between"
               >
                 <div className="flex flex-col gap-1">
-                  <span className="font-medium text-ink-900 dark:text-white">
+                  <Link
+                    to={`/alunos/${agendamento.studentId}`}
+                    className="font-medium text-ink-900 underline decoration-paper-300 underline-offset-2 transition-colors hover:text-ocre-600 hover:decoration-ocre-400 dark:text-white dark:decoration-white/20 dark:hover:text-ocre-400"
+                    onClick={(e) => e.stopPropagation()}
+                  >
                     {agendamento.studentName}
-                  </span>
+                  </Link>
                   <SlotInfo agendamento={agendamento} />
                 </div>
 
                 {agendamento.status === 'SOLICITADO' ? (
-                  <div className="flex items-center gap-2">
+                  <div className="flex flex-wrap items-center gap-2">
                     <Button
                       variant="secondary"
                       fullWidth={false}
                       icon={<X className="size-4" />}
                       onClick={() => responder(agendamento.id, 'recusar')}
                       isLoading={processingId === agendamento.id}
-                      disabled={processingId !== null}
+                      disabled={processingId !== null || cancellingId !== null}
                     >
                       Recusar
                     </Button>
@@ -278,17 +473,86 @@ function TeacherBookingsView() {
                       icon={<Check className="size-4" />}
                       onClick={() => responder(agendamento.id, 'aprovar')}
                       isLoading={processingId === agendamento.id}
-                      disabled={processingId !== null}
+                      disabled={processingId !== null || cancellingId !== null}
                     >
                       Aprovar
                     </Button>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      fullWidth={false}
+                      className="px-3 py-1.5 text-xs text-red-600 hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-400/10"
+                      icon={<Ban className="size-4" />}
+                      isLoading={cancellingId === agendamento.id}
+                      disabled={processingId !== null || cancellingId !== null}
+                      onClick={() => handleCancelar(agendamento.id)}
+                    >
+                      Cancelar
+                    </Button>
+                    <ChatDaAula agendamento={agendamento} nome={agendamento.studentName} />
                   </div>
                 ) : (
-                  <StatusChip status={agendamento.status} />
+                  <div className="flex items-center gap-2">
+                    <StatusChip status={agendamento.status} />
+                    {agendamento.status === 'CONFIRMADO' && (
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        fullWidth={false}
+                        className="px-3 py-1.5 text-xs text-red-600 hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-400/10"
+                        icon={<Ban className="size-4" />}
+                        isLoading={cancellingId === agendamento.id}
+                        disabled={cancellingId !== null}
+                        onClick={() => handleCancelar(agendamento.id)}
+                      >
+                        Cancelar
+                      </Button>
+                    )}
+                    {agendamento.status === 'CONFIRMADO' && !avaliadosIds.has(agendamento.id) && (
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        fullWidth={false}
+                        className="px-3 py-1.5 text-xs"
+                        icon={<Star className="size-4" />}
+                        onClick={() => setAvaliacaoAlvo(agendamento)}
+                      >
+                        Avaliar
+                      </Button>
+                    )}
+                    <ChatDaAula agendamento={agendamento} nome={agendamento.studentName} />
+                  </div>
                 )}
               </li>
             ))}
           </ul>
+        </div>
+      )}
+
+      {avaliacaoAlvo && (
+        <AvaliacaoDialog
+          open
+          onClose={() => setAvaliacaoAlvo(null)}
+          avaliadoId={avaliacaoAlvo.alunoUsuarioId}
+          avaliadoNome={avaliacaoAlvo.studentName}
+          agendamentoId={avaliacaoAlvo.id}
+          onSuccess={() => {
+            setAvaliadosIds((prev) => new Set(prev).add(avaliacaoAlvo.id))
+            setAvaliacaoAlvo(null)
+            setToast({ variant: 'success', message: 'Avaliação enviada com sucesso!' })
+          }}
+          onError={(msg) => setToast({ variant: 'error', message: msg })}
+        />
+      )}
+
+      {toast && (
+        <div
+          className={cn(
+            'fixed bottom-6 left-1/2 z-50 -translate-x-1/2 rounded-lg px-5 py-3 text-sm font-medium shadow-lg',
+            toast.variant === 'success' ? 'bg-sage-600 text-white' : 'bg-red-600 text-white',
+          )}
+        >
+          {toast.message}
         </div>
       )}
     </PageChrome>
@@ -297,5 +561,6 @@ function TeacherBookingsView() {
 
 export function AgendamentosPage() {
   const { user } = useAuth()
-  return user?.role === 'PROFESSOR' ? <TeacherBookingsView /> : <StudentBookingsView />
+  const ehProfessor = user?.role === 'PROFESSOR' && !ehContaAdmin(user)
+  return ehProfessor ? <TeacherBookingsView /> : <StudentBookingsView />
 }

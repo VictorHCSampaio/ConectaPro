@@ -69,7 +69,8 @@ class UsuarioControllerIntegrationTest {
                 {
                   "nome": "Usuário de Integração",
                   "email": "%s",
-                  "password": "senha@123"
+                  "password": "Senha@123",
+                  "acceptTerms": true
                 }
                 """.formatted(EMAIL_REGISTRO);
 
@@ -84,12 +85,46 @@ class UsuarioControllerIntegrationTest {
     }
 
     @Test
+    void registrar_semAceitarTermos_deveRetornar400ENaoPersistir() throws Exception {
+        String emailSemAceite = "semaceite" + System.nanoTime() + "@email.com";
+
+        String semCampo = """
+                {
+                  "nome": "Sem Aceite",
+                  "email": "%s",
+                  "password": "Senha@123"
+                }
+                """.formatted(emailSemAceite);
+
+        mockMvc.perform(post("/auth/register")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(semCampo))
+                .andExpect(status().isBadRequest());
+
+        String aceiteFalso = """
+                {
+                  "nome": "Sem Aceite",
+                  "email": "%s",
+                  "password": "Senha@123",
+                  "acceptTerms": false
+                }
+                """.formatted(emailSemAceite);
+
+        mockMvc.perform(post("/auth/register")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(aceiteFalso))
+                .andExpect(status().isBadRequest());
+
+        assertThat(usuarioRepository.findByEmail(emailSemAceite)).isEmpty();
+    }
+
+    @Test
     void deveRetornarErroQuandoEmailVazio() throws Exception {
         String payload = """
                 {
                   "nome": "Usuário Inválido",
                   "email": "",
-                  "password": "senha@123"
+                  "password": "Senha@123"
                 }
                 """;
 
@@ -105,7 +140,8 @@ class UsuarioControllerIntegrationTest {
                 {
                   "nome": "Usuário Duplicado",
                   "email": "%s",
-                  "password": "senha@123"
+                  "password": "Senha@123",
+                  "acceptTerms": true
                 }
                 """.formatted(EMAIL_DUPLICADO);
 
@@ -126,8 +162,9 @@ class UsuarioControllerIntegrationTest {
         RegisterRequest payload = new RegisterRequest(
                 "Usuario de Integracao",
                 email,
-                "senha@123",
-                null
+                "Senha@123",
+                null,
+                true
         );
 
         ResponseEntity<TotpConfiguracaoResponse> resposta = restClient.post()
@@ -147,7 +184,7 @@ class UsuarioControllerIntegrationTest {
     @Test
     void login_comCredenciaisValidas_deveRetornarTokenJwt() {
         String email = "teste" + System.nanoTime() + "@email.com";
-        String senha = "senha@123";
+        String senha = "Senha@123";
         registrarUsuarioParaTeste(email, senha);
         LoginRequest payload = new LoginRequest(email, senha);
 
@@ -190,7 +227,8 @@ class UsuarioControllerIntegrationTest {
                 "Usuario de Integracao",
                 email,
                 senha,
-                null
+                null,
+                true
         );
 
         ResponseEntity<TotpConfiguracaoResponse> resposta = restClient.post()

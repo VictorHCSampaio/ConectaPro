@@ -8,6 +8,7 @@ public record MensagemAutenticacaoResponse(
         String nomeCompleto,
         TipoUsuario tipo,
         boolean isAdmin,
-        StatusConta statusConta
+        StatusConta statusConta,
+        String avatarUrl
 ) {
 }

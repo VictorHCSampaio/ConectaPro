@@ -5,6 +5,7 @@ export type Teacher = {
   id: string
   name: string
   initials: string
+  avatarUrl?: string | null
   subjects: string[]
   rating: number
   reviewCount: number
@@ -17,6 +18,12 @@ export type Teacher = {
   neighborhood?: string | null
   city?: string | null
   distanceKm?: number | null
+  usuarioId: string
+  verificado?: boolean
+  tipoVerificacao?: 'CERTIFICADO' | 'ADMIN' | null
+  certificadoDisponivel?: boolean
+  certificadoNome?: string | null
+  statusComprovacao?: string | null
 }
 
 export type TeacherStats = {

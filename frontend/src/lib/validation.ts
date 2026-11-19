@@ -11,6 +11,9 @@ export function validateEmail(email: string) {
 export function validatePassword(password: string) {
   if (!password) return 'Informe sua senha'
   if (password.length < 8) return 'A senha precisa ter no mínimo 8 caracteres'
+  if (!/[A-Z]/.test(password)) return 'A senha precisa ter ao menos uma letra maiúscula'
+  if (!/\d/.test(password)) return 'A senha precisa ter ao menos um número'
+  if (!/[^A-Za-z0-9]/.test(password)) return 'A senha precisa ter ao menos um caractere especial'
   return undefined
 }
 

@@ -1,11 +1,17 @@
-import { Loader2, Pencil } from 'lucide-react'
+import { AlertTriangle, BadgeCheck, Loader2, MessageSquareText, Pencil } from 'lucide-react'
 import { useEffect, useState } from 'react'
-import { Navigate, useNavigate } from 'react-router-dom'
+import { Link, Navigate, useNavigate } from 'react-router-dom'
 import { SiteFooter } from '@/components/landing/SiteFooter'
 import { SiteHeader } from '@/components/landing/SiteHeader'
 import { FormSection } from '@/components/teacher-config/FormSection'
+import { CartaoCertificado } from '@/components/teacher/CartaoCertificado'
+import { SeloVerificado } from '@/components/teacher/SeloVerificado'
 import { Button } from '@/components/ui/Button'
+import { UserAvatar } from '@/components/ui/UserAvatar'
 import { useAuth } from '@/hooks/useAuth'
+import { ehContaAdmin } from '@/types/auth'
+import { chaveUsuarioCache, gravarPerfilProfessor, lerPerfilProfessor } from '@/lib/perfilCache'
+import { idUsuarioLogado } from '@/lib/session'
 import { buscarPerfilProfessor } from '@/lib/teacherProfileService'
 import { StudentProfilePage } from '@/pages/StudentProfilePage'
 import type { TeacherProfilePayload } from '@/types/teacher-profile'
@@ -29,28 +35,84 @@ function Campo({ rotulo, valor }: { rotulo: string; valor: string }) {
   )
 }
 
+function ComprovacaoProfessor({ perfil }: { perfil: TeacherProfilePayload | null }) {
+  const enviado = Boolean(perfil?.certificadoEnviado && perfil.certificadoNome)
+  const conversa = Boolean(perfil?.solicitarConversaAdmin)
+
+  return (
+    <FormSection
+      title="Comprovação Profissional / Certificado"
+      description="Documento usado na avaliação do seu cadastro."
+    >
+      {enviado ? (
+        <p className="inline-flex flex-wrap items-center gap-2 text-sm text-sage-600 dark:text-emerald-400">
+          <BadgeCheck className="size-4" />
+          Certificado enviado
+          {perfil?.certificadoNome ? ` — ${perfil.certificadoNome}` : ''}
+        </p>
+      ) : conversa ? (
+        <div className="flex flex-col gap-2">
+          <p className="inline-flex items-center gap-2 text-sm font-medium text-ocre-700 dark:text-ocre-200">
+            <MessageSquareText className="size-4" />
+            Conversa de avaliação solicitada com Admin
+          </p>
+          {perfil?.justificativaSemCertificado && (
+            <p className="whitespace-pre-line text-sm text-ink-800 dark:text-zinc-200">
+              {perfil.justificativaSemCertificado}
+            </p>
+          )}
+        </div>
+      ) : (
+        <div className="flex flex-col items-start gap-3">
+          <p className="inline-flex items-center gap-2 text-sm text-ink-700 dark:text-zinc-300">
+            <AlertTriangle className="size-4 text-ocre-500" />
+            Nenhum certificado enviado
+          </p>
+          <Link
+            to="/profile/edit"
+            className="text-sm font-semibold text-ocre-700 underline decoration-ocre-300 underline-offset-2 hover:decoration-ocre-500 dark:text-ocre-300"
+          >
+            Regularizar em editar perfil
+          </Link>
+        </div>
+      )}
+    </FormSection>
+  )
+}
+
 function TeacherProfileView() {
   const navigate = useNavigate()
   const { user } = useAuth()
+  const chave = chaveUsuarioCache()
+  const cacheInicial = lerPerfilProfessor(chave)
 
-  const [perfil, setPerfil] = useState<TeacherProfilePayload | null>(null)
-  const [isLoading, setIsLoading] = useState(true)
+  const [perfil, setPerfil] = useState<TeacherProfilePayload | null>(cacheInicial)
+  const [isLoading, setIsLoading] = useState(cacheInicial == null)
+  const ehAdmin = ehContaAdmin(user)
+  const ehProfessorComum = user?.role === 'PROFESSOR' && !ehAdmin
+  const meuId = idUsuarioLogado()
 
   useEffect(() => {
     let isActive = true
 
     buscarPerfilProfessor()
       .then((dados) => {
-        if (isActive) setPerfil(dados)
+        if (!isActive || !dados) {
+          return
+        }
+        gravarPerfilProfessor(chave, dados)
+        setPerfil(dados)
       })
       .finally(() => {
-        if (isActive) setIsLoading(false)
+        if (isActive) {
+          setIsLoading(false)
+        }
       })
 
     return () => {
       isActive = false
     }
-  }, [])
+  }, [chave])
 
   return (
     <div className="flex min-h-screen flex-col bg-paper-50 transition-colors duration-300 dark:bg-night-900">
@@ -58,13 +120,30 @@ function TeacherProfileView() {
 
       <main className="mx-auto w-full max-w-3xl flex-1 px-6 py-10">
         <div className="flex items-start justify-between gap-4">
-          <div>
+          <div className="min-w-0">
             <p className="label-mono text-paper-600 dark:text-zinc-500">Conta</p>
-            <h1 className="mt-2 text-3xl font-semibold tracking-tight text-ink-900 dark:text-white">
-              Meu perfil
-            </h1>
-            <p className="mt-2 text-sm text-ink-600 dark:text-zinc-400">
-              {user?.name} · {user?.email}
+            <div className="mt-2 flex items-center gap-3">
+              <h1 className="text-3xl font-semibold tracking-tight text-ink-900 dark:text-white">
+                Meu perfil
+              </h1>
+              <UserAvatar
+                name={perfil?.fullName ?? user?.name}
+                src={perfil?.avatarUrl ?? user?.avatarUrl}
+                className="size-16 border border-paper-300 text-base dark:border-white/15"
+              />
+            </div>
+            {ehAdmin && (
+              <span className="mt-3 inline-flex w-fit items-center rounded-full border border-ocre-400/40 bg-ocre-50 px-2.5 py-1 text-xs font-semibold text-ocre-700 dark:bg-ocre-400/10 dark:text-ocre-300">
+                Administrador
+              </span>
+            )}
+            <p className="mt-2 flex flex-wrap items-center gap-2 text-sm text-ink-600 dark:text-zinc-400">
+              <span>
+                {user?.name} · {user?.email}
+              </span>
+              {ehProfessorComum && perfil?.verificado && (
+                <SeloVerificado tipo={perfil.tipoVerificacao} />
+              )}
             </p>
           </div>
           <Button
@@ -84,14 +163,22 @@ function TeacherProfileView() {
             Carregando…
           </div>
         ) : !perfil ? (
-          <div className="mt-8 rounded-md border border-paper-200 bg-paper-50 p-6 text-sm text-ink-600 dark:border-white/10 dark:bg-night-800 dark:text-zinc-400">
-            Você ainda não configurou seu perfil. Clique em{' '}
-            <span className="font-medium text-ink-900 dark:text-white">Editar perfil</span> para
-            começar.
+          <div className="mt-8 flex flex-col gap-6">
+            <div className="rounded-md border border-paper-200 bg-paper-50 p-6 text-sm text-ink-600 dark:border-white/10 dark:bg-night-800 dark:text-zinc-400">
+              Você ainda não configurou seu perfil. Clique em{' '}
+              <span className="font-medium text-ink-900 dark:text-white">Editar perfil</span> para
+              começar.
+            </div>
+            {ehProfessorComum && <ComprovacaoProfessor perfil={null} />}
           </div>
         ) : (
           <div className="mt-8 flex flex-col gap-6">
-            <FormSection title="Sobre" description="Como os alunos veem você.">
+            <FormSection
+              title="Sobre"
+              description={
+                ehAdmin ? 'Informações da conta administrativa.' : 'Como os alunos veem você.'
+              }
+            >
               <div className="flex flex-col gap-4">
                 <Campo rotulo="Nome" valor={perfil.fullName} />
                 <Campo rotulo="Telefone" valor={perfil.phone || '—'} />
@@ -106,6 +193,7 @@ function TeacherProfileView() {
               </div>
             </FormSection>
 
+            {!ehAdmin && (
             <FormSection title="Ensino" description="O que, como e por quanto você ensina.">
               <div className="flex flex-col gap-5">
                 <div className="grid grid-cols-2 gap-4">
@@ -149,6 +237,32 @@ function TeacherProfileView() {
                 )}
               </div>
             </FormSection>
+            )}
+
+            {!ehAdmin && perfil.advanceNoticeHours != null && perfil.advanceNoticeHours > 0 && (
+              <FormSection
+                title="Agendamento"
+                description="Configurações de como os alunos agendam com você."
+              >
+                <Campo
+                  rotulo="Antecedência mínima"
+                  valor={`${perfil.advanceNoticeHours} hora(s)`}
+                />
+              </FormSection>
+            )}
+
+            {ehProfessorComum && <ComprovacaoProfessor perfil={perfil} />}
+
+            {ehProfessorComum &&
+              meuId &&
+              (perfil.certificadoDisponivel || perfil.certificadoEnviado) && (
+                <CartaoCertificado
+                  professorId={meuId}
+                  nome={perfil.certificadoNome}
+                  verificado={perfil.verificado}
+                  tipoVerificacao={perfil.tipoVerificacao}
+                />
+              )}
 
             <FormSection title="Localização" description="Visível apenas para você.">
               <div className="grid grid-cols-2 gap-4">
@@ -167,10 +281,19 @@ function TeacherProfileView() {
 
 export function ProfileViewPage() {
   const { user } = useAuth()
+  const ehAdmin = ehContaAdmin(user)
+  const ehProfessor = user?.role === 'PROFESSOR' && !ehAdmin
 
-  if (user?.role === 'PROFESSOR' && user.statusConta === 'PENDENTE_PAGAMENTO') {
+  if (
+    ehProfessor &&
+    (user?.statusConta === 'EM_ANALISE' || user?.statusConta === 'REJEITADO')
+  ) {
+    return <Navigate to="/cadastro-status" replace />
+  }
+
+  if (ehProfessor && user?.statusConta === 'PENDENTE_PAGAMENTO') {
     return <Navigate to="/pagamento" replace />
   }
 
-  return user?.role === 'PROFESSOR' ? <TeacherProfileView /> : <StudentProfilePage />
+  return ehAdmin || ehProfessor ? <TeacherProfileView /> : <StudentProfilePage />
 }

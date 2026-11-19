@@ -52,11 +52,22 @@ public class SecurityConfig {
                         .requestMatchers("/health").permitAll()
                         .requestMatchers("/auth/register", "/auth/login", "/auth/2fa/verify").permitAll()
                         .requestMatchers("/auth/password-reset/**").permitAll()
-                        .requestMatchers(HttpMethod.GET, "/professores", "/professores/{id}").permitAll()
+                        .requestMatchers(HttpMethod.GET,
+                                "/professores", "/professores/{id}", "/professores/{id}/certificado")
+                        .permitAll()
                         .requestMatchers(HttpMethod.GET, "/materias", "/materias/{id}").permitAll()
                         .requestMatchers(HttpMethod.GET, "/enderecos/{cep}").permitAll()
                         .requestMatchers("/pagamentos/webhook/mercadopago").permitAll()
                         .requestMatchers("/dashboard", "/dashboard/**").hasRole("ADMIN")
+                        .requestMatchers("/admin/**", "/api/admin/**").hasRole("ADMIN")
+                        // listagem de denuncias e dado sensivel: so administrador
+                        .requestMatchers(HttpMethod.GET,
+                                "/denuncias", "/denuncias/alunos", "/denuncias/professores",
+                                "/api/denuncias", "/api/denuncias/alunos", "/api/denuncias/professores")
+                        .hasRole("ADMIN")
+                        // context-path é /api, aqui o filtro ve /chat, /denuncias e /notificacoes. sem token, 401
+                        .requestMatchers("/chat/**", "/denuncias/**", "/notificacoes/**",
+                                "/api/chat/**", "/api/denuncias/**", "/api/notificacoes/**").authenticated()
                         .anyRequest().authenticated()
                 )
                 .exceptionHandling(ex -> ex

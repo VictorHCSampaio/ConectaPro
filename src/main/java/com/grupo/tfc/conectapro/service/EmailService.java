@@ -1,10 +1,16 @@
 package com.grupo.tfc.conectapro.service;
 
 import com.grupo.tfc.conectapro.config.EmailProperties;
+import com.grupo.tfc.conectapro.model.Denuncia;
+import com.grupo.tfc.conectapro.model.MotivoDenuncia;
+import com.grupo.tfc.conectapro.model.TipoUsuario;
+import com.grupo.tfc.conectapro.model.Usuario;
+import jakarta.mail.MessagingException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.mail.SimpleMailMessage;
 import org.springframework.mail.javamail.JavaMailSender;
+import org.springframework.mail.javamail.MimeMessageHelper;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 
@@ -55,6 +61,124 @@ public class EmailService {
         } catch (Exception e) {
             logger.error("Falha ao enviar email de reset de senha. destinatario={}", mascararEmail(destinatario), e);
         }
+    }
+
+    @Async
+    public void enviarAlertaDenuncia(Denuncia denuncia, String adminEmail) {
+        if (adminEmail == null || adminEmail.isBlank()) {
+            logger.warn("Alerta de denuncia nao enviado: endereco do admin vazio. denunciaId={}", denuncia.getId());
+            return;
+        }
+
+        try {
+            var mensagem = mailSender.createMimeMessage();
+            var helper = new MimeMessageHelper(mensagem, false, "UTF-8");
+            helper.setFrom(emailProperties.from());
+            helper.setTo(adminEmail);
+            helper.setSubject("Nova denúncia registrada — " + denuncia.getId());
+            helper.setText(corpoAlertaDenuncia(denuncia), true);
+            mailSender.send(mensagem);
+            logger.info("Alerta de denuncia enviado. denunciaId={} destinatario={}",
+                    denuncia.getId(), mascararEmail(adminEmail));
+        } catch (MessagingException | RuntimeException e) {
+            logger.error("Falha ao enviar alerta de denuncia. denunciaId={} destinatario={}",
+                    denuncia.getId(), mascararEmail(adminEmail), e);
+        }
+    }
+
+    @Async
+    public void enviarRecomendacaoBoletim(String destinatario, String nomeDestinatario, String texto) {
+        if (destinatario == null || destinatario.isBlank() || texto == null || texto.isBlank()) {
+            logger.warn("Recomendacao de boletim nao enviada: destinatario ou texto vazio");
+            return;
+        }
+
+        String corpo = """
+                Olá %s,
+
+                %s
+
+                Atenciosamente,
+                Equipe ConectaPro""".formatted(nomeDestinatario == null ? "" : nomeDestinatario, texto);
+
+        SimpleMailMessage mensagem = new SimpleMailMessage();
+        mensagem.setFrom(emailProperties.from());
+        mensagem.setTo(destinatario);
+        mensagem.setSubject("Recomendação de boletim de ocorrência — ConectaPro");
+        mensagem.setText(corpo);
+
+        try {
+            mailSender.send(mensagem);
+            logger.info("Recomendacao de boletim enviada. destinatario={}", mascararEmail(destinatario));
+        } catch (RuntimeException e) {
+            logger.error("Falha ao enviar recomendacao de boletim. destinatario={}", mascararEmail(destinatario), e);
+        }
+    }
+
+    private String corpoAlertaDenuncia(Denuncia denuncia) {
+        Usuario autor = denuncia.getDenunciante();
+        Usuario alvo = denuncia.getDenunciado();
+
+        return """
+                <p>Uma nova denúncia foi registrada no ConectaPro.</p>
+                <ul>
+                  <li><strong>ID da denúncia:</strong> %s</li>
+                  <li><strong>Autor:</strong> %s (%s)</li>
+                  <li><strong>Usuário denunciado:</strong> %s (%s)</li>
+                  <li><strong>Perfil denunciado:</strong> %s</li>
+                  <li><strong>Motivo:</strong> %s</li>
+                </ul>
+                <p><strong>Descrição:</strong></p>
+                <p>%s</p>
+                """.formatted(
+                escaparHtml(denuncia.getId() == null ? null : denuncia.getId().toString()),
+                escaparHtml(autor == null ? null : autor.getNomeCompleto()),
+                escaparHtml(autor == null ? null : autor.getEmail()),
+                escaparHtml(alvo == null ? null : alvo.getNomeCompleto()),
+                escaparHtml(alvo == null ? null : alvo.getEmail()),
+                escaparHtml(rotuloPerfil(alvo)),
+                escaparHtml(rotuloMotivo(denuncia.getMotivo())),
+                escaparHtml(denuncia.getDescricao()).replace("\n", "<br>")
+        );
+    }
+
+    private String rotuloPerfil(Usuario usuario) {
+        if (usuario == null) {
+            return null;
+        }
+        if (usuario.administrador() || usuario.getTipo() == TipoUsuario.ADMIN) {
+            return "Administrador";
+        }
+        if (usuario.getTipo() == null) {
+            return null;
+        }
+        if (usuario.getTipo() == TipoUsuario.ALUNO) {
+            return "Aluno";
+        }
+        return "Professor";
+    }
+
+    private String rotuloMotivo(MotivoDenuncia motivo) {
+        if (motivo == null) {
+            return null;
+        }
+        return switch (motivo) {
+            case ASSEDIO -> "Assédio";
+            case FRAUDE -> "Fraude";
+            case CONTEUDO_INADEQUADO -> "Conteúdo inadequado";
+            case OUTROS -> "Outros";
+        };
+    }
+
+    private String escaparHtml(String valor) {
+        if (valor == null || valor.isBlank()) {
+            return "Não informado";
+        }
+        return valor
+                .replace("&", "&amp;")
+                .replace("<", "&lt;")
+                .replace(">", "&gt;")
+                .replace("\"", "&quot;");
     }
 
     private String mascararEmail(String email) {

@@ -29,6 +29,8 @@ import {
   YAxis,
 } from 'recharts'
 
+import { DenunciasAlunosSection } from '@/components/dashboard/DenunciasAlunosSection'
+import { DenunciasProfessoresSection } from '@/components/dashboard/DenunciasProfessoresSection'
 import { SiteFooter } from '@/components/landing/SiteFooter'
 import { SiteHeader } from '@/components/landing/SiteHeader'
 import { Badge } from '@/components/ui/badge'
@@ -50,7 +52,7 @@ import {
   TableRow,
 } from '@/components/ui/table'
 import { useTheme } from '@/contexts/ThemeContext'
-import { obterResumoDashboard } from '@/lib/dashboardService'
+import { gravarResumoDashboard, lerResumoDashboard, obterResumoDashboard } from '@/lib/dashboardService'
 import type { AtividadeRecente, AulaRecente, DashboardResumo } from '@/lib/dashboardService'
 
 type Metric = {
@@ -59,10 +61,13 @@ type Metric = {
   icon: LucideIcon
 }
 
+const PERIODO_PADRAO = 90
+
 const PERIODOS = [
   { dias: 7, label: 'Últimos 7 dias' },
   { dias: 30, label: 'Últimos 30 dias' },
   { dias: 90, label: 'Últimos 90 dias' },
+  { dias: 0, label: 'Desde o início' },
 ]
 
 const RESUMO_VAZIO: DashboardResumo = {
@@ -107,10 +112,22 @@ function formatQuando(valor: string) {
 }
 
 function formatDataHorario(aula: AulaRecente) {
-  const agenda = [aula.diaSemana, aula.horario].filter(Boolean).join(' · ')
-  const quando = formatQuando(aula.criadoEm)
-  if (agenda && quando) return `${agenda} · ${quando}`
-  return agenda || quando || '—'
+  if (aula.dataHoraInicio) return formatQuando(aula.dataHoraInicio)
+  return formatQuando(aula.criadoEm) || '—'
+}
+
+function descricaoProfessores(dias: number) {
+  if (dias <= 0) {
+    return 'Professores que entraram desde o início, por disciplina'
+  }
+  return `Professores que entraram nos últimos ${dias} dias, por disciplina`
+}
+
+function descricaoCadastros(dias: number) {
+  if (dias <= 0) {
+    return 'Cadastros desde o início'
+  }
+  return `Cadastros nos últimos ${dias} dias`
 }
 
 function iconeDaAtividade(acao: string): LucideIcon {
@@ -129,25 +146,39 @@ export function Dashboard() {
   const { theme } = useTheme()
   const painelRef = useRef<HTMLDivElement>(null)
   const exportando = useRef(false)
-  const [dias, setDias] = useState(30)
-  const [resumo, setResumo] = useState<DashboardResumo | null>(null)
-  const [resumoEstado, setResumoEstado] = useState<ResumoEstado>('loading')
+  const [dias, setDias] = useState(PERIODO_PADRAO)
+  const [resumo, setResumo] = useState<DashboardResumo | null>(() => lerResumoDashboard(PERIODO_PADRAO))
+  const [resumoEstado, setResumoEstado] = useState<ResumoEstado>(() =>
+    lerResumoDashboard(PERIODO_PADRAO) ? 'ready' : 'loading',
+  )
   const isDark = theme === 'dark'
-  const dados = resumo ?? RESUMO_VAZIO
+  const resumoVisivel = lerResumoDashboard(dias) ?? resumo
+  const dados = resumoVisivel ?? RESUMO_VAZIO
 
   useEffect(() => {
     let ativo = true
-    setResumoEstado('loading')
+    const emCache = lerResumoDashboard(dias)
+    if (emCache) {
+      setResumo(emCache)
+      setResumoEstado('ready')
+    } else {
+      setResumoEstado((estado) => (estado === 'ready' ? 'ready' : 'loading'))
+    }
 
     obterResumoDashboard(dias)
       .then((data) => {
-        if (!ativo) return
+        if (!ativo) {
+          return
+        }
+        gravarResumoDashboard(dias, data)
         setResumo(data)
         setResumoEstado('ready')
       })
       .catch(() => {
-        if (!ativo) return
-        setResumoEstado('error')
+        if (!ativo) {
+          return
+        }
+        setResumoEstado((estado) => (emCache || estado === 'ready' ? 'ready' : 'error'))
       })
 
     return () => {
@@ -182,7 +213,8 @@ export function Dashboard() {
     }
   }
 
-  const valor = (numero: number) => (resumoEstado === 'loading' ? '…' : formatCount(numero))
+  const valor = (numero: number) =>
+    resumoEstado === 'loading' && resumoVisivel == null ? '…' : formatCount(numero)
 
   const metrics: Metric[] = [
     { label: 'Alunos Ativos', value: valor(dados.totalAlunos), icon: GraduationCap },
@@ -194,7 +226,10 @@ export function Dashboard() {
     },
     {
       label: 'Receita',
-      value: resumoEstado === 'loading' ? '…' : formatMoeda(dados.receitaAssinaturasMes),
+      value:
+        resumoEstado === 'loading' && resumoVisivel == null
+          ? '…'
+          : formatMoeda(dados.receitaAssinaturasMes),
       icon: DollarSign,
     },
   ]
@@ -295,9 +330,7 @@ export function Dashboard() {
           <Card className="min-w-0">
             <CardHeader>
               <CardTitle>Professores por Disciplina</CardTitle>
-              <CardDescription>
-                Professores que entraram nos últimos {dias} dias, por disciplina
-              </CardDescription>
+              <CardDescription>{descricaoProfessores(dias)}</CardDescription>
             </CardHeader>
             <CardContent className="h-72">
               {dados.professoresPorMateria.length === 0 ? (
@@ -347,7 +380,7 @@ export function Dashboard() {
           <Card className="min-w-0">
             <CardHeader>
               <CardTitle>Novos Usuários</CardTitle>
-              <CardDescription>Cadastros nos últimos {dias} dias</CardDescription>
+              <CardDescription>{descricaoCadastros(dias)}</CardDescription>
             </CardHeader>
             <CardContent className="h-72">
               {dados.novosUsuarios.length === 0 ? (
@@ -497,6 +530,9 @@ export function Dashboard() {
             </CardContent>
           </Card>
         </section>
+
+        <DenunciasProfessoresSection />
+        <DenunciasAlunosSection />
       </main>
 
       <SiteFooter />

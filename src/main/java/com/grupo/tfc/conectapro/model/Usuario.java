@@ -62,10 +62,30 @@ public class Usuario {
     @Column(name = "bloqueado_ate")
     private OffsetDateTime bloqueadoAte;
 
+    @Column(columnDefinition = "text")
+    private String biografia;
+
+    @Column(name = "avatar_url", columnDefinition = "text")
+    private String avatarUrl;
+
+    @Column(name = "motivo_rejeicao", columnDefinition = "text")
+    private String motivoRejeicao;
+
+    @Column(name = "aceitou_termos")
+    @Builder.Default
+    private boolean aceitouTermos = false;
+
+    @Column(name = "termos_aceitos_em")
+    private OffsetDateTime termosAceitosEm;
+
     @PrePersist
     void preencherCriadoEm() {
         if (criadoEm == null) {
             criadoEm = OffsetDateTime.now();
         }
+    }
+
+    public boolean administrador() {
+        return admin || tipo == TipoUsuario.ADMIN;
     }
 }

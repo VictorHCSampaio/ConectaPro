@@ -1,5 +1,8 @@
 package com.grupo.tfc.conectapro.config;
 
+import com.grupo.tfc.conectapro.model.StatusConta;
+import com.grupo.tfc.conectapro.model.Usuario;
+import com.grupo.tfc.conectapro.repository.UsuarioRepository;
 import com.grupo.tfc.conectapro.service.JwtService;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
@@ -12,15 +15,18 @@ import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
 
 import java.io.IOException;
+import java.time.OffsetDateTime;
 import java.util.UUID;
 
 @Component
 public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
     private final JwtService jwtService;
+    private final UsuarioRepository usuarioRepository;
 
-    public JwtAuthenticationFilter(JwtService jwtService) {
+    public JwtAuthenticationFilter(JwtService jwtService, UsuarioRepository usuarioRepository) {
         this.jwtService = jwtService;
+        this.usuarioRepository = usuarioRepository;
     }
 
     @Override
@@ -33,15 +39,31 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
         if (jwt != null && JwtService.SCOPE_FULL_ACCESS.equals(jwtService.extrairScope(jwt))) {
             UUID userId = jwtService.extrairUserId(jwt);
-            String role = jwtService.extrairRole(jwt);
-            boolean admin = jwtService.extrairAdmin(jwt);
+            if (sessaoAtiva(userId)) {
+                String role = jwtService.extrairRole(jwt);
+                boolean admin = jwtService.extrairAdmin(jwt);
 
-            var usuario = new UsuarioUserDetails(userId, role, admin);
-            var authentication = new UsernamePasswordAuthenticationToken(userId, null, usuario.getAuthorities());
-            SecurityContextHolder.getContext().setAuthentication(authentication);
+                var usuario = new UsuarioUserDetails(userId, role, admin);
+                var authentication = new UsernamePasswordAuthenticationToken(userId, null, usuario.getAuthorities());
+                SecurityContextHolder.getContext().setAuthentication(authentication);
+            }
         }
 
         filterChain.doFilter(request, response);
+    }
+
+    private boolean sessaoAtiva(UUID userId) {
+        return usuarioRepository.findById(userId)
+                .map(this::contaPermiteSessao)
+                .orElse(false);
+    }
+
+    private boolean contaPermiteSessao(Usuario usuario) {
+        if (usuario.getStatusConta() == StatusConta.BANIDO) {
+            return false;
+        }
+        OffsetDateTime bloqueadoAte = usuario.getBloqueadoAte();
+        return bloqueadoAte == null || !OffsetDateTime.now().isBefore(bloqueadoAte);
     }
 
     private String recuperarToken(HttpServletRequest request) {

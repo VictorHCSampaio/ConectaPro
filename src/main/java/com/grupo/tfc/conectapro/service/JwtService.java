@@ -6,6 +6,7 @@ import com.auth0.jwt.exceptions.JWTCreationException;
 import com.auth0.jwt.exceptions.JWTVerificationException;
 import com.auth0.jwt.interfaces.DecodedJWT;
 import com.grupo.tfc.conectapro.config.JwtProperties;
+import com.grupo.tfc.conectapro.model.TipoUsuario;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
@@ -32,7 +33,9 @@ public class JwtService {
     }
 
     public String gerarToken(UUID userId, String role, boolean admin) {
-        return buildToken(userId, SCOPE_FULL_ACCESS, role, admin, properties.expiracaoMinutos());
+        boolean contaAdmin = admin || TipoUsuario.ADMIN.name().equals(role);
+        String papel = contaAdmin ? TipoUsuario.ADMIN.name() : role;
+        return buildToken(userId, SCOPE_FULL_ACCESS, papel, contaAdmin, properties.expiracaoMinutos());
     }
 
     public String gerarPreAuthToken(UUID userId) {

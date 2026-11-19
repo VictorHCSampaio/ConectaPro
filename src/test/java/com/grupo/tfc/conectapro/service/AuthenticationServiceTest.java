@@ -2,9 +2,11 @@ package com.grupo.tfc.conectapro.service;
 
 import com.grupo.tfc.conectapro.config.SecurityAuthenticationProperties;
 import com.grupo.tfc.conectapro.dto.auth.LoginResponse;
+import com.grupo.tfc.conectapro.dto.auth.RegisterRequest;
 import com.grupo.tfc.conectapro.model.AcaoAuditoria;
 import com.grupo.tfc.conectapro.model.TipoUsuario;
 import com.grupo.tfc.conectapro.model.Usuario;
+import com.grupo.tfc.conectapro.repository.ProfessorRepository;
 import com.grupo.tfc.conectapro.repository.UsuarioRepository;
 import com.auth0.jwt.interfaces.DecodedJWT;
 import org.junit.jupiter.api.BeforeEach;
@@ -46,6 +48,9 @@ class AuthenticationServiceTest {
     @Mock
     private JwtService jwtService;
 
+    @Mock
+    private ProfessorRepository professorRepository;
+
     private AuthenticationService authenticationService;
 
     private static final String EMAIL_VALIDO = "joao.silva@email.com";
@@ -62,7 +67,8 @@ class AuthenticationServiceTest {
                 5, 30, new SecurityAuthenticationProperties.TotpPropriedades("ConectaPro")
         );
         authenticationService = new AuthenticationService(
-                usuarioRepository, totpService, senhaService, auditoriaService, jwtService, authProperties
+                usuarioRepository, totpService, senhaService, auditoriaService, jwtService, authProperties,
+                professorRepository
         );
 
         usuarioPadrao = Usuario.builder()
@@ -208,5 +214,32 @@ class AuthenticationServiceTest {
         // Assert
         assertThat(excecao.getStatusCode()).isEqualTo(HttpStatus.UNAUTHORIZED);
         verify(senhaService, never()).match(any(), any());
+    }
+
+    @Test
+    void login_quandoIsAdmin_expoePapelAdmin() {
+        usuarioPadrao.setAdmin(true);
+        when(usuarioRepository.findByEmail(EMAIL_VALIDO)).thenReturn(Optional.of(usuarioPadrao));
+        when(senhaService.match(SENHA_CORRETA, SENHA_HASH)).thenReturn(true);
+        when(jwtService.gerarToken(usuarioPadrao.getId(), "ADMIN", true)).thenReturn(FAKE_TOKEN);
+
+        LoginResponse resultado = authenticationService.login(EMAIL_VALIDO, SENHA_CORRETA);
+
+        assertThat(resultado.tipo()).isEqualTo(TipoUsuario.ADMIN);
+        assertThat(resultado.isAdmin()).isTrue();
+        verify(jwtService).gerarToken(usuarioPadrao.getId(), "ADMIN", true);
+    }
+
+    @Test
+    void register_comRoleAdmin_retorna400() {
+        RegisterRequest request = new RegisterRequest(
+                "Admin Invasor", "admin@email.com", "senha12345", "ADMIN", true);
+
+        ResponseStatusException excecao = assertThrows(
+                ResponseStatusException.class,
+                () -> authenticationService.register(request));
+
+        assertThat(excecao.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
+        verify(usuarioRepository, never()).save(any());
     }
 }

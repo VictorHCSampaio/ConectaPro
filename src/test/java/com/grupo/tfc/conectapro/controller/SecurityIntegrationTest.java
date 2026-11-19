@@ -52,12 +52,28 @@ class SecurityIntegrationTest {
                 .build();
     }
 
+    @Test
+    void register_comRoleAdmin_deveRetornar400() {
+        ResponseEntity<String> response = client.post().uri("/auth/register")
+                .contentType(MediaType.APPLICATION_JSON)
+                .body(Map.of(
+                        "nome", "Admin Invasor",
+                        "email", "admin.invasor" + System.nanoTime() + "@test.com",
+                        "password", "Senha@12345",
+                        "role", "ADMIN",
+                        "acceptTerms", true))
+                .retrieve()
+                .toEntity(String.class);
+
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
+    }
+
     // --- (d) GET /auditoria: comum → 403, admin → 200 ---
 
     @Test
     void auditoria_comUsuarioComum_deveRetornar403() {
         long ts = System.nanoTime();
-        String token = registrarUsuarioComumELogar("comum.sec" + ts + "@test.com", "senha12345");
+        String token = registrarUsuarioComumELogar("comum.sec" + ts + "@test.com", "Senha@12345");
 
         ResponseEntity<Void> response = client.get().uri("/auditoria?pagina=0&tamanho=5")
                 .header("Authorization", "Bearer " + token)
@@ -70,7 +86,7 @@ class SecurityIntegrationTest {
     @Test
     void auditoria_comAdmin_deveRetornar200() {
         long ts = System.nanoTime();
-        String token = registrarAdminELogar("admin.sec" + ts + "@test.com", "senha12345");
+        String token = registrarAdminELogar("admin.sec" + ts + "@test.com", "Senha@12345");
 
         ResponseEntity<String> response = client.get().uri("/auditoria?pagina=0&tamanho=5")
                 .header("Authorization", "Bearer " + token)
@@ -84,7 +100,7 @@ class SecurityIntegrationTest {
     @Test
     void dashboard_comUsuarioComum_deveRetornar403() {
         long ts = System.nanoTime();
-        String token = registrarUsuarioComumELogar("comum.dash" + ts + "@test.com", "senha12345");
+        String token = registrarUsuarioComumELogar("comum.dash" + ts + "@test.com", "Senha@12345");
 
         ResponseEntity<Void> response = client.get().uri("/dashboard")
                 .header("Authorization", "Bearer " + token)
@@ -97,7 +113,7 @@ class SecurityIntegrationTest {
     @Test
     void dashboardResumo_comUsuarioComum_deveRetornar403() {
         long ts = System.nanoTime();
-        String token = registrarUsuarioComumELogar("comum.resumo" + ts + "@test.com", "senha12345");
+        String token = registrarUsuarioComumELogar("comum.resumo" + ts + "@test.com", "Senha@12345");
 
         ResponseEntity<Void> response = client.get().uri("/dashboard/resumo")
                 .header("Authorization", "Bearer " + token)
@@ -110,7 +126,7 @@ class SecurityIntegrationTest {
     @Test
     void dashboardResumo_comAdmin_deveRetornarContagens() {
         long ts = System.nanoTime();
-        String token = registrarAdminELogar("admin.resumo" + ts + "@test.com", "senha12345");
+        String token = registrarAdminELogar("admin.resumo" + ts + "@test.com", "Senha@12345");
 
         ResponseEntity<String> response = client.get().uri("/dashboard/resumo")
                 .header("Authorization", "Bearer " + token)
@@ -120,12 +136,27 @@ class SecurityIntegrationTest {
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
         assertThat(response.getBody()).contains("\"totalAlunos\"");
         assertThat(response.getBody()).contains("\"totalProfessores\"");
+
+        ResponseEntity<String> noventaDias = client.get().uri("/dashboard/resumo?dias=90")
+                .header("Authorization", "Bearer " + token)
+                .retrieve()
+                .toEntity(String.class);
+        assertThat(noventaDias.getStatusCode()).isEqualTo(HttpStatus.OK);
+        assertThat(noventaDias.getBody()).contains("\"novosUsuarios\"");
+
+        ResponseEntity<String> desdeOInicio = client.get().uri("/dashboard/resumo?dias=0")
+                .header("Authorization", "Bearer " + token)
+                .retrieve()
+                .toEntity(String.class);
+        assertThat(desdeOInicio.getStatusCode()).isEqualTo(HttpStatus.OK);
+        assertThat(desdeOInicio.getBody()).contains("\"aulasConfirmadasNoMes\"");
+        assertThat(desdeOInicio.getBody()).contains("\"professoresPorMateria\"");
     }
 
     @Test
     void dashboard_comAdmin_deveRetornar200() {
         long ts = System.nanoTime();
-        String token = registrarAdminELogar("admin.dash" + ts + "@test.com", "senha12345");
+        String token = registrarAdminELogar("admin.dash" + ts + "@test.com", "Senha@12345");
 
         ResponseEntity<Void> response = client.get().uri("/dashboard")
                 .header("Authorization", "Bearer " + token)
@@ -140,7 +171,7 @@ class SecurityIntegrationTest {
     @Test
     void tokenAdulterado_deveRetornar401() {
         long ts = System.nanoTime();
-        String tokenValido = registrarAdminELogar("adulterado.sec" + ts + "@test.com", "senha12345");
+        String tokenValido = registrarAdminELogar("adulterado.sec" + ts + "@test.com", "Senha@12345");
         String tokenAdulterado = tokenValido.substring(0, tokenValido.length() - 4) + "XXXX";
 
         ResponseEntity<Void> response = client.get().uri("/auditoria?pagina=0&tamanho=5")
@@ -156,7 +187,7 @@ class SecurityIntegrationTest {
     @Test
     void payloadJwt_deveConterApenasClaimsPermitidos_semPII() {
         long ts = System.nanoTime();
-        String token = registrarAdminELogar("payload.sec" + ts + "@test.com", "senha12345");
+        String token = registrarAdminELogar("payload.sec" + ts + "@test.com", "Senha@12345");
 
         String[] partes = token.split("\\.");
         assertThat(partes).hasSize(3);
@@ -180,7 +211,7 @@ class SecurityIntegrationTest {
     @Test
     void payloadJwt_expMenosIat_deveSerIgualExpiracaoConfigurada() {
         long ts = System.nanoTime();
-        String token = registrarAdminELogar("exp.sec" + ts + "@test.com", "senha12345");
+        String token = registrarAdminELogar("exp.sec" + ts + "@test.com", "Senha@12345");
 
         String[] partes = token.split("\\.");
         String payloadJson = new String(Base64.getUrlDecoder().decode(partes[1]));
@@ -197,7 +228,7 @@ class SecurityIntegrationTest {
     @Test
     void payloadJwt_deveConterApenasClaimsConhecidos() {
         long ts = System.nanoTime();
-        String token = registrarAdminELogar("claims.sec" + ts + "@test.com", "senha12345");
+        String token = registrarAdminELogar("claims.sec" + ts + "@test.com", "Senha@12345");
 
         String[] partes = token.split("\\.");
         String payloadJson = new String(Base64.getUrlDecoder().decode(partes[1]));
@@ -218,7 +249,7 @@ class SecurityIntegrationTest {
     private String registrarAdminELogar(String email, String senha) {
         client.post().uri("/auth/register")
                 .contentType(MediaType.APPLICATION_JSON)
-                .body(Map.of("nome", "Admin Teste", "email", email, "password", senha))
+                .body(Map.of("nome", "Admin Teste", "email", email, "password", senha, "acceptTerms", true))
                 .retrieve()
                 .toBodilessEntity();
 
@@ -241,7 +272,7 @@ class SecurityIntegrationTest {
     private String registrarUsuarioComumELogar(String email, String senha) {
         client.post().uri("/auth/register")
                 .contentType(MediaType.APPLICATION_JSON)
-                .body(Map.of("nome", "Usuario Teste", "email", email, "password", senha))
+                .body(Map.of("nome", "Usuario Teste", "email", email, "password", senha, "acceptTerms", true))
                 .retrieve()
                 .toBodilessEntity();
 
