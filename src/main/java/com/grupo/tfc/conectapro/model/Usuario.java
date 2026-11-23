@@ -78,6 +78,12 @@ public class Usuario {
     @Column(name = "termos_aceitos_em")
     private OffsetDateTime termosAceitosEm;
 
+    @Column(name = "versao_termos")
+    private String versaoTermos;
+
+    @Column(name = "assinatura_valida_ate")
+    private OffsetDateTime assinaturaValidaAte;
+
     @PrePersist
     void preencherCriadoEm() {
         if (criadoEm == null) {

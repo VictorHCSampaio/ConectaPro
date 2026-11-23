@@ -13,7 +13,10 @@ import com.grupo.tfc.conectapro.dto.auth.TotpVerificacaoRequest;
 import com.grupo.tfc.conectapro.model.TipoUsuario;
 import com.grupo.tfc.conectapro.model.Usuario;
 import com.grupo.tfc.conectapro.service.AuthenticationService;
+import com.grupo.tfc.conectapro.service.ClientIpResolver;
+import com.grupo.tfc.conectapro.service.RateLimitService;
 import com.grupo.tfc.conectapro.service.ResetSenhaService;
+import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -23,6 +26,7 @@ import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import java.time.Duration;
 import java.util.Map;
 import java.util.UUID;
 
@@ -32,10 +36,15 @@ public class UsuarioController {
 
     private final AuthenticationService authService;
     private final ResetSenhaService resetSenhaService;
+    private final RateLimitService rateLimitService;
+    private final ClientIpResolver clientIpResolver;
 
-    public UsuarioController(AuthenticationService authService, ResetSenhaService resetSenhaService) {
+    public UsuarioController(AuthenticationService authService, ResetSenhaService resetSenhaService,
+                            RateLimitService rateLimitService, ClientIpResolver clientIpResolver) {
         this.authService = authService;
         this.resetSenhaService = resetSenhaService;
+        this.rateLimitService = rateLimitService;
+        this.clientIpResolver = clientIpResolver;
     }
 
     @PostMapping("/register")
@@ -97,7 +106,11 @@ public class UsuarioController {
     }
 
     @PostMapping("/password-reset/request")
-    public ResponseEntity<Map<String, String>> solicitarResetSenha(@Valid @RequestBody SolicitarResetSenhaRequest request) {
+    public ResponseEntity<Map<String, String>> solicitarResetSenha(@Valid @RequestBody SolicitarResetSenhaRequest request,
+                                                                   HttpServletRequest httpRequest) {
+        String ip = clientIpResolver.resolver(httpRequest);
+        rateLimitService.verificar("reset-ip:" + ip, 10, Duration.ofMinutes(15));
+        rateLimitService.verificar("reset-email:" + request.email().toLowerCase(), 3, Duration.ofHours(1));
         resetSenhaService.solicitarReset(request.email());
         return ResponseEntity.ok(Map.of("message", "Se o e-mail estiver cadastrado, você receberá instruções para redefinir sua senha."));
     }
@@ -109,7 +122,9 @@ public class UsuarioController {
     }
 
     @PostMapping("/logout")
-    public ResponseEntity<Void> logout() {
+    public ResponseEntity<Void> logout(
+            @RequestHeader(value = "Authorization", required = false) String authHeader) {
+        authService.logout(extrairBearerToken(authHeader));
         return ResponseEntity.noContent().build();
     }
 

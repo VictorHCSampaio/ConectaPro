@@ -51,6 +51,9 @@ class AuthenticationServiceTest {
     @Mock
     private ProfessorRepository professorRepository;
 
+    @Mock
+    private TokenBlocklistService tokenBlocklistService;
+
     private AuthenticationService authenticationService;
 
     private static final String EMAIL_VALIDO = "joao.silva@email.com";
@@ -68,7 +71,7 @@ class AuthenticationServiceTest {
         );
         authenticationService = new AuthenticationService(
                 usuarioRepository, totpService, senhaService, auditoriaService, jwtService, authProperties,
-                professorRepository
+                professorRepository, tokenBlocklistService
         );
 
         usuarioPadrao = Usuario.builder()

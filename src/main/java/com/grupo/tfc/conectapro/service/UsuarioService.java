@@ -56,6 +56,15 @@ public class UsuarioService {
     }
 
     public PerfilAlunoResponse buscarPerfilPublico(UUID id) {
+        return montarPerfil(id, false);
+    }
+
+    public PerfilAlunoResponse buscarMeuPerfil() {
+        UUID id = UsuarioAutenticado.exigirUsuarioId();
+        return montarPerfil(id, true);
+    }
+
+    private PerfilAlunoResponse montarPerfil(UUID id, boolean incluirEmail) {
         Usuario usuario = usuarioRepository.findById(id)
                 .orElseThrow(() -> new ResponseStatusException(NOT_FOUND, "Usuário não encontrado"));
 
@@ -72,7 +81,7 @@ public class UsuarioService {
         return new PerfilAlunoResponse(
                 usuario.getId(),
                 usuario.getNomeCompleto(),
-                usuario.getEmail(),
+                incluirEmail ? usuario.getEmail() : null,
                 usuario.getTipo().name(),
                 usuario.getBiografia(),
                 usuario.getAvatarUrl(),
@@ -83,11 +92,6 @@ public class UsuarioService {
                 ratingInfo[0],
                 (int) ratingInfo[1]
         );
-    }
-
-    public PerfilAlunoResponse buscarMeuPerfil() {
-        UUID id = UsuarioAutenticado.exigirUsuarioId();
-        return buscarPerfilPublico(id);
     }
 
     @Transactional

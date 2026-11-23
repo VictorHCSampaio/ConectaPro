@@ -2,6 +2,7 @@ package com.grupo.tfc.conectapro.dto.auth;
 
 import com.fasterxml.jackson.annotation.JsonAlias;
 import jakarta.validation.constraints.AssertTrue;
+import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
@@ -11,6 +12,7 @@ public record RegisterRequest (
         @JsonAlias({"name"})
         String nome,
         @NotBlank
+        @Email(message = "E-mail inválido")
         @JsonAlias({"email"})
         String email,
         @NotBlank

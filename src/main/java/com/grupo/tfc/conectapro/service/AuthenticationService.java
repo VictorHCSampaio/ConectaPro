@@ -12,6 +12,7 @@ import com.grupo.tfc.conectapro.model.TipoUsuario;
 import com.grupo.tfc.conectapro.model.Usuario;
 import com.grupo.tfc.conectapro.repository.ProfessorRepository;
 import com.grupo.tfc.conectapro.repository.UsuarioRepository;
+import com.grupo.tfc.conectapro.util.MascaraEmail;
 import com.auth0.jwt.interfaces.DecodedJWT;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -30,6 +31,7 @@ import static org.springframework.http.HttpStatus.UNAUTHORIZED;
 public class AuthenticationService {
 
     private static final Logger logger = LoggerFactory.getLogger(AuthenticationService.class);
+    public static final String VERSAO_TERMOS_ATUAL = "1.0";
 
     private final UsuarioRepository usuarioRepository;
     private final TotpService totpService;
@@ -38,11 +40,13 @@ public class AuthenticationService {
     private final JwtService jwtService;
     private final SecurityAuthenticationProperties authProperties;
     private final ProfessorRepository professorRepository;
+    private final TokenBlocklistService tokenBlocklistService;
 
     public AuthenticationService(UsuarioRepository usuarioRepository, TotpService totpService,
                                  SenhaService senhaService, AuditoriaService auditoriaService,
                                  JwtService jwtService, SecurityAuthenticationProperties authProperties,
-                                 ProfessorRepository professorRepository) {
+                                 ProfessorRepository professorRepository,
+                                 TokenBlocklistService tokenBlocklistService) {
         this.usuarioRepository = usuarioRepository;
         this.totpService = totpService;
         this.senhaService = senhaService;
@@ -50,6 +54,17 @@ public class AuthenticationService {
         this.jwtService = jwtService;
         this.authProperties = authProperties;
         this.professorRepository = professorRepository;
+        this.tokenBlocklistService = tokenBlocklistService;
+    }
+
+    public void logout(String token) {
+        if (token == null || token.isBlank()) {
+            return;
+        }
+        var jwt = jwtService.validarToken(token);
+        if (jwt != null) {
+            tokenBlocklistService.revogar(jwtService.extrairJti(jwt), jwtService.extrairExpiracao(jwt));
+        }
     }
 
     public TotpConfiguracaoResponse register(RegisterRequest request) {
@@ -70,6 +85,7 @@ public class AuthenticationService {
                 .criadoEm(OffsetDateTime.now())
                 .aceitouTermos(true)
                 .termosAceitosEm(OffsetDateTime.now())
+                .versaoTermos(VERSAO_TERMOS_ATUAL)
                 .build();
         Usuario savedUsuario = Objects.requireNonNull(usuarioRepository.save(usuario));
         logger.info("Usuário registrado com sucesso. usuarioId={}", savedUsuario.getId());
@@ -120,12 +136,13 @@ public class AuthenticationService {
     }
 
     public LoginResponse login(String email, String senha) {
-        logger.info("Tentativa de login. email={}", email);
+        logger.info("Tentativa de login. email={}", MascaraEmail.mascarar(email));
 
         Usuario usuario = usuarioRepository.findByEmail(email)
                 .orElseThrow(() -> {
                     logger.warn("Falha no login, usuário não encontrado");
-                    auditoriaService.registrar(AcaoAuditoria.LOGIN_FALHA, null, "USUARIO", null, "usuário não encontrado. email=" + email);
+                    auditoriaService.registrar(AcaoAuditoria.LOGIN_FALHA, null, "USUARIO", null,
+                            "usuário não encontrado. email=" + MascaraEmail.mascarar(email));
                     return new ResponseStatusException(UNAUTHORIZED, "Credênciais inválidas");
                 });
 
@@ -256,6 +273,10 @@ public class AuthenticationService {
     public TotpConfiguracaoResponse obterConfigTotp(UUID usuarioId) {
         Usuario usuario = usuarioRepository.findById(usuarioId)
                 .orElseThrow(() -> new ResponseStatusException(UNAUTHORIZED, "Autenticação necessária. Faça login."));
+
+        if (usuario.isTotpAtivo()) {
+            throw new ResponseStatusException(FORBIDDEN, "A verificação em duas etapas já está ativa.");
+        }
 
         return new TotpConfiguracaoResponse(
                 usuario.getSegredoTotp(),
