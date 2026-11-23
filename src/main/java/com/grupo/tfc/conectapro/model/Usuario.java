@@ -71,6 +71,9 @@ public class Usuario {
     @Column(name = "motivo_rejeicao", columnDefinition = "text")
     private String motivoRejeicao;
 
+    @Column(name = "motivo_banimento", columnDefinition = "text")
+    private String motivoBanimento;
+
     @Column(name = "aceitou_termos")
     @Builder.Default
     private boolean aceitouTermos = false;

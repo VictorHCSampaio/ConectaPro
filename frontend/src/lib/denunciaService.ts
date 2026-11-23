@@ -68,8 +68,12 @@ export async function listarDenunciasAlunos(): Promise<DenunciaRegistro[]> {
   return data
 }
 
-export async function banirUsuario(usuarioId: string) {
-  await api.post(`/admin/usuarios/${usuarioId}/ban`)
+export async function banirUsuario(usuarioId: string, motivo: string) {
+  await api.post(`/admin/usuarios/${usuarioId}/ban`, { motivo })
+}
+
+export async function desbanirUsuario(usuarioId: string) {
+  await api.post(`/admin/usuarios/${usuarioId}/unban`)
 }
 
 export async function aplicarTimeout(usuarioId: string, horas: number) {

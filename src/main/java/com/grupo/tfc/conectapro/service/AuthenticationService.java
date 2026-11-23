@@ -153,7 +153,11 @@ public class AuthenticationService {
         if (usuario.getStatusConta() == StatusConta.BANIDO) {
             auditoriaService.registrar(AcaoAuditoria.LOGIN_FALHA, usuario.getId(), "USUARIO",
                     usuario.getId().toString(), "conta banida");
-            throw new ResponseStatusException(FORBIDDEN, "Conta banida");
+            String motivo = usuario.getMotivoBanimento();
+            String mensagem = motivo != null && !motivo.isBlank()
+                    ? "Sua conta foi banida. Motivo: " + motivo
+                    : "Sua conta foi banida.";
+            throw new ResponseStatusException(FORBIDDEN, mensagem);
         }
 
         verificarBloqueio(usuario);

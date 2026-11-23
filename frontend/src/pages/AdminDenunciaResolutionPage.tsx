@@ -15,6 +15,7 @@ import {
   aplicarTimeout,
   atualizarStatusDenuncia,
   banirUsuario,
+  desbanirUsuario,
   listarDenuncias,
   recomendarBoletim,
 } from '@/lib/denunciaService'
@@ -42,7 +43,7 @@ const ABAS: { id: 'TODAS' | PapelUsuario; label: string }[] = [
   { id: 'PROFESSOR', label: 'Professores' },
 ]
 
-type ModalAcao = 'ban' | 'timeout' | 'bo' | null
+type ModalAcao = 'ban' | 'unban' | 'timeout' | 'bo' | null
 
 function rotuloMotivo(motivo: DenunciaRegistro['motivo']) {
   return MOTIVOS_DENUNCIA.find((item) => item.value === motivo)?.label ?? motivo
@@ -78,6 +79,7 @@ export function AdminDenunciaResolutionPage() {
   const [status, setStatus] = useState<StatusDenuncia>('PENDENTE')
   const [notas, setNotas] = useState('')
   const [horas, setHoras] = useState<number>(24)
+  const [motivoBan, setMotivoBan] = useState('')
   const [modal, setModal] = useState<ModalAcao>(null)
   const [processando, setProcessando] = useState(false)
 
@@ -129,15 +131,31 @@ export function AdminDenunciaResolutionPage() {
   }
 
   async function confirmarBan() {
+    if (!selecionada || !motivoBan.trim()) return
+    setProcessando(true)
+    setAcaoErro(null)
+    try {
+      await banirUsuario(selecionada.denunciadoId, motivoBan.trim())
+      setAviso('Utilizador banido. A sessão e os tokens ativos deixam de ser aceites.')
+      setModal(null)
+      setMotivoBan('')
+    } catch (error) {
+      setAcaoErro(extractErrorMessage(error, 'Não foi possível banir o utilizador.'))
+    } finally {
+      setProcessando(false)
+    }
+  }
+
+  async function confirmarUnban() {
     if (!selecionada) return
     setProcessando(true)
     setAcaoErro(null)
     try {
-      await banirUsuario(selecionada.denunciadoId)
-      setAviso('Utilizador banido. A sessão e os tokens ativos deixam de ser aceites.')
+      await desbanirUsuario(selecionada.denunciadoId)
+      setAviso('Utilizador desbanido. O acesso foi restaurado.')
       setModal(null)
     } catch (error) {
-      setAcaoErro(extractErrorMessage(error, 'Não foi possível banir o utilizador.'))
+      setAcaoErro(extractErrorMessage(error, 'Não foi possível desbanir o utilizador.'))
     } finally {
       setProcessando(false)
     }
@@ -330,6 +348,13 @@ export function AdminDenunciaResolutionPage() {
                     </button>
                     <button
                       type="button"
+                      onClick={() => setModal('unban')}
+                      className="rounded-md border border-emerald-600 px-3 py-2 text-xs font-semibold text-emerald-700 hover:bg-emerald-50 dark:border-emerald-500 dark:text-emerald-400 dark:hover:bg-emerald-500/10"
+                    >
+                      Desbanir utilizador
+                    </button>
+                    <button
+                      type="button"
                       onClick={() => setModal('timeout')}
                       className="rounded-md border border-paper-300 px-3 py-2 text-xs font-semibold text-ink-800 dark:border-white/10 dark:text-zinc-100"
                     >
@@ -405,14 +430,59 @@ export function AdminDenunciaResolutionPage() {
       <SiteFooter />
 
       {modal === 'ban' && selecionada && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4">
+          <div
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="ban-titulo"
+            className="w-full max-w-md rounded-lg border border-paper-200 bg-white p-5 dark:border-white/10 dark:bg-night-800"
+          >
+            <h2 id="ban-titulo" className="text-lg font-semibold text-ink-900 dark:text-white">
+              Banir utilizador
+            </h2>
+            <p className="mt-2 text-sm leading-relaxed text-ink-700 dark:text-zinc-200">
+              Banir permanentemente {selecionada.denunciadoNome || 'este utilizador'}? A conta fica
+              inativa e os tokens JWT deixam de ser aceites.
+            </p>
+            <label className="mt-4 flex flex-col gap-1 text-xs font-semibold text-ink-800 dark:text-zinc-100">
+              Motivo do banimento
+              <textarea
+                value={motivoBan}
+                onChange={(event) => setMotivoBan(event.target.value)}
+                rows={3}
+                placeholder="Descreva o motivo do banimento. Será exibido ao utilizador ao tentar entrar."
+                className="rounded-md border border-paper-300 bg-white px-3 py-2 text-sm font-normal text-ink-900 outline-none focus:border-red-400 dark:border-white/10 dark:bg-night-900 dark:text-zinc-100"
+              />
+            </label>
+            <div className="mt-5 flex justify-end gap-2">
+              <button
+                type="button"
+                onClick={() => { setModal(null); setMotivoBan('') }}
+                disabled={processando}
+                className="rounded-md border border-paper-300 px-3 py-2 text-sm dark:border-white/10 dark:text-zinc-100"
+              >
+                Cancelar
+              </button>
+              <button
+                type="button"
+                onClick={confirmarBan}
+                disabled={processando || !motivoBan.trim()}
+                className="rounded-md bg-red-600 px-3 py-2 text-sm font-semibold text-white disabled:opacity-60"
+              >
+                Confirmar banimento
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+      {modal === 'unban' && selecionada && (
         <Confirmacao
-          titulo="Banir utilizador"
-          texto={`Banir permanentemente ${selecionada.denunciadoNome || 'este utilizador'}? A conta fica inativa e os tokens JWT deixam de ser aceites.`}
-          confirmarLabel="Confirmar banimento"
-          perigo
+          titulo="Desbanir utilizador"
+          texto={`Restaurar o acesso de ${selecionada.denunciadoNome || 'este utilizador'}? A conta voltará ao estado ativo.`}
+          confirmarLabel="Confirmar desbanimento"
           processando={processando}
           onCancelar={() => setModal(null)}
-          onConfirmar={confirmarBan}
+          onConfirmar={confirmarUnban}
         />
       )}
       {modal === 'timeout' && selecionada && (

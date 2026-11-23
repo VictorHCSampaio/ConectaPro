@@ -64,7 +64,7 @@ class ModeracaoServiceTest {
         when(usuarioRepository.findById(alunoId)).thenReturn(Optional.of(usuario(alunoId, false)));
 
         ResponseStatusException excecao = assertThrows(ResponseStatusException.class,
-                () -> moderacaoService.banir(UUID.randomUUID()));
+                () -> moderacaoService.banir(UUID.randomUUID(), "teste"));
 
         assertThat(excecao.getStatusCode().value()).isEqualTo(403);
         verify(usuarioRepository, never()).save(any());
@@ -83,7 +83,7 @@ class ModeracaoServiceTest {
         when(usuarioRepository.findById(alvoId)).thenReturn(Optional.of(alvo));
         when(usuarioRepository.save(alvo)).thenReturn(alvo);
 
-        var resposta = moderacaoService.banir(alvoId);
+        var resposta = moderacaoService.banir(alvoId, "Comportamento abusivo");
 
         assertThat(alvo.getStatusConta()).isEqualTo(StatusConta.BANIDO);
         assertThat(alvo.getBloqueadoAte()).isNull();

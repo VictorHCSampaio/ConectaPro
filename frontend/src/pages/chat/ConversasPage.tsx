@@ -1,4 +1,4 @@
-import { MessageCircle } from 'lucide-react'
+import { Mail, MessageCircle } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { SiteFooter } from '@/components/landing/SiteFooter'
@@ -140,6 +140,24 @@ export function ConversasPage() {
               })}
             </ul>
           )}
+        </section>
+
+        <section className="mt-6">
+          <div
+            className="flex items-center gap-3 rounded-xl border border-ocre-200 bg-ocre-50 px-4 py-4 dark:border-ocre-500/20 dark:bg-ocre-500/10"
+          >
+            <span className="flex size-11 shrink-0 items-center justify-center rounded-full bg-ocre-500 text-white">
+              <Mail className="size-5" />
+            </span>
+            <span className="min-w-0 flex-1">
+              <span className="block text-sm font-semibold text-ink-900 dark:text-white">
+                Fale com a administração
+              </span>
+              <span className="mt-0.5 block text-sm text-ink-600 dark:text-zinc-400">
+                conectaprotfc@gmail.com
+              </span>
+            </span>
+          </div>
         </section>
       </main>
       <SiteFooter />
