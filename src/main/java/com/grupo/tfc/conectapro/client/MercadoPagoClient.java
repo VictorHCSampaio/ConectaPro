@@ -85,8 +85,7 @@ public class MercadoPagoClient {
 
             logger.info("Preferência criada. id={} initPoint={}", preference.getId(), preference.getInitPoint());
 
-            String url = properties.sandbox() ? preference.getSandboxInitPoint() : preference.getInitPoint();
-            return new CheckoutResponse(preference.getId(), url);
+            return new CheckoutResponse(preference.getId(), preference.getInitPoint());
 
         } catch (MPApiException e) {
             String content = e.getApiResponse() != null ? e.getApiResponse().getContent() : "sem resposta";
