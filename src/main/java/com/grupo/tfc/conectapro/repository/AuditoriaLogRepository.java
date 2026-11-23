@@ -5,6 +5,7 @@ import com.grupo.tfc.conectapro.model.AuditoriaLog;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
@@ -26,4 +27,8 @@ public interface AuditoriaLogRepository extends JpaRepository<AuditoriaLog, UUID
 
     @Query("select min(a.criadoEm) from AuditoriaLog a where a.acao = :acao")
     OffsetDateTime buscarMenorCriadoEmPorAcao(@Param("acao") AcaoAuditoria acao);
+
+    @Modifying
+    @Query("delete from AuditoriaLog a where a.criadoEm < :limite")
+    int deletarAnterioresA(@Param("limite") OffsetDateTime limite);
 }
