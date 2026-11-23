@@ -102,11 +102,13 @@ function validateProfile(data: TeacherProfileFormData, incluirEnsino = true): Te
     errors.fullName = 'Nome deve ter no mínimo 3 caracteres'
   }
 
-  const phoneDigits = data.phone.replace(/\D/g, '')
-  if (!phoneDigits) {
-    errors.phone = 'Telefone é obrigatório'
-  } else if (phoneDigits.length < 11) {
-    errors.phone = 'Informe um telefone válido: (XX) XXXXX-XXXX'
+  if (incluirEnsino) {
+    const phoneDigits = data.phone.replace(/\D/g, '')
+    if (!phoneDigits) {
+      errors.phone = 'Telefone é obrigatório'
+    } else if (phoneDigits.length < 11) {
+      errors.phone = 'Informe um telefone válido: (XX) XXXXX-XXXX'
+    }
   }
 
   const bioLength = data.bio.trim().length
@@ -124,11 +126,13 @@ function validateProfile(data: TeacherProfileFormData, incluirEnsino = true): Te
     errors.pricePerHour = 'Informe um valor por aula'
   }
 
-  const cepDigits = data.address.cep.replace(/\D/g, '')
-  if (!cepDigits) {
-    errors.cep = 'CEP é obrigatório'
-  } else if (cepDigits.length !== 8) {
-    errors.cep = 'CEP inválido — deve ter 8 dígitos'
+  if (incluirEnsino) {
+    const cepDigits = data.address.cep.replace(/\D/g, '')
+    if (!cepDigits) {
+      errors.cep = 'CEP é obrigatório'
+    } else if (cepDigits.length !== 8) {
+      errors.cep = 'CEP inválido — deve ter 8 dígitos'
+    }
   }
 
   return errors
@@ -155,9 +159,12 @@ function buildPayload(data: TeacherProfileFormData, contaAdmin = false): Teacher
   const hours = data.advanceNoticeHours ? parseInt(data.advanceNoticeHours, 10) : null
   const subjects = contaAdmin && data.subjects.length === 0 ? [MATERIA_ADMIN_PADRAO] : data.subjects
   const modalities = data.modalities.length > 0 ? data.modalities : ['online' as const]
+  const cepDigits = data.address.cep.replace(/\D/g, '')
+  const phone = contaAdmin && !data.phone.trim() ? '00000000000' : data.phone
+  const cep = contaAdmin && !cepDigits ? '00000000' : cepDigits
   return {
     fullName: data.fullName.trim(),
-    phone: data.phone,
+    phone,
     bio: data.bio.trim(),
     subjects,
     teachingModel: data.teachingModel
@@ -168,7 +175,7 @@ function buildPayload(data: TeacherProfileFormData, contaAdmin = false): Teacher
     modalities: modalities.map((modality) => MODALITY_MAP[modality]),
     pricePerHour: parseCurrencyToFloat(data.pricePerHour),
     address: {
-      cep: data.address.cep.replace(/\D/g, ''),
+      cep,
       street: data.address.logradouro,
       neighborhood: data.address.bairro,
       city: data.address.cidade,
@@ -967,18 +974,20 @@ export function TeacherProfileConfigPage() {
                 onBlur={() => touch('fullName')}
               />
 
-              <Input
-                label="Telefone / WhatsApp"
-                type="tel"
-                placeholder="(11) 98765-4321"
-                icon={<Phone className="size-4" />}
-                value={form.phone}
-                autoComplete="tel"
-                inputMode="numeric"
-                error={fieldError('phone')}
-                onChange={(e) => handlePhoneChange(e.target.value)}
-                onBlur={() => touch('phone')}
-              />
+              {!ehAdmin && (
+                <Input
+                  label="Telefone / WhatsApp"
+                  type="tel"
+                  placeholder="(11) 98765-4321"
+                  icon={<Phone className="size-4" />}
+                  value={form.phone}
+                  autoComplete="tel"
+                  inputMode="numeric"
+                  error={fieldError('phone')}
+                  onChange={(e) => handlePhoneChange(e.target.value)}
+                  onBlur={() => touch('phone')}
+                />
+              )}
 
               <TextareaField
                 id={bioId}
@@ -1113,6 +1122,7 @@ export function TeacherProfileConfigPage() {
           </FormSection>
           )}
 
+          {!ehAdmin && (
           <FormSection
             title="Localização"
             description="Informe o CEP para preenchermos o endereço automaticamente."
@@ -1205,6 +1215,7 @@ export function TeacherProfileConfigPage() {
               </div>
             </div>
           </FormSection>
+          )}
 
           {!ehAdmin && (
           <FormSection

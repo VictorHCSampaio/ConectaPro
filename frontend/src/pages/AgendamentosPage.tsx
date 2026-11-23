@@ -1,6 +1,6 @@
 import { Ban, BookOpen, CalendarDays, Check, Loader2, MessageCircle, Monitor, Search, Star, X } from 'lucide-react'
 import { useEffect, useState } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
+import { Link, Navigate, useNavigate } from 'react-router-dom'
 import { AvaliacaoDialog } from '@/components/avaliacao/AvaliacaoDialog'
 import { SiteFooter } from '@/components/landing/SiteFooter'
 import { SiteHeader } from '@/components/landing/SiteHeader'
@@ -600,6 +600,9 @@ function TeacherBookingsView() {
 
 export function AgendamentosPage() {
   const { user } = useAuth()
-  const ehProfessor = user?.role === 'PROFESSOR' && !ehContaAdmin(user)
+  if (ehContaAdmin(user)) {
+    return <Navigate to="/dashboard" replace />
+  }
+  const ehProfessor = user?.role === 'PROFESSOR'
   return ehProfessor ? <TeacherBookingsView /> : <StudentBookingsView />
 }

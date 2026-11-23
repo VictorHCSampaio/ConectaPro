@@ -136,10 +136,12 @@ export function SiteHeader() {
                 </NavDropdown>
               )}
 
-              <Link to="/aulas" className={NAV_LINK_CLASS}>
-                <CalendarDays className="size-4" />
-                {rotuloAulas(user?.role, user?.isAdmin)}
-              </Link>
+              {!user?.isAdmin && (
+                <Link to="/aulas" className={NAV_LINK_CLASS}>
+                  <CalendarDays className="size-4" />
+                  {rotuloAulas(user?.role, user?.isAdmin)}
+                </Link>
+              )}
 
               <button
                 type="button"
@@ -301,14 +303,16 @@ export function SiteHeader() {
                     Aprovações
                   </Link>
                 )}
-                <Link
-                  to="/aulas"
-                  onClick={closeMenu}
-                  className="flex items-center justify-center gap-2 rounded-md border border-paper-300 bg-white dark:border-white/10 dark:bg-night-700 px-3 py-2.5 text-center text-ink-800 dark:text-zinc-100"
-                >
-                  <CalendarDays className="size-4" />
-                  {rotuloAulas(user?.role, user?.isAdmin)}
-                </Link>
+                {!user?.isAdmin && (
+                  <Link
+                    to="/aulas"
+                    onClick={closeMenu}
+                    className="flex items-center justify-center gap-2 rounded-md border border-paper-300 bg-white dark:border-white/10 dark:bg-night-700 px-3 py-2.5 text-center text-ink-800 dark:text-zinc-100"
+                  >
+                    <CalendarDays className="size-4" />
+                    {rotuloAulas(user?.role, user?.isAdmin)}
+                  </Link>
+                )}
                 {isAuthenticated && (
                   <Link
                     to="/perfil"
