@@ -5,6 +5,7 @@ import com.grupo.tfc.conectapro.dto.pagamento.CheckoutResponse;
 import com.grupo.tfc.conectapro.model.StatusPagamento;
 import com.mercadopago.MercadoPagoConfig;
 import com.mercadopago.client.payment.PaymentClient;
+import com.mercadopago.client.payment.PaymentRefundClient;
 import com.mercadopago.client.preference.PreferenceBackUrlsRequest;
 import com.mercadopago.client.preference.PreferenceClient;
 import com.mercadopago.client.preference.PreferenceItemRequest;
@@ -65,13 +66,20 @@ public class MercadoPagoClient {
                     .pending(properties.urlPendente())
                     .build();
 
-            PreferenceRequest request = PreferenceRequest.builder()
+            var requestBuilder = PreferenceRequest.builder()
                     .items(List.of(item))
                     .payer(payer)
                     .backUrls(backUrls)
-                    .autoReturn("approved")
-                    .externalReference(referencia)
-                    .build();
+                    .externalReference(referencia);
+
+            String urlSucesso = properties.urlSucesso();
+            if (urlSucesso != null && urlSucesso.startsWith("https://")) {
+                requestBuilder.autoReturn("approved");
+            } else {
+                logger.warn("URL de sucesso nao publica ({}); checkout criado sem auto_return", urlSucesso);
+            }
+
+            PreferenceRequest request = requestBuilder.build();
 
             Preference preference = client.create(request);
 
@@ -107,6 +115,20 @@ public class MercadoPagoClient {
             throw new RuntimeException("Erro ao buscar detalhes do pagamento", e);
         } catch (MPException e) {
             logger.error("Erro no SDK ao buscar pagamento {}: {}", paymentId, e.getMessage(), e);
+            throw new RuntimeException("Erro no SDK do Mercado Pago", e);
+        }
+    }
+
+    public void reembolsar(String paymentId) {
+        try {
+            PaymentRefundClient client = new PaymentRefundClient();
+            client.refund(Long.parseLong(paymentId));
+            logger.info("Reembolso solicitado ao Mercado Pago. paymentId={}", paymentId);
+        } catch (MPApiException e) {
+            logger.error("Erro ao reembolsar {}: status={}", paymentId, e.getStatusCode(), e);
+            throw new RuntimeException("Erro ao solicitar reembolso", e);
+        } catch (MPException e) {
+            logger.error("Erro no SDK ao reembolsar {}: {}", paymentId, e.getMessage(), e);
             throw new RuntimeException("Erro no SDK do Mercado Pago", e);
         }
     }

@@ -1,6 +1,7 @@
 package com.grupo.tfc.conectapro.repository;
 
 import com.grupo.tfc.conectapro.model.Pagamento;
+import com.grupo.tfc.conectapro.model.StatusPagamento;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -17,6 +18,8 @@ public interface PagamentoRepository extends JpaRepository<Pagamento, UUID> {
     Optional<Pagamento> findByMercadoPagoPaymentId(String paymentId);
 
     Optional<Pagamento> findTopByUsuarioIdOrderByCriadoEmDesc(UUID usuarioId);
+
+    Optional<Pagamento> findTopByUsuarioIdAndStatusOrderByCriadoEmDesc(UUID usuarioId, StatusPagamento status);
 
     @Query("""
             select coalesce(sum(p.valor), 0)

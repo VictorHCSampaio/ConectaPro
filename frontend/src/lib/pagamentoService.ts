@@ -18,3 +18,8 @@ export async function obterStatusPagamento() {
   const { data } = await api.get<StatusPagamentoResponse>('/pagamentos/status')
   return data
 }
+
+export async function solicitarReembolso() {
+  const { data } = await api.post<{ message: string }>('/pagamentos/reembolso')
+  return data
+}

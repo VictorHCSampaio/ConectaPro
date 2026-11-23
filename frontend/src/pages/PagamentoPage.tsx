@@ -40,8 +40,9 @@ export function PagamentoPage() {
               Bem-vindo, {user?.name?.split(' ')[0]}!
             </h1>
             <p className="text-sm leading-relaxed text-ink-600 dark:text-zinc-400">
-              Para ter acesso completo à plataforma como professor — criar seu perfil,
-              aparecer para alunos e gerenciar suas aulas — finalize o pagamento abaixo.
+              Para ter acesso completo à plataforma como professor, criar seu perfil,
+              aparecer para alunos e gerenciar suas aulas, assine abaixo. O acesso vale
+              por 30 dias e pode ser renovado a qualquer momento.
             </p>
           </div>
 
