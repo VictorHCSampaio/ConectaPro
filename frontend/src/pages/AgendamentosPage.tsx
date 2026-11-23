@@ -1,10 +1,11 @@
-import { Ban, BookOpen, CalendarDays, Check, Loader2, MessageCircle, Monitor, Star, X } from 'lucide-react'
+import { Ban, BookOpen, CalendarDays, Check, Loader2, MessageCircle, Monitor, Search, Star, X } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { AvaliacaoDialog } from '@/components/avaliacao/AvaliacaoDialog'
 import { SiteFooter } from '@/components/landing/SiteFooter'
 import { SiteHeader } from '@/components/landing/SiteHeader'
 import { Button } from '@/components/ui/Button'
+import { Paginacao } from '@/components/ui/Paginacao'
 import { useAuth } from '@/hooks/useAuth'
 import { ehContaAdmin } from '@/types/auth'
 import { extractErrorMessage } from '@/lib/api'
@@ -338,6 +339,10 @@ function StudentBookingsView() {
 function TeacherBookingsView() {
   const { user } = useAuth()
   const [agendamentos, setAgendamentos] = useState<Agendamento[]>([])
+  const [page, setPage] = useState(0)
+  const [totalPages, setTotalPages] = useState(0)
+  const [busca, setBusca] = useState('')
+  const [buscaAplicada, setBuscaAplicada] = useState('')
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [processingId, setProcessingId] = useState<string | null>(null)
@@ -367,14 +372,24 @@ function TeacherBookingsView() {
   }
 
   useEffect(() => {
-    let isActive = true
+    const t = setTimeout(() => {
+      setPage(0)
+      setBuscaAplicada(busca)
+    }, 400)
+    return () => clearTimeout(t)
+  }, [busca])
 
-    listarAgendamentosRecebidos()
+  useEffect(() => {
+    let isActive = true
+    setIsLoading(true)
+
+    listarAgendamentosRecebidos(page, 5, buscaAplicada)
       .then(async (dados) => {
         if (!isActive) return
-        setAgendamentos(dados)
+        setAgendamentos(dados.content)
+        setTotalPages(dados.totalPages)
 
-        const confirmados = dados.filter((a) => a.status === 'CONFIRMADO')
+        const confirmados = dados.content.filter((a) => a.status === 'CONFIRMADO')
         if (confirmados.length === 0) return
 
         const resultados = await Promise.allSettled(
@@ -404,7 +419,7 @@ function TeacherBookingsView() {
     return () => {
       isActive = false
     }
-  }, [user?.name])
+  }, [user?.name, page, buscaAplicada])
 
   async function responder(id: string, acao: 'aprovar' | 'recusar') {
     setError(null)
@@ -428,10 +443,28 @@ function TeacherBookingsView() {
       title="Aulas recebidas"
       subtitle="Aprove ou recuse as solicitações de aula dos alunos."
     >
+      {(agendamentos.length > 0 || buscaAplicada) && (
+        <div className="relative mb-4">
+          <Search className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-paper-400 dark:text-zinc-500" />
+          <input
+            type="text"
+            value={busca}
+            onChange={(e) => setBusca(e.target.value)}
+            placeholder="Buscar pelo nome do aluno"
+            className="w-full rounded-md border border-paper-300 bg-white py-2.5 pr-3 pl-9 text-sm text-ink-900 transition-colors placeholder:text-paper-400 focus:border-ocre-400 focus:outline-none dark:border-white/10 dark:bg-night-700 dark:text-white dark:placeholder:text-zinc-500"
+          />
+        </div>
+      )}
       {isLoading ? (
         <LoadingState />
       ) : agendamentos.length === 0 ? (
-        <EmptyState message="Você ainda não recebeu solicitações de aula." />
+        <EmptyState
+          message={
+            buscaAplicada
+              ? 'Nenhuma aula encontrada para essa busca.'
+              : 'Você ainda não recebeu solicitações de aula.'
+          }
+        />
       ) : (
         <div className="flex flex-col gap-3">
           {error && (
@@ -526,6 +559,12 @@ function TeacherBookingsView() {
               </li>
             ))}
           </ul>
+          <Paginacao
+            page={page}
+            totalPages={totalPages}
+            onChange={setPage}
+            disabled={isLoading}
+          />
         </div>
       )}
 

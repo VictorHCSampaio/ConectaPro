@@ -1,10 +1,14 @@
 package com.grupo.tfc.conectapro.service;
 
+import com.grupo.tfc.conectapro.dto.PaginaResponse;
 import com.grupo.tfc.conectapro.dto.agendamento.AgendamentoResponse;
 import com.grupo.tfc.conectapro.dto.agendamento.AgendarRequest;
 import com.grupo.tfc.conectapro.dto.agendamento.HorarioDisponivelResponse;
 import com.grupo.tfc.conectapro.dto.chat.EnviarMensagemRequest;
 import com.grupo.tfc.conectapro.model.*;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import com.grupo.tfc.conectapro.repository.AgendamentoRepository;
 import com.grupo.tfc.conectapro.repository.ProfessorDisponibilidadeRepository;
 import com.grupo.tfc.conectapro.repository.ProfessorMateriaRepository;
@@ -283,6 +287,22 @@ public class AgendamentoService {
         return agendamentoRepository.findByProfessorIdOrderByDataHoraInicioDesc(professor.getId()).stream()
                 .map(this::paraResponse)
                 .toList();
+    }
+
+    @Transactional(readOnly = true)
+    public PaginaResponse<AgendamentoResponse> listarDoProfessor(UUID usuarioId, String nome, int page, int size) {
+        Professor professor = professorDoUsuario(usuarioId);
+        Pageable pageable = PageRequest.of(
+                Math.max(page, 0),
+                size < 1 ? 10 : Math.min(size, 50),
+                Sort.by(Sort.Direction.DESC, "dataHoraInicio"));
+
+        var pagina = (nome == null || nome.isBlank())
+                ? agendamentoRepository.findByProfessorId(professor.getId(), pageable)
+                : agendamentoRepository.findByProfessorIdAndAlunoNomeCompletoContainingIgnoreCase(
+                        professor.getId(), nome.trim(), pageable);
+
+        return PaginaResponse.de(pagina.map(this::paraResponse));
     }
 
     @Transactional(readOnly = true)

@@ -2,6 +2,7 @@ package com.grupo.tfc.conectapro.repository;
 
 import com.grupo.tfc.conectapro.model.Agendamento;
 import com.grupo.tfc.conectapro.model.StatusAgendamento;
+import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
@@ -17,6 +18,11 @@ public interface AgendamentoRepository extends JpaRepository<Agendamento, UUID> 
     List<Agendamento> findByAlunoIdOrderByDataHoraInicioDesc(UUID alunoId);
 
     List<Agendamento> findByProfessorIdOrderByDataHoraInicioDesc(UUID professorId);
+
+    Page<Agendamento> findByProfessorId(UUID professorId, Pageable pageable);
+
+    Page<Agendamento> findByProfessorIdAndAlunoNomeCompletoContainingIgnoreCase(
+            UUID professorId, String nome, Pageable pageable);
 
     boolean existsBySlotChaveAndStatusIn(String slotChave, Collection<StatusAgendamento> status);
 

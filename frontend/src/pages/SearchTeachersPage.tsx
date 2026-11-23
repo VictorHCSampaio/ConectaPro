@@ -7,10 +7,13 @@ import { TeacherSearchBar } from '@/components/search/TeacherSearchBar'
 import { SiteFooter } from '@/components/landing/SiteFooter'
 import { SiteHeader } from '@/components/landing/SiteHeader'
 import { Reveal } from '@/components/motion/Reveal'
+import { Paginacao } from '@/components/ui/Paginacao'
 import { cn } from '@/lib/cn'
 import { useAuth } from '@/hooks/useAuth'
 import { listarProfessores } from '@/lib/professorService'
 import type { ModalityFilter, Teacher } from '@/types/teacher'
+
+const TEACHERS_PER_PAGE = 6
 
 type SortOption = 'relevancia' | 'menor-preco' | 'maior-avaliacao' | 'mais-proximos'
 
@@ -49,6 +52,7 @@ export function SearchTeachersPage() {
   const [maxDistance, setMaxDistance] = useState<number | null>(null)
   const [sortOption, setSortOption] = useState<SortOption>('relevancia')
   const [filtersOpen, setFiltersOpen] = useState(false)
+  const [page, setPage] = useState(0)
 
   const { user } = useAuth()
 
@@ -179,6 +183,25 @@ export function SearchTeachersPage() {
     sortOption,
   ])
 
+  const totalPages = Math.ceil(filteredTeachers.length / TEACHERS_PER_PAGE)
+  const paginaAtual = Math.min(page, Math.max(totalPages - 1, 0))
+  const pagedTeachers = filteredTeachers.slice(
+    paginaAtual * TEACHERS_PER_PAGE,
+    paginaAtual * TEACHERS_PER_PAGE + TEACHERS_PER_PAGE,
+  )
+
+  useEffect(() => {
+    setPage(0)
+  }, [
+    searchQuery,
+    selectedSubjects,
+    modality,
+    activePriceRange,
+    onlyVerified,
+    activeMaxDistance,
+    sortOption,
+  ])
+
   return (
     <div className="flex min-h-screen flex-col bg-paper-50 transition-colors duration-300 dark:bg-night-900">
       <SiteHeader />
@@ -286,15 +309,18 @@ export function SearchTeachersPage() {
                 </button>
               </ResultsMessage>
             ) : (
-              <ul className="flex flex-col gap-4">
-                {filteredTeachers.map((teacher, index) => (
-                  <Reveal key={teacher.id} delay={Math.min(index, 5) * 0.05}>
-                    <li>
-                      <TeacherResultCard teacher={teacher} />
-                    </li>
-                  </Reveal>
-                ))}
-              </ul>
+              <>
+                <ul className="flex flex-col gap-4">
+                  {pagedTeachers.map((teacher, index) => (
+                    <Reveal key={teacher.id} delay={Math.min(index, 5) * 0.05}>
+                      <li>
+                        <TeacherResultCard teacher={teacher} />
+                      </li>
+                    </Reveal>
+                  ))}
+                </ul>
+                <Paginacao page={paginaAtual} totalPages={totalPages} onChange={setPage} />
+              </>
             )}
           </div>
         </div>
