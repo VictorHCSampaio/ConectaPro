@@ -27,27 +27,40 @@ public class EmailService {
     @Async
     public void enviarEmailResetSenha(String destinatario, String nomeUsuario, String linkReset) {
         String corpo = """
-                Olá %s,
-
-                Você solicitou a recuperação de senha da sua conta no ConectaPro.
-
-                Para redefinir sua senha, acesse o link abaixo:
-
-                %s
-
-                Este link é válido por %d minutos.
-
-                Se você não solicitou esta recuperação, ignore este e-mail.
-
-                Atenciosamente,
-                Equipe ConectaPro""".formatted(
-                nomeUsuario,
+                <div style="margin:0;padding:24px;background-color:#f1efe9;font-family:Arial,Helvetica,sans-serif;">
+                  <table role="presentation" width="100%%" cellpadding="0" cellspacing="0" style="max-width:480px;margin:0 auto;">
+                    <tr><td style="padding:0 0 16px;text-align:center;">
+                      <span style="font-size:20px;font-weight:bold;color:#16233b;letter-spacing:0.5px;">ConectaPro</span>
+                    </td></tr>
+                    <tr><td style="background-color:#ffffff;border:1px solid #e3ded3;border-radius:12px;padding:32px;">
+                      <h1 style="margin:0 0 16px;font-size:20px;color:#16233b;">Redefinição de senha</h1>
+                      <p style="margin:0 0 16px;font-size:15px;line-height:1.6;color:#4a4a4a;">Olá %s,</p>
+                      <p style="margin:0 0 24px;font-size:15px;line-height:1.6;color:#4a4a4a;">
+                        Você solicitou a recuperacao de senha da sua conta no ConectaPro. Clique no botão abaixo para criar uma nova senha.
+                      </p>
+                      <table role="presentation" cellpadding="0" cellspacing="0" style="margin:0 auto 24px;">
+                        <tr><td style="border-radius:8px;background-color:#16233b;">
+                          <a href="%s" style="display:inline-block;padding:14px 28px;font-size:15px;font-weight:bold;color:#ffffff;text-decoration:none;border-radius:8px;">Redefinir senha</a>
+                        </td></tr>
+                      </table>
+                      <p style="margin:0 0 8px;font-size:13px;color:#8a8a8a;">Se o botão não funcionar, copie e cole este link no navegador:</p>
+                      <p style="margin:0 0 24px;font-size:12px;line-height:1.5;color:#16233b;word-break:break-all;">%s</p>
+                      <p style="margin:0 0 4px;font-size:13px;color:#8a8a8a;">Este link é válido por %d minutos.</p>
+                      <p style="margin:0;font-size:13px;color:#8a8a8a;">Se você não solicitou esta recuperação, pode ignorar este e-mail com segurança.</p>
+                    </td></tr>
+                    <tr><td style="padding:16px 0 0;text-align:center;font-size:12px;color:#a0a0a0;">
+                      Equipe ConectaPro
+                    </td></tr>
+                  </table>
+                </div>""".formatted(
+                escaparHtml(nomeUsuario),
+                linkReset,
                 linkReset,
                 emailProperties.reset().expiracaoMinutos()
         );
 
         try {
-            emailSender.enviar(destinatario, emailProperties.reset().subject(), corpo, false);
+            emailSender.enviar(destinatario, emailProperties.reset().subject(), corpo, true);
             logger.info("Email de reset de senha enviado. destinatario={}", mascararEmail(destinatario));
         } catch (Exception e) {
             logger.error("Falha ao enviar email de reset de senha. destinatario={}", mascararEmail(destinatario), e);
