@@ -83,6 +83,13 @@ public class UsuarioController {
         return ResponseEntity.ok(Map.of("message", "2FA ativado com sucesso"));
     }
 
+    @PostMapping("/2fa/deactivate")
+    public ResponseEntity<Map<String, String>> desativarTotp(@Valid @RequestBody TotpAtivacaoRequest request) {
+        UUID usuarioId = UsuarioAutenticado.exigirUsuarioId();
+        authService.desativarTotp(usuarioId, request.totpCode());
+        return ResponseEntity.ok(Map.of("message", "2FA desativado com sucesso"));
+    }
+
     @GetMapping("/2fa/status")
     public ResponseEntity<Map<String, Boolean>> statusTotp() {
         UUID usuarioId = UsuarioAutenticado.exigirUsuarioId();

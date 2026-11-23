@@ -274,6 +274,26 @@ public class AuthenticationService {
         auditoriaService.registrar(AcaoAuditoria.TOTP_VERIFICADO, usuarioId, "USUARIO", usuarioId.toString(), "2FA ativado");
     }
 
+    public void desativarTotp(UUID usuarioId, int totpCode) {
+        Usuario usuario = usuarioRepository.findById(usuarioId)
+                .orElseThrow(() -> new ResponseStatusException(UNAUTHORIZED, "Autenticação necessária. Faça login."));
+
+        if (!usuario.isTotpAtivo()) {
+            throw new ResponseStatusException(BAD_REQUEST, "2FA não está ativado");
+        }
+
+        if (!totpService.verificarCodigo(usuario.getSegredoTotp(), totpCode)) {
+            logger.warn("Falha na desativação TOTP. Código inválido. usuarioId={}", usuarioId);
+            auditoriaService.registrar(AcaoAuditoria.TOTP_FALHA, usuarioId, "USUARIO", usuarioId.toString(), "desativação: código inválido");
+            throw new ResponseStatusException(BAD_REQUEST, "Código TOTP inválido. Verifique seu app autenticador.");
+        }
+
+        usuario.setTotpAtivo(false);
+        usuarioRepository.save(usuario);
+        logger.info("2FA desativado. usuarioId={}", usuarioId);
+        auditoriaService.registrar(AcaoAuditoria.TOTP_VERIFICADO, usuarioId, "USUARIO", usuarioId.toString(), "2FA desativado");
+    }
+
     public TotpConfiguracaoResponse obterConfigTotp(UUID usuarioId) {
         Usuario usuario = usuarioRepository.findById(usuarioId)
                 .orElseThrow(() -> new ResponseStatusException(UNAUTHORIZED, "Autenticação necessária. Faça login."));

@@ -55,6 +55,11 @@ export async function ativarTotp(payload: TotpActivatePayload) {
   return data
 }
 
+export async function desativarTotp(payload: TotpActivatePayload) {
+  const { data } = await api.post<{ message: string }>('/auth/2fa/deactivate', payload)
+  return data
+}
+
 export async function obterStatusTotp() {
   const { data } = await api.get<TotpStatusResponse>('/auth/2fa/status')
   return data
