@@ -24,6 +24,7 @@ import { AvailabilityGrid } from '@/components/teacher-config/AvailabilityGrid'
 import { FormSection } from '@/components/teacher-config/FormSection'
 import { SubjectExperienceInput } from '@/components/teacher-config/SubjectExperienceInput'
 import { Button } from '@/components/ui/Button'
+import { AssinaturaCard } from '@/components/professor/AssinaturaCard'
 import { Checkbox } from '@/components/ui/Checkbox'
 import { Input } from '@/components/ui/Input'
 import { LgpdSection } from '@/components/ui/LgpdSection'
@@ -832,6 +833,8 @@ export function TeacherProfileConfigPage() {
             </p>
           )}
         </div>
+
+        {!ehAdmin && <AssinaturaCard />}
 
         <form onSubmit={handleSubmit} noValidate className="flex flex-col gap-6">
           <FormSection

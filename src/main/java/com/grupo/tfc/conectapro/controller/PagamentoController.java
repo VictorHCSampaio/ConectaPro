@@ -3,6 +3,7 @@ package com.grupo.tfc.conectapro.controller;
 import com.grupo.tfc.conectapro.config.UsuarioAutenticado;
 import com.grupo.tfc.conectapro.dto.pagamento.CheckoutResponse;
 import com.grupo.tfc.conectapro.dto.pagamento.MercadoPagoNotificacaoDTO;
+import com.grupo.tfc.conectapro.dto.pagamento.StatusPagamentoResponse;
 import com.grupo.tfc.conectapro.service.MercadoPagoWebhookValidator;
 import com.grupo.tfc.conectapro.service.PagamentoService;
 import org.slf4j.Logger;
@@ -36,10 +37,9 @@ public class PagamentoController {
     }
 
     @GetMapping("/status")
-    public ResponseEntity<Map<String, String>> statusPagamento() {
+    public ResponseEntity<StatusPagamentoResponse> statusPagamento() {
         UUID usuarioId = UsuarioAutenticado.exigirUsuarioId();
-        String status = pagamentoService.statusPagamento(usuarioId);
-        return ResponseEntity.ok(Map.of("status", status));
+        return ResponseEntity.ok(pagamentoService.statusPagamento(usuarioId));
     }
 
     @PostMapping("/reembolso")

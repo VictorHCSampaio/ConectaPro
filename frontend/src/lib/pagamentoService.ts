@@ -7,6 +7,8 @@ type CheckoutResponse = {
 
 type StatusPagamentoResponse = {
   status: string
+  assinaturaValidaAte: string | null
+  reembolsoDisponivel: boolean
 }
 
 export async function criarCheckout() {

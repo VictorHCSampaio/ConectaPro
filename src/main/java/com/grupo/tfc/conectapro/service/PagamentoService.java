@@ -2,6 +2,7 @@ package com.grupo.tfc.conectapro.service;
 
 import com.grupo.tfc.conectapro.client.MercadoPagoClient;
 import com.grupo.tfc.conectapro.dto.pagamento.CheckoutResponse;
+import com.grupo.tfc.conectapro.dto.pagamento.StatusPagamentoResponse;
 import com.grupo.tfc.conectapro.model.Pagamento;
 import com.grupo.tfc.conectapro.model.StatusConta;
 import com.grupo.tfc.conectapro.model.StatusPagamento;
@@ -155,9 +156,24 @@ public class PagamentoService {
         logger.info("Reembolso efetuado. usuarioId={} paymentId={}", usuarioId, pagamento.getMercadoPagoPaymentId());
     }
 
-    public String statusPagamento(UUID usuarioId) {
-        return pagamentoRepository.findTopByUsuarioIdOrderByCriadoEmDesc(usuarioId)
+    public StatusPagamentoResponse statusPagamento(UUID usuarioId) {
+        String status = pagamentoRepository.findTopByUsuarioIdOrderByCriadoEmDesc(usuarioId)
                 .map(p -> p.getStatus().name())
                 .orElse("SEM_PAGAMENTO");
+
+        OffsetDateTime validade = usuarioRepository.findById(usuarioId)
+                .map(Usuario::getAssinaturaValidaAte)
+                .orElse(null);
+
+        return new StatusPagamentoResponse(status, validade, reembolsoDisponivel(usuarioId));
+    }
+
+    private boolean reembolsoDisponivel(UUID usuarioId) {
+        return pagamentoRepository
+                .findTopByUsuarioIdAndStatusOrderByCriadoEmDesc(usuarioId, StatusPagamento.APROVADO)
+                .filter(p -> p.getMercadoPagoPaymentId() != null)
+                .map(p -> p.getCriadoEm() == null
+                        || OffsetDateTime.now().isBefore(p.getCriadoEm().plusDays(DIAS_LIMITE_REEMBOLSO)))
+                .orElse(false);
     }
 }
