@@ -27,7 +27,7 @@ import static org.springframework.http.HttpStatus.NOT_FOUND;
 public class PagamentoService {
 
     private static final Logger logger = LoggerFactory.getLogger(PagamentoService.class);
-    private static final BigDecimal VALOR_ASSINATURA = new BigDecimal("29.90");
+    private static final BigDecimal VALOR_ASSINATURA = new BigDecimal("1.00");
     private static final int DIAS_VALIDADE_ASSINATURA = 30;
     private static final int DIAS_LIMITE_REEMBOLSO = 7;
 

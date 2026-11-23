@@ -52,7 +52,7 @@ public class MercadoPagoClient {
                     .description("Assinatura para professores na plataforma ConectaPro")
                     .quantity(1)
                     .currencyId("BRL")
-                    .unitPrice(new BigDecimal("29.90"))
+                    .unitPrice(new BigDecimal("1.00"))
                     .build();
 
             PreferencePayerRequest payer = PreferencePayerRequest.builder()
