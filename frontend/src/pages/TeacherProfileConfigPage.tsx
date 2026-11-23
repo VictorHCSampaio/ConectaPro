@@ -377,8 +377,7 @@ function SecuritySection() {
       .finally(() => setLoading(false))
   }, [])
 
-  async function handleActivate(event: React.FormEvent) {
-    event.preventDefault()
+  async function handleActivate() {
     if (totpCode.length !== 6) return
 
     setActivateError(null)
@@ -460,7 +459,7 @@ function SecuritySection() {
           <p className="text-xs font-medium text-alert-600 dark:text-alert-200">{activateError}</p>
         )}
 
-        <form onSubmit={handleActivate} className="flex items-end gap-3">
+        <div className="flex items-end gap-3">
           <div className="flex-1">
             <Input
               label="Código do Autenticador"
@@ -474,7 +473,8 @@ function SecuritySection() {
             />
           </div>
           <Button
-            type="submit"
+            type="button"
+            onClick={handleActivate}
             isLoading={activating}
             disabled={totpCode.length !== 6}
             fullWidth={false}
@@ -482,7 +482,7 @@ function SecuritySection() {
           >
             Ativar 2FA
           </Button>
-        </form>
+        </div>
       </div>
     </FormSection>
   )

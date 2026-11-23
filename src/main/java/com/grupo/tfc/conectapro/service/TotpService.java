@@ -19,7 +19,7 @@ public class TotpService {
     @Autowired
     public TotpService(SecurityAuthenticationProperties securityAuthentication) {
         GoogleAuthenticatorConfig config = new GoogleAuthenticatorConfig.GoogleAuthenticatorConfigBuilder()
-                .setWindowSize(1)
+                .setWindowSize(3)
                 .build();
         this.googleAuthenticator = new GoogleAuthenticator(config);
         this.securityAuthentication = securityAuthentication;
