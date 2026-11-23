@@ -40,7 +40,8 @@ public class EmailService {
                       </p>
                       <table role="presentation" cellpadding="0" cellspacing="0" style="margin:0 auto 24px;">
                         <tr><td style="border-radius:8px;background-color:#16233b;">
-                          <a href="%s" style="display:inline-block;padding:14px 28px;font-size:15px;font-weight:bold;color:#ffffff;text-decoration:none;border-radius:8px;">Redefinir senha</a>
+                          <a href="%s" style="display:inline-block;padding:14px 28px;
+                             font-size:15px;font-weight:bold;color:#ffffff;text-decoration:none;border-radius:8px;">Redefinir senha</a>
                         </td></tr>
                       </table>
                       <p style="margin:0 0 8px;font-size:13px;color:#8a8a8a;">Se o botão não funcionar, copie e cole este link no navegador:</p>
