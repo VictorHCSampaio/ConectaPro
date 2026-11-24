@@ -1113,10 +1113,6 @@ export function TeacherProfileConfigPage() {
                         value: 'particulares',
                         label: 'Aulas particulares',
                       },
-                      {
-                        value: 'instituicoes',
-                        label: 'Aulas para instituições de ensino (escolas e/ou faculdades)',
-                      },
                     ] as const
                   ).map(({ value, label }) => (
                     <Radio
