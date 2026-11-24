@@ -2,7 +2,6 @@ package com.grupo.tfc.conectapro.service.email;
 
 import com.grupo.tfc.conectapro.config.EmailProperties;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.http.MediaType;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestClient;
@@ -11,7 +10,6 @@ import java.util.List;
 import java.util.Map;
 
 @Component
-@ConditionalOnProperty(name = "app.mail.provider", havingValue = "sendgrid")
 public class SendGridEmailSender implements EmailSender {
 
     private static final String ENDPOINT = "https://api.sendgrid.com/v3/mail/send";
