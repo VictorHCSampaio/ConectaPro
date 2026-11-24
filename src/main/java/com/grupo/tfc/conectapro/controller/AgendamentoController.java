@@ -1,6 +1,7 @@
 package com.grupo.tfc.conectapro.controller;
 
 import com.grupo.tfc.conectapro.config.UsuarioAutenticado;
+import com.grupo.tfc.conectapro.dto.PaginaResponse;
 import com.grupo.tfc.conectapro.dto.agendamento.AgendamentoResponse;
 import com.grupo.tfc.conectapro.dto.agendamento.AgendarRequest;
 import com.grupo.tfc.conectapro.dto.agendamento.HorarioDisponivelResponse;
@@ -13,6 +14,7 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.util.List;
@@ -41,9 +43,12 @@ public class AgendamentoController {
     }
 
     @GetMapping("/recebidos")
-    public ResponseEntity<List<AgendamentoResponse>> agendamentosRecebidos() {
+    public ResponseEntity<PaginaResponse<AgendamentoResponse>> agendamentosRecebidos(
+            @RequestParam(required = false) String nome,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size) {
         UUID usuarioId = UsuarioAutenticado.exigirUsuarioId();
-        return ResponseEntity.ok(agendamentoService.listarDoProfessor(usuarioId));
+        return ResponseEntity.ok(agendamentoService.listarDoProfessor(usuarioId, nome, page, size));
     }
 
     @GetMapping("/disponiveis/{professorId}")

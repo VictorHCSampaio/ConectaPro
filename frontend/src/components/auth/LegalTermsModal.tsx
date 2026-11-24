@@ -28,7 +28,7 @@ const LEGAL_CONTENT: Record<
   terms: {
     title: 'Termos de Uso',
     subtitle: 'Intermediação tecnológica',
-    updatedAt: 'Última atualização: 15 de novembro de 2026',
+    updatedAt: 'Versão 1.0. Última atualização: 22 de novembro de 2026.',
     sections: [
       {
         heading: '1. Sobre a plataforma',
@@ -54,8 +54,8 @@ const LEGAL_CONTENT: Record<
       {
         heading: '4. Assinatura e pagamento',
         paragraphs: [
-          'A utilização da plataforma é gratuita para o aluno. O professor, após ter o cadastro aprovado, mantém uma assinatura para liberar a edição do perfil e passar a aparecer nas buscas. O pagamento da assinatura é processado por um provedor externo de pagamentos, e o perfil é liberado apenas após a confirmação.',
-          'Eventuais valores, formas de cobrança e condições da assinatura são apresentados ao professor no momento da contratação.',
+          'A utilização da plataforma é gratuita para o aluno. O professor, após ter o cadastro aprovado, assina a plataforma para liberar a edição do perfil e passar a aparecer nas buscas. Cada pagamento dá 30 dias de acesso e pode ser renovado a qualquer momento; sem renovação, o perfil deixa de aparecer nas buscas até um novo pagamento. O pagamento é processado pelo Mercado Pago e o acesso é liberado após a confirmação.',
+          'Reembolso: o professor pode solicitar o reembolso integral em até 7 dias a partir do pagamento, conforme o direito de arrependimento do art. 49 do Código de Defesa do Consumidor. Após esse prazo, o valor do período já contratado não é reembolsável. O estorno, quando cabível, é feito pelo mesmo meio de pagamento, via Mercado Pago.',
         ],
       },
       {
@@ -73,7 +73,14 @@ const LEGAL_CONTENT: Record<
         ],
       },
       {
-        heading: '7. Alterações e vigência',
+        heading: '7. Proteção de dados pessoais',
+        paragraphs: [
+          'O tratamento de dados pessoais na ConectaPro segue a Política de Privacidade, que integra estes Termos de Uso e observa a Lei nº 13.709/2018 (LGPD). Ao aceitar estes Termos, o usuário também declara ciência da Política de Privacidade.',
+          'Cada versão dos Termos e da Política recebe um identificador. A versão aceita pelo usuário no cadastro fica registrada com a data do aceite, para rastreabilidade do consentimento.',
+        ],
+      },
+      {
+        heading: '8. Alterações e vigência',
         paragraphs: [
           'A ConectaPro pode atualizar estes Termos de Uso a qualquer momento para refletir melhorias na plataforma ou exigências legais. A versão vigente fica sempre acessível dentro do sistema, e o uso contínuo da plataforma após uma atualização representa a concordância com a nova versão.',
         ],
@@ -83,49 +90,70 @@ const LEGAL_CONTENT: Record<
   privacy: {
     title: 'Política de Privacidade',
     subtitle: 'Lei nº 13.709/2018 (LGPD)',
-    updatedAt: 'Última atualização: 15 de novembro de 2026',
+    updatedAt: 'Versão 1.0. Última atualização: 22 de novembro de 2026.',
     sections: [
       {
-        heading: '1. Base legal',
+        heading: '1. Controlador e encarregado',
         paragraphs: [
-          'Esta Política de Privacidade observa a Lei nº 13.709/2018, a Lei Geral de Proteção de Dados Pessoais (LGPD). O tratamento dos dados ocorre com base no consentimento do titular e na necessidade de executar as funcionalidades da plataforma. Ao utilizar a ConectaPro, o usuário declara estar ciente das práticas descritas aqui.',
+          'A ConectaPro é a controladora dos dados pessoais tratados na plataforma e decide sobre as finalidades e os meios desse tratamento, conforme a Lei nº 13.709/2018 (LGPD).',
+          'O titular pode exercer seus direitos e esclarecer dúvidas sobre privacidade pelo canal de contato do encarregado, disponível no rodapé da plataforma. Ao utilizar a ConectaPro, o usuário declara estar ciente das práticas descritas aqui.',
         ],
       },
       {
         heading: '2. Dados que coletamos',
         paragraphs: [
           'Para a criação da conta, coletamos nome completo e email. Para a estruturação do perfil do professor, coletamos telefone ou WhatsApp, biografia, informações didáticas (matérias, modelo de aula para particulares ou instituições, valor por hora e disponibilidade de horários) e dados de localização (CEP, logradouro, bairro, cidade e estado).',
-          'O professor também pode enviar uma foto de perfil e um certificado que comprove sua formação ou experiência. Durante o uso da plataforma, tratamos ainda dados de interação, como mensagens trocadas no chat, notificações e eventuais denúncias registradas.',
+          'O professor também pode enviar uma foto de perfil e um certificado que comprove sua formação ou experiência. Durante o uso da plataforma, tratamos ainda dados de interação, como mensagens trocadas no chat, notificações, avaliações, registros de agendamento, eventuais denúncias e logs de acesso e segurança (como endereço IP e data e hora das ações).',
         ],
       },
       {
-        heading: '3. Como usamos os dados',
+        heading: '3. Finalidades e bases legais',
         paragraphs: [
-          'A finalidade da coleta é operacional. Os dados didáticos e biográficos alimentam a busca e os filtros da plataforma. Os dados de localização são usados para calcular a proximidade e exibir professores disponíveis na região. O telefone ou WhatsApp viabiliza a conexão entre aluno e professor. O certificado e a eventual justificativa são usados apenas na análise do cadastro do professor.',
+          'Cada finalidade tem uma base legal da LGPD. A criação e a autenticação da conta, incluindo a verificação em duas etapas, apoiam-se na execução do contrato de uso (art. 7º, V). Os dados didáticos, biográficos e de localização alimentam a busca, os filtros e o cálculo de proximidade, também com base na execução do contrato.',
+          'A foto de perfil e o telefone ou WhatsApp, que viabilizam a conexão entre aluno e professor, apoiam-se no consentimento do titular (art. 7º, I). O envio de denúncias e os logs de acesso apoiam-se no legítimo interesse de segurança e moderação (art. 7º, IX). A guarda de registros exigidos por lei apoia-se no cumprimento de obrigação legal (art. 7º, II).',
         ],
       },
       {
         heading: '4. Armazenamento e segurança',
         paragraphs: [
-          'As senhas são armazenadas de forma protegida, e a plataforma oferece verificação em duas etapas. A foto de perfil do professor fica visível aos alunos, pois faz parte do perfil público. Já o certificado é armazenado em local restrito e fica acessível somente aos administradores durante a análise, por meio de um acesso temporário.',
+          'As senhas são armazenadas com hash e o segredo da verificação em duas etapas é criptografado. O acesso à API usa token assinado e a comunicação ocorre por conexão segura. A foto de perfil do professor fica visível aos alunos, pois faz parte do perfil público. O certificado é armazenado em local restrito e fica acessível somente aos administradores durante a análise, por meio de um acesso temporário.',
         ],
       },
       {
-        heading: '5. Compartilhamento',
+        heading: '5. Compartilhamento e operadores',
         paragraphs: [
-          'Não comercializamos, alugamos nem cedemos dados pessoais a terceiros para fins publicitários. O pagamento da assinatura do professor é processado por um provedor externo de pagamentos, que trata apenas os dados necessários para concluir a transação. Compartilhamentos adicionais ocorrem apenas por determinação legal ou com o consentimento específico do titular.',
+          'Não comercializamos, alugamos nem cedemos dados pessoais a terceiros para fins publicitários. Para operar, a plataforma utiliza operadores que tratam dados apenas conforme nossas instruções: o Mercado Pago processa o pagamento da assinatura do professor; a Amazon Web Services (AWS S3) armazena fotos de perfil e certificados; a BrasilAPI é consultada para preenchimento de endereço a partir do CEP; e um provedor de email (SMTP) realiza o envio de mensagens transacionais.',
+          'Compartilhamentos adicionais ocorrem apenas por determinação legal ou com o consentimento específico do titular.',
         ],
       },
       {
-        heading: '6. Direitos do titular',
+        heading: '6. Transferência internacional',
         paragraphs: [
-          'Em conformidade com o art. 18 da LGPD, o titular pode solicitar a confirmação da existência de tratamento, o acesso aos seus dados, a correção de informações incompletas ou desatualizadas e a exclusão dos dados, respeitadas as obrigações legais de guarda. As solicitações podem ser feitas pelos canais de contato disponíveis na plataforma.',
+          'Alguns operadores, como a infraestrutura de armazenamento da AWS, podem processar dados em servidores localizados fora do Brasil. Nesses casos, a transferência observa as salvaguardas previstas na LGPD e se limita ao necessário para a prestação do serviço.',
         ],
       },
       {
-        heading: '7. Alterações',
+        heading: '7. Retenção e eliminação',
         paragraphs: [
-          'Esta Política pode ser atualizada para refletir melhorias na plataforma ou mudanças na legislação. A versão vigente fica sempre acessível dentro do sistema, com a data da última atualização indicada no topo do documento.',
+          'Os dados da conta são mantidos enquanto a conta existir. Ao solicitar a exclusão, os dados pessoais são eliminados ou anonimizados, respeitadas as obrigações legais de guarda. Os logs de auditoria e segurança são mantidos por período limitado e expurgados automaticamente após o prazo de retenção definido pela plataforma.',
+        ],
+      },
+      {
+        heading: '8. Cookies e armazenamento local',
+        paragraphs: [
+          'A plataforma utiliza o armazenamento local do navegador para manter a sessão autenticada e preferências de uso, como a opção de permanecer conectado. Esses dados ficam no dispositivo do usuário e são usados apenas para o funcionamento do serviço.',
+        ],
+      },
+      {
+        heading: '9. Direitos do titular',
+        paragraphs: [
+          'Em conformidade com o art. 18 da LGPD, o titular pode solicitar a confirmação da existência de tratamento, o acesso aos seus dados, a correção de informações incompletas ou desatualizadas, a portabilidade, a informação sobre compartilhamentos, a revogação do consentimento e a exclusão dos dados, respeitadas as obrigações legais de guarda. A plataforma oferece a exportação dos dados e a exclusão da conta diretamente no perfil, além dos canais de contato indicados.',
+        ],
+      },
+      {
+        heading: '10. Versionamento e alterações',
+        paragraphs: [
+          'Cada versão desta Política recebe um identificador. A versão aceita pelo usuário no cadastro fica registrada com a data do aceite, para rastreabilidade do consentimento. Esta Política pode ser atualizada para refletir melhorias na plataforma ou mudanças na legislação, e a versão vigente fica sempre acessível dentro do sistema, com a data indicada no topo do documento.',
         ],
       },
     ],

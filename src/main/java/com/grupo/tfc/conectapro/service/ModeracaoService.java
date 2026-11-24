@@ -59,15 +59,33 @@ public class ModeracaoService {
     }
 
     @Transactional
-    public ModeracaoUsuarioResponse banir(UUID usuarioId) {
+    public ModeracaoUsuarioResponse banir(UUID usuarioId, String motivo) {
         UUID adminId = exigirAdmin();
         Usuario alvo = carregarAlvoModeravel(usuarioId, adminId);
         alvo.setStatusConta(StatusConta.BANIDO);
         alvo.setBloqueadoAte(null);
+        alvo.setMotivoBanimento(motivo);
         usuarioRepository.save(alvo);
-        logger.info("Usuario banido. adminId={} usuarioId={}", adminId, usuarioId);
+        logger.info("Usuario banido. adminId={} usuarioId={} motivo={}", adminId, usuarioId, motivo);
         auditoriaService.registrar(AcaoAuditoria.USUARIO_BANIDO, adminId, "USUARIO",
-                usuarioId.toString(), "banimento permanente");
+                usuarioId.toString(), "banimento permanente. motivo=" + motivo);
+        return resposta(alvo);
+    }
+
+    @Transactional
+    public ModeracaoUsuarioResponse desbanir(UUID usuarioId) {
+        UUID adminId = exigirAdmin();
+        Usuario alvo = usuarioRepository.findById(usuarioId)
+                .orElseThrow(() -> new ResponseStatusException(NOT_FOUND, "Usuário não encontrado"));
+        if (alvo.getStatusConta() != StatusConta.BANIDO) {
+            throw new ResponseStatusException(BAD_REQUEST, "Usuário não está banido");
+        }
+        alvo.setStatusConta(StatusConta.ATIVO);
+        alvo.setMotivoBanimento(null);
+        usuarioRepository.save(alvo);
+        logger.info("Usuario desbanido. adminId={} usuarioId={}", adminId, usuarioId);
+        auditoriaService.registrar(AcaoAuditoria.USUARIO_BANIDO, adminId, "USUARIO",
+                usuarioId.toString(), "desbanimento");
         return resposta(alvo);
     }
 

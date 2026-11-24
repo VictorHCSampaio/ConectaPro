@@ -70,6 +70,14 @@ public class JwtService {
         return jwt.getClaim("role").asString();
     }
 
+    public String extrairJti(DecodedJWT jwt) {
+        return jwt.getId();
+    }
+
+    public Instant extrairExpiracao(DecodedJWT jwt) {
+        return jwt.getExpiresAt() != null ? jwt.getExpiresAt().toInstant() : Instant.now();
+    }
+
     public boolean extrairAdmin(DecodedJWT jwt) {
         return Boolean.TRUE.equals(jwt.getClaim("admin").asBoolean());
     }
@@ -111,6 +119,7 @@ public class JwtService {
             var builder = JWT.create()
                     .withIssuer(ISSUER)
                     .withSubject(userId.toString())
+                    .withJWTId(UUID.randomUUID().toString())
                     .withClaim("scope", scope)
                     .withIssuedAt(agora)
                     .withExpiresAt(gerarDataExpiracao(agora, expiracaoMinutos));

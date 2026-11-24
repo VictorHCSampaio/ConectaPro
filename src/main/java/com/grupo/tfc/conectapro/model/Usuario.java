@@ -71,12 +71,21 @@ public class Usuario {
     @Column(name = "motivo_rejeicao", columnDefinition = "text")
     private String motivoRejeicao;
 
+    @Column(name = "motivo_banimento", columnDefinition = "text")
+    private String motivoBanimento;
+
     @Column(name = "aceitou_termos")
     @Builder.Default
     private boolean aceitouTermos = false;
 
     @Column(name = "termos_aceitos_em")
     private OffsetDateTime termosAceitosEm;
+
+    @Column(name = "versao_termos")
+    private String versaoTermos;
+
+    @Column(name = "assinatura_valida_ate")
+    private OffsetDateTime assinaturaValidaAte;
 
     @PrePersist
     void preencherCriadoEm() {

@@ -181,7 +181,18 @@ export function LoginForm() {
 
       {wasSubmitted && <FormFeedback message="Login realizado. Redirecionando." />}
 
-      {submitError && <FormFeedback variant="error" message={submitError} />}
+      {submitError && submitError.includes('banida') ? (
+        <div className="rounded-lg border border-red-300 bg-red-50 p-4 dark:border-red-500/30 dark:bg-red-500/10">
+          <p className="text-sm font-semibold text-red-700 dark:text-red-300">Conta banida</p>
+          <p className="mt-1 text-sm text-red-600 dark:text-red-200">{submitError}</p>
+          <p className="mt-3 text-xs text-red-500 dark:text-red-300/70">
+            Se acredita que isto é um erro, entre em contato com a administração:{' '}
+            <span className="font-medium">conectaprotfc@gmail.com</span>
+          </p>
+        </div>
+      ) : submitError ? (
+        <FormFeedback variant="error" message={submitError} />
+      ) : null}
 
       <form onSubmit={onSubmit} noValidate className="flex flex-col gap-5">
         <Input

@@ -1,6 +1,6 @@
 import axios from 'axios'
 
-const IGNORED_UNAUTHORIZED_URLS = ['/auth/login', '/auth/logout', '/auth/2fa/verify']
+const IGNORED_UNAUTHORIZED_URLS = ['/auth/login', '/auth/logout', '/auth/2fa/verify', '/auth/2fa/activate', '/auth/2fa/setup']
 
 let onUnauthorized: (() => void) | null = null
 const TOKEN_KEY = 'access_token'

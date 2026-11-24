@@ -1,5 +1,6 @@
 import { api } from '@/lib/api'
 import type { Agendamento, AvailableSlot } from '@/types/agendamento'
+import type { Pagina } from '@/types/pagina'
 
 export async function listarHorariosDisponiveis(professorId: string): Promise<AvailableSlot[]> {
   const { data } = await api.get<AvailableSlot[]>(`/agendamentos/disponiveis/${professorId}`)
@@ -26,8 +27,16 @@ export async function listarMeusAgendamentos(): Promise<Agendamento[]> {
   return data
 }
 
-export async function listarAgendamentosRecebidos(): Promise<Agendamento[]> {
-  const { data } = await api.get<Agendamento[]>('/agendamentos/recebidos')
+export async function listarAgendamentosRecebidos(
+  page = 0,
+  size = 10,
+  nome = '',
+): Promise<Pagina<Agendamento>> {
+  const params: Record<string, string | number> = { page, size }
+  if (nome.trim()) params.nome = nome.trim()
+  const { data } = await api.get<Pagina<Agendamento>>('/agendamentos/recebidos', {
+    params,
+  })
   return data
 }
 

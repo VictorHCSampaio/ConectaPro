@@ -7,6 +7,8 @@ type CheckoutResponse = {
 
 type StatusPagamentoResponse = {
   status: string
+  assinaturaValidaAte: string | null
+  reembolsoDisponivel: boolean
 }
 
 export async function criarCheckout() {
@@ -16,5 +18,10 @@ export async function criarCheckout() {
 
 export async function obterStatusPagamento() {
   const { data } = await api.get<StatusPagamentoResponse>('/pagamentos/status')
+  return data
+}
+
+export async function solicitarReembolso() {
+  const { data } = await api.post<{ message: string }>('/pagamentos/reembolso')
   return data
 }

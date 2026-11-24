@@ -1,4 +1,4 @@
-import { BadgeCheck, Clock, FileText, Loader2, Mail, MessageSquareText, ShieldCheck, X } from 'lucide-react'
+import { BadgeCheck, Clock, FileText, Loader2, MessageSquareText, ShieldCheck, X } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 
@@ -15,7 +15,6 @@ import {
   type ProfessorPendente,
 } from '@/lib/adminProfessorService'
 
-const ASSUNTO_EMAIL = 'Avaliação de Perfil Professor - ConectaPro'
 const RASCUNHO_CONVERSA =
   'Olá! Sou da equipe ConectaPro e gostaria de agendar uma conversa para avaliar o seu cadastro de professor. Quais dias e horários funcionam melhor para você?'
 
@@ -203,13 +202,6 @@ export function AdminProfessoresPage() {
                     ? 'Marcar conversa / Abrir chat'
                     : 'Contatar professor'}
                 </button>
-                <a
-                  href={`mailto:${professor.email}?subject=${encodeURIComponent(ASSUNTO_EMAIL)}`}
-                  className="inline-flex items-center gap-1.5 rounded-md border border-paper-300 bg-white px-3 py-1.5 text-xs font-semibold text-ink-800 transition-colors hover:border-paper-400 dark:border-white/10 dark:bg-night-700 dark:text-zinc-100"
-                >
-                  <Mail className="size-3.5" />
-                  Enviar e-mail
-                </a>
                 <span
                   className="inline-flex"
                   title={

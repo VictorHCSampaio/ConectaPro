@@ -79,17 +79,24 @@ class ModeracaoDenunciaIntegrationTest {
                 .andReturn();
         String denunciaId = com.jayway.jsonpath.JsonPath.read(criada.getResponse().getContentAsString(), "$.id");
 
-        mockMvc.perform(post("/admin/usuarios/" + acusado.getId() + "/ban"))
+        String corpoBan = "{\"motivo\":\"Conduta abusiva reincidente\"}";
+        mockMvc.perform(post("/admin/usuarios/" + acusado.getId() + "/ban")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(corpoBan))
                 .andExpect(status().isUnauthorized());
         mockMvc.perform(post("/admin/usuarios/" + acusado.getId() + "/ban")
-                        .header("Authorization", "Bearer " + tokenDenunciante))
+                        .header("Authorization", "Bearer " + tokenDenunciante)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(corpoBan))
                 .andExpect(status().isForbidden());
         mockMvc.perform(post("/admin/denuncias/" + denunciaId + "/recomendar-bo")
                         .header("Authorization", "Bearer " + tokenDenunciante))
                 .andExpect(status().isForbidden());
 
         mockMvc.perform(post("/admin/usuarios/" + acusado.getId() + "/ban")
-                        .header("Authorization", "Bearer " + tokenAdmin))
+                        .header("Authorization", "Bearer " + tokenAdmin)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(corpoBan))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.statusConta").value("BANIDO"));
 

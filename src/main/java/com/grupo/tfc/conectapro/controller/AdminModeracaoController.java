@@ -3,6 +3,7 @@ package com.grupo.tfc.conectapro.controller;
 import com.grupo.tfc.conectapro.dto.denuncia.DenunciaResponse;
 import com.grupo.tfc.conectapro.dto.moderacao.AplicarTimeoutRequest;
 import com.grupo.tfc.conectapro.dto.moderacao.AtualizarStatusDenunciaRequest;
+import com.grupo.tfc.conectapro.dto.moderacao.BanirUsuarioRequest;
 import com.grupo.tfc.conectapro.dto.moderacao.ModeracaoUsuarioResponse;
 import com.grupo.tfc.conectapro.service.ModeracaoService;
 import jakarta.validation.Valid;
@@ -29,8 +30,14 @@ public class AdminModeracaoController {
     }
 
     @PostMapping("/usuarios/{id}/ban")
-    public ResponseEntity<ModeracaoUsuarioResponse> banir(@PathVariable UUID id) {
-        return ResponseEntity.ok(moderacaoService.banir(id));
+    public ResponseEntity<ModeracaoUsuarioResponse> banir(@PathVariable UUID id,
+                                                          @Valid @RequestBody BanirUsuarioRequest request) {
+        return ResponseEntity.ok(moderacaoService.banir(id, request.motivo()));
+    }
+
+    @PostMapping("/usuarios/{id}/unban")
+    public ResponseEntity<ModeracaoUsuarioResponse> desbanir(@PathVariable UUID id) {
+        return ResponseEntity.ok(moderacaoService.desbanir(id));
     }
 
     @PostMapping("/usuarios/{id}/timeout")

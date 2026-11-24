@@ -24,6 +24,7 @@ import { AvailabilityGrid } from '@/components/teacher-config/AvailabilityGrid'
 import { FormSection } from '@/components/teacher-config/FormSection'
 import { SubjectExperienceInput } from '@/components/teacher-config/SubjectExperienceInput'
 import { Button } from '@/components/ui/Button'
+import { AssinaturaCard } from '@/components/professor/AssinaturaCard'
 import { Checkbox } from '@/components/ui/Checkbox'
 import { Input } from '@/components/ui/Input'
 import { LgpdSection } from '@/components/ui/LgpdSection'
@@ -33,7 +34,7 @@ import { SiteHeader } from '@/components/landing/SiteHeader'
 import { useAuth } from '@/hooks/useAuth'
 import { ehContaAdmin } from '@/types/auth'
 import { extractErrorMessage } from '@/lib/api'
-import { ativarTotp, obterConfigTotp, obterStatusTotp } from '@/lib/authService'
+import { ativarTotp, desativarTotp, obterConfigTotp, obterStatusTotp } from '@/lib/authService'
 import { buscarEnderecoPorCep } from '@/lib/enderecoService'
 import { cn } from '@/lib/cn'
 import { maskCep } from '@/lib/masks'
@@ -101,11 +102,13 @@ function validateProfile(data: TeacherProfileFormData, incluirEnsino = true): Te
     errors.fullName = 'Nome deve ter no mínimo 3 caracteres'
   }
 
-  const phoneDigits = data.phone.replace(/\D/g, '')
-  if (!phoneDigits) {
-    errors.phone = 'Telefone é obrigatório'
-  } else if (phoneDigits.length < 11) {
-    errors.phone = 'Informe um telefone válido: (XX) XXXXX-XXXX'
+  if (incluirEnsino) {
+    const phoneDigits = data.phone.replace(/\D/g, '')
+    if (!phoneDigits) {
+      errors.phone = 'Telefone é obrigatório'
+    } else if (phoneDigits.length < 11) {
+      errors.phone = 'Informe um telefone válido: (XX) XXXXX-XXXX'
+    }
   }
 
   const bioLength = data.bio.trim().length
@@ -123,11 +126,13 @@ function validateProfile(data: TeacherProfileFormData, incluirEnsino = true): Te
     errors.pricePerHour = 'Informe um valor por aula'
   }
 
-  const cepDigits = data.address.cep.replace(/\D/g, '')
-  if (!cepDigits) {
-    errors.cep = 'CEP é obrigatório'
-  } else if (cepDigits.length !== 8) {
-    errors.cep = 'CEP inválido — deve ter 8 dígitos'
+  if (incluirEnsino) {
+    const cepDigits = data.address.cep.replace(/\D/g, '')
+    if (!cepDigits) {
+      errors.cep = 'CEP é obrigatório'
+    } else if (cepDigits.length !== 8) {
+      errors.cep = 'CEP inválido — deve ter 8 dígitos'
+    }
   }
 
   return errors
@@ -154,9 +159,12 @@ function buildPayload(data: TeacherProfileFormData, contaAdmin = false): Teacher
   const hours = data.advanceNoticeHours ? parseInt(data.advanceNoticeHours, 10) : null
   const subjects = contaAdmin && data.subjects.length === 0 ? [MATERIA_ADMIN_PADRAO] : data.subjects
   const modalities = data.modalities.length > 0 ? data.modalities : ['online' as const]
+  const cepDigits = data.address.cep.replace(/\D/g, '')
+  const phone = contaAdmin && !data.phone.trim() ? '00000000000' : data.phone
+  const cep = contaAdmin && !cepDigits ? '00000000' : cepDigits
   return {
     fullName: data.fullName.trim(),
-    phone: data.phone,
+    phone,
     bio: data.bio.trim(),
     subjects,
     teachingModel: data.teachingModel
@@ -167,7 +175,7 @@ function buildPayload(data: TeacherProfileFormData, contaAdmin = false): Teacher
     modalities: modalities.map((modality) => MODALITY_MAP[modality]),
     pricePerHour: parseCurrencyToFloat(data.pricePerHour),
     address: {
-      cep: data.address.cep.replace(/\D/g, ''),
+      cep,
       street: data.address.logradouro,
       neighborhood: data.address.bairro,
       city: data.address.cidade,
@@ -354,38 +362,66 @@ function SecuritySection() {
   const [totpAtivo, setTotpAtivo] = useState<boolean | null>(null)
   const [qrUri, setQrUri] = useState<string | null>(null)
   const [totpCode, setTotpCode] = useState('')
-  const [activating, setActivating] = useState(false)
-  const [activateError, setActivateError] = useState<string | null>(null)
-  const [activateSuccess, setActivateSuccess] = useState(false)
+  const [processing, setProcessing] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+  const [success, setSuccess] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    Promise.all([obterStatusTotp(), obterConfigTotp()])
-      .then(([status, config]) => {
+    let cancelado = false
+    obterStatusTotp()
+      .then((status) => {
+        if (cancelado) return
         setTotpAtivo(status.totpAtivo)
-        setQrUri(config.qrUri)
+        if (!status.totpAtivo) {
+          return obterConfigTotp()
+            .then((config) => {
+              if (!cancelado) setQrUri(config.qrUri)
+            })
+            .catch(() => undefined)
+        }
       })
       .catch(() => undefined)
-      .finally(() => setLoading(false))
+      .finally(() => {
+        if (!cancelado) setLoading(false)
+      })
+    return () => { cancelado = true }
   }, [])
 
-  async function handleActivate(event: React.FormEvent) {
-    event.preventDefault()
+  async function handleActivate() {
     if (totpCode.length !== 6) return
-
-    setActivateError(null)
-    setActivating(true)
+    setError(null)
+    setSuccess(null)
+    setProcessing(true)
     try {
       await ativarTotp({ totpCode: parseInt(totpCode, 10) })
       setTotpAtivo(true)
-      setActivateSuccess(true)
+      setSuccess('2FA ativado com sucesso!')
       setTotpCode('')
-    } catch (error) {
-      setActivateError(
-        extractErrorMessage(error, 'Não foi possível ativar o 2FA. Tente novamente.'),
-      )
+    } catch (err) {
+      setError(extractErrorMessage(err, 'Não foi possível ativar o 2FA. Tente novamente.'))
     } finally {
-      setActivating(false)
+      setProcessing(false)
+    }
+  }
+
+  async function handleDeactivate() {
+    if (totpCode.length !== 6) return
+    setError(null)
+    setSuccess(null)
+    setProcessing(true)
+    try {
+      await desativarTotp({ totpCode: parseInt(totpCode, 10) })
+      setTotpAtivo(false)
+      setSuccess('2FA desativado com sucesso.')
+      setTotpCode('')
+      obterConfigTotp()
+        .then((config) => setQrUri(config.qrUri))
+        .catch(() => undefined)
+    } catch (err) {
+      setError(extractErrorMessage(err, 'Não foi possível desativar o 2FA. Tente novamente.'))
+    } finally {
+      setProcessing(false)
     }
   }
 
@@ -403,11 +439,61 @@ function SecuritySection() {
   if (totpAtivo) {
     return (
       <FormSection title="Segurança" description="Proteção adicional para sua conta.">
-        <div className="flex items-center gap-3 rounded-lg border border-sage-600/20 bg-sage-50 dark:bg-emerald-900/20 p-4">
-          <ShieldCheck className="size-5 shrink-0 text-sage-600 dark:text-emerald-400" />
-          <p className="text-sm font-medium text-sage-600 dark:text-emerald-400">
-            Autenticação em duas etapas ativada
-          </p>
+        <div className="flex flex-col gap-4">
+          <div className="flex items-center gap-3 rounded-lg border border-sage-600/20 bg-sage-50 dark:bg-emerald-900/20 p-4">
+            <ShieldCheck className="size-5 shrink-0 text-sage-600 dark:text-emerald-400" />
+            <p className="text-sm font-medium text-sage-600 dark:text-emerald-400">
+              Autenticação em duas etapas ativada
+            </p>
+          </div>
+
+          {success && (
+            <div className="flex items-center gap-2 rounded-lg border border-sage-600/20 bg-sage-50 dark:bg-emerald-900/20 p-3">
+              <CheckCircle2 className="size-4 shrink-0 text-sage-600 dark:text-emerald-400" />
+              <p className="text-sm text-sage-600 dark:text-emerald-400">{success}</p>
+            </div>
+          )}
+
+          {error && (
+            <p className="text-xs font-medium text-alert-600 dark:text-alert-200">{error}</p>
+          )}
+
+          <div className="flex items-start gap-3 rounded-lg border border-red-400/20 bg-red-50/50 dark:bg-red-900/10 p-4">
+            <Shield className="mt-0.5 size-5 shrink-0 text-red-600 dark:text-red-400" />
+            <div className="flex flex-col gap-1">
+              <p className="text-sm font-medium text-ink-800 dark:text-white">
+                Desativar verificação em duas etapas
+              </p>
+              <p className="text-xs text-ink-600 dark:text-zinc-400">
+                Digite o código do seu app autenticador para confirmar a desativação.
+              </p>
+            </div>
+          </div>
+
+          <div className="flex items-end gap-3">
+            <div className="flex-1">
+              <Input
+                label="Código do Autenticador"
+                type="text"
+                inputMode="numeric"
+                placeholder="000000"
+                value={totpCode}
+                onChange={(e) => setTotpCode(e.target.value.replace(/\D/g, '').slice(0, 6))}
+                maxLength={6}
+                autoComplete="one-time-code"
+              />
+            </div>
+            <Button
+              type="button"
+              onClick={handleDeactivate}
+              isLoading={processing}
+              disabled={totpCode.length !== 6}
+              fullWidth={false}
+              className="min-w-[120px] shrink-0 !bg-red-600 hover:!bg-red-500"
+            >
+              Desativar 2FA
+            </Button>
+          </div>
         </div>
       </FormSection>
     )
@@ -441,18 +527,18 @@ function SecuritySection() {
           </div>
         )}
 
-        {activateSuccess && (
+        {success && (
           <div className="flex items-center gap-2 rounded-lg border border-sage-600/20 bg-sage-50 dark:bg-emerald-900/20 p-3">
             <CheckCircle2 className="size-4 shrink-0 text-sage-600 dark:text-emerald-400" />
-            <p className="text-sm text-sage-600 dark:text-emerald-400">2FA ativado com sucesso!</p>
+            <p className="text-sm text-sage-600 dark:text-emerald-400">{success}</p>
           </div>
         )}
 
-        {activateError && (
-          <p className="text-xs font-medium text-alert-600 dark:text-alert-200">{activateError}</p>
+        {error && (
+          <p className="text-xs font-medium text-alert-600 dark:text-alert-200">{error}</p>
         )}
 
-        <form onSubmit={handleActivate} className="flex items-end gap-3">
+        <div className="flex items-end gap-3">
           <div className="flex-1">
             <Input
               label="Código do Autenticador"
@@ -466,15 +552,16 @@ function SecuritySection() {
             />
           </div>
           <Button
-            type="submit"
-            isLoading={activating}
+            type="button"
+            onClick={handleActivate}
+            isLoading={processing}
             disabled={totpCode.length !== 6}
             fullWidth={false}
             className="min-w-[120px] shrink-0"
           >
             Ativar 2FA
           </Button>
-        </form>
+        </div>
       </div>
     </FormSection>
   )
@@ -833,6 +920,8 @@ export function TeacherProfileConfigPage() {
           )}
         </div>
 
+        {!ehAdmin && <AssinaturaCard />}
+
         <form onSubmit={handleSubmit} noValidate className="flex flex-col gap-6">
           <FormSection
             title="Foto de Perfil"
@@ -964,18 +1053,20 @@ export function TeacherProfileConfigPage() {
                 onBlur={() => touch('fullName')}
               />
 
-              <Input
-                label="Telefone / WhatsApp"
-                type="tel"
-                placeholder="(11) 98765-4321"
-                icon={<Phone className="size-4" />}
-                value={form.phone}
-                autoComplete="tel"
-                inputMode="numeric"
-                error={fieldError('phone')}
-                onChange={(e) => handlePhoneChange(e.target.value)}
-                onBlur={() => touch('phone')}
-              />
+              {!ehAdmin && (
+                <Input
+                  label="Telefone / WhatsApp"
+                  type="tel"
+                  placeholder="(11) 98765-4321"
+                  icon={<Phone className="size-4" />}
+                  value={form.phone}
+                  autoComplete="tel"
+                  inputMode="numeric"
+                  error={fieldError('phone')}
+                  onChange={(e) => handlePhoneChange(e.target.value)}
+                  onBlur={() => touch('phone')}
+                />
+              )}
 
               <TextareaField
                 id={bioId}
@@ -1021,10 +1112,6 @@ export function TeacherProfileConfigPage() {
                       {
                         value: 'particulares',
                         label: 'Aulas particulares',
-                      },
-                      {
-                        value: 'instituicoes',
-                        label: 'Aulas para instituições de ensino (escolas e/ou faculdades)',
                       },
                     ] as const
                   ).map(({ value, label }) => (
@@ -1110,6 +1197,7 @@ export function TeacherProfileConfigPage() {
           </FormSection>
           )}
 
+          {!ehAdmin && (
           <FormSection
             title="Localização"
             description="Informe o CEP para preenchermos o endereço automaticamente."
@@ -1202,6 +1290,7 @@ export function TeacherProfileConfigPage() {
               </div>
             </div>
           </FormSection>
+          )}
 
           {!ehAdmin && (
           <FormSection

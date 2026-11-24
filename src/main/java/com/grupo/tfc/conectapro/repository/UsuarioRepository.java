@@ -16,6 +16,8 @@ public interface UsuarioRepository extends JpaRepository<Usuario, UUID> {
 
     List<Usuario> findByTipoAndStatusContaOrderByCriadoEmAsc(TipoUsuario tipo, StatusConta statusConta);
 
+    List<Usuario> findByStatusContaAndAssinaturaValidaAteBefore(StatusConta statusConta, OffsetDateTime limite);
+
     long countByTipo(TipoUsuario tipo);
 
     long countByTipoAndCriadoEmGreaterThanEqualAndCriadoEmLessThan(
