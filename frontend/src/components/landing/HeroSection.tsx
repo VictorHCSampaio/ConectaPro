@@ -1,6 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
 import { FeaturedPanel } from '@/components/landing/FeaturedPanel'
-import { SubjectSearchBar } from '@/components/landing/SubjectSearchBar'
 import { Counter } from '@/components/motion/Counter'
 import { Reveal } from '@/components/motion/Reveal'
 import { useAuth } from '@/hooks/useAuth'
@@ -63,8 +62,6 @@ export function HeroSection() {
           <p className="max-w-md leading-relaxed text-ink-600 dark:text-zinc-400">
             Formação, modalidade, avaliações e valor da hora-aula de cada professor na mesma tela.
           </p>
-
-          <SubjectSearchBar />
         </Reveal>
 
         <Reveal delay={0.12} className="min-w-0 lg:pl-6">
